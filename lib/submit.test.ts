@@ -123,6 +123,31 @@ describe("submitRequest", () => {
     expect(deps.notify).not.toHaveBeenCalled();
   });
 
+  it("shows a safe reference code when saving fails", async () => {
+    const deps = makeDeps({
+      insert: vi.fn<SubmitDeps["insert"]>(async () => {
+        throw Object.assign(new Error("permission denied for table requests"), { code: "42501" });
+      }),
+    });
+    const result = await submitRequest(good, "203.0.113.9", deps);
+    expect(result.ok).toBe(false);
+    if (!result.ok && result.status === 500) {
+      expect(result.error).toContain("Ref: insert-42501");
+      expect(result.error).not.toContain("permission denied");
+    }
+  });
+
+  it("still saves if the spam check itself breaks", async () => {
+    const deps = makeDeps({
+      countRecentByIp: vi.fn<SubmitDeps["countRecentByIp"]>(async () => {
+        throw new Error("db hiccup");
+      }),
+    });
+    const result = await submitRequest(good, "203.0.113.9", deps);
+    expect(result).toEqual({ ok: true });
+    expect(deps.insert).toHaveBeenCalledTimes(1);
+  });
+
   it("still succeeds if the email alert fails", async () => {
     const deps = makeDeps({
       notify: vi.fn(async () => {

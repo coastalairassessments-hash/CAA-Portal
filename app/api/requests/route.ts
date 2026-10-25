@@ -1,4 +1,4 @@
-import { submitRequest } from "@/lib/submit";
+import { errorRef, submitRequest } from "@/lib/submit";
 import { productionDeps } from "@/lib/server-deps";
 
 const MAX_BODY_BYTES = 20_000;
@@ -27,11 +27,14 @@ export async function POST(request: Request) {
   try {
     const result = await submitRequest(body, clientIp(request), productionDeps());
     return Response.json(result, { status: result.ok ? 200 : result.status });
-  } catch {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[requests] server error: ${message}`);
+    const stage = message.startsWith("Missing ") ? "config" : "server";
     return Response.json(
       {
         ok: false,
-        error: "Something went wrong on our end. Please call us and we'll take it from here.",
+        error: `Something went wrong on our end. Please call us and we'll take it from here. (Ref: ${errorRef(stage, err)})`,
       },
       { status: 500 },
     );

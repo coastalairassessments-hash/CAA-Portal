@@ -42,6 +42,24 @@ function hashIp(ip: string, salt: string): string {
   return createHash("sha256").update(`${salt}:${ip}`).digest("hex");
 }
 
+// Short, safe-to-show code for support, e.g. "insert-42501". Never includes personal data.
+export function errorRef(stage: string, err: unknown): string {
+  let code = "unknown";
+  if (typeof err === "object" && err !== null) {
+    const c = (err as { code?: unknown }).code;
+    const m = String((err as { message?: unknown }).message ?? "");
+    if (typeof c === "string" && c) code = c;
+    else if (/invalid api key|jwt|apikey/i.test(m)) code = "auth";
+    else if (/fetch failed|enotfound|network|invalid url/i.test(m)) code = "network";
+  }
+  return `${stage}-${code}`;
+}
+
+function logFailure(stage: string, err: unknown) {
+  const message = err instanceof Error ? err.message : String((err as { message?: unknown })?.message ?? err);
+  console.error(`[submit] ${stage} failed: ${message}`);
+}
+
 export async function submitRequest(
   input: unknown,
   ip: string | null,
@@ -73,7 +91,13 @@ export async function submitRequest(
   const ipHash = ip ? hashIp(ip, deps.ipSalt) : null;
   if (ipHash) {
     const since = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
-    const recent = await deps.countRecentByIp(ipHash, since);
+    let recent = 0;
+    try {
+      recent = await deps.countRecentByIp(ipHash, since);
+    } catch (err) {
+      // Spam protection must never block a real client. Log it and carry on.
+      logFailure("spam-check", err);
+    }
     if (recent >= MAX_PER_HOUR) {
       return {
         ok: false,
@@ -108,11 +132,12 @@ export async function submitRequest(
   let id: string;
   try {
     ({ id } = await deps.insert(row));
-  } catch {
+  } catch (err) {
+    logFailure("insert", err);
     return {
       ok: false,
       status: 500,
-      error: "Something went wrong on our end. Please call us and we'll take it from here.",
+      error: `Something went wrong on our end. Please call us and we'll take it from here. (Ref: ${errorRef("insert", err)})`,
     };
   }
 
