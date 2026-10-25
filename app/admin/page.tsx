@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { supabaseForUser } from "@/lib/supabase/server";
 import { formatPhone, formatTime, issueLabel, sizeLabel } from "@/lib/labels";
@@ -27,6 +28,9 @@ type Row = {
   zip: string;
   notes: string;
   text_consent: boolean;
+  confirmed_date: string | null;
+  confirmed_time: string | null;
+  block_hours: number | null;
   area: "core" | "outside";
 };
 
@@ -47,7 +51,7 @@ async function List() {
   const { data, error } = await supabase
     .from("requests")
     .select(
-      "id, created_at, status, issue, size_band, preferred_date, preferred_time, name, phone, email, address, city, zip, notes, text_consent, area",
+      "id, created_at, status, issue, size_band, preferred_date, preferred_time, name, phone, email, address, city, zip, notes, text_consent, confirmed_date, confirmed_time, block_hours, area",
     )
     .order("created_at", { ascending: false })
     .limit(200);
@@ -82,7 +86,9 @@ async function List() {
             {issueLabel(r.issue)} · {sizeLabel(r.size_band)}
           </p>
           <p style={{ margin: "0.25rem 0" }}>
-            Wants {formatDateLabel(r.preferred_date)} at {formatTime(r.preferred_time)}
+            {r.status === "confirmed" && r.confirmed_date && r.confirmed_time
+              ? `Booked ${formatDateLabel(r.confirmed_date)} at ${formatTime(r.confirmed_time)} · ${r.block_hours}h`
+              : `Wants ${formatDateLabel(r.preferred_date)} at ${formatTime(r.preferred_time)}`}
           </p>
           <p style={{ margin: "0.25rem 0" }}>
             {r.address}, {r.city} {r.zip}
@@ -93,6 +99,9 @@ async function List() {
             <a href={`mailto:${r.email}`}>{r.email}</a>
           </p>
           {r.notes && <p style={{ margin: "0.25rem 0" }}>Notes: {r.notes}</p>}
+          <p style={{ margin: "0.5rem 0 0" }}>
+            <Link href={`/admin/${r.id}`}>Open</Link>
+          </p>
         </li>
       ))}
     </ul>

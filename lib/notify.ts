@@ -53,3 +53,33 @@ export async function sendEmailAlert(
   });
   if (!res.ok) throw new Error(`Email alert failed: ${res.status}`);
 }
+
+// One email to a client (or anyone). Never throws: returns what happened so the screen can say it.
+export type SendResult = { ok: true } | { ok: false; reason: string };
+
+export async function sendEmail(
+  msg: { to: string; subject: string; text: string },
+  env: Record<string, string | undefined> = process.env,
+  fetchImpl: typeof fetch = fetch,
+): Promise<SendResult> {
+  const key = env.RESEND_API_KEY?.trim();
+  const from = (env.CLIENT_FROM ?? env.ALERT_FROM)?.trim();
+  const replyTo = env.ALERT_EMAIL?.trim();
+  if (!key || !from) return { ok: false, reason: "email-not-set-up" };
+  try {
+    const res = await fetchImpl("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from,
+        to: [msg.to],
+        subject: msg.subject,
+        text: msg.text,
+        ...(replyTo ? { reply_to: replyTo } : {}),
+      }),
+    });
+    return res.ok ? { ok: true } : { ok: false, reason: `resend-${res.status}` };
+  } catch {
+    return { ok: false, reason: "network" };
+  }
+}
