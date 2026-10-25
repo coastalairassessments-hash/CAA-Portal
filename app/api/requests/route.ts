@@ -31,12 +31,10 @@ export async function POST(request: Request) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[requests] server error: ${message}`);
     const stage = message.startsWith("Missing ") ? "config" : "server";
-    // TEMPORARY while we test: a short, sanitized hint of what failed. Remove before launch.
-    const hint = message.replace(/[^A-Za-z0-9 _:.\-]/g, "").slice(0, 60);
     return Response.json(
       {
         ok: false,
-        error: `Something went wrong on our end. Please call us and we'll take it from here. (Ref: ${errorRef(stage, err)}: ${hint})`,
+        error: `Something went wrong on our end. Please call us and we'll take it from here. (Ref: ${errorRef(stage, err)})`,
       },
       { status: 500 },
     );
