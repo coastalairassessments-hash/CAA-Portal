@@ -7,13 +7,23 @@ import type { SubmitDeps } from "./submit";
 export function productionDeps(
   env: Record<string, string | undefined> = process.env,
 ): SubmitDeps {
-  const url = env.SUPABASE_URL;
-  const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
-  const ipSalt = env.IP_HASH_SALT;
+  // Pasted values often carry stray spaces, line breaks or quote marks. Clean them.
+  const clean = (v: string | undefined) =>
+    v?.trim().replace(/^["']+|["']+$/g, "").trim();
+  const url = clean(env.SUPABASE_URL);
+  const serviceKey = clean(env.SUPABASE_SERVICE_ROLE_KEY);
+  const ipSalt = clean(env.IP_HASH_SALT);
   if (!url || !serviceKey || !ipSalt) {
-    throw new Error(
-      "Missing SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY or IP_HASH_SALT",
-    );
+    const missing = [
+      !url && "SUPABASE_URL",
+      !serviceKey && "SUPABASE_SERVICE_ROLE_KEY",
+      !ipSalt && "IP_HASH_SALT",
+    ].filter(Boolean);
+    throw new Error(`Missing ${missing.join(", ")}`);
+  }
+  if (!/^https?:\/\/[^\s/]+/.test(url)) {
+    // The project URL is not a secret, so showing its start helps us fix it fast.
+    throw new Error(`SUPABASE_URL bad, len ${url.length}, starts ${url.slice(0, 12)}`);
   }
 
   const db = createClient(url, serviceKey, {
