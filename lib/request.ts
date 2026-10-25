@@ -1,4 +1,11 @@
 import { z } from "zod";
+import {
+  BOOKABLE_WEEKDAYS,
+  addDays,
+  isRealDate,
+  todayInNewYork,
+  weekdayOf,
+} from "./dates";
 
 export const ISSUES = [
   "musty_smell",
@@ -18,32 +25,7 @@ export const SIZE_BANDS = [
 // Bookable times. Cory sets the real slot and block length when he confirms.
 export const TIMES = ["10:00", "12:30"] as const;
 
-// Mon-Thu only (0 = Sunday ... 6 = Saturday)
-const BOOKABLE_WEEKDAYS = [1, 2, 3, 4];
 const MAX_DAYS_AHEAD = 120;
-
-const TIME_ZONE = "America/New_York";
-
-function todayInNewYork(now: Date): string {
-  // en-CA gives YYYY-MM-DD
-  return new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(now);
-}
-
-function isRealDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const d = new Date(`${value}T12:00:00Z`);
-  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
-}
-
-function weekdayOf(value: string): number {
-  return new Date(`${value}T12:00:00Z`).getUTCDay();
-}
-
-function addDays(value: string, days: number): string {
-  const d = new Date(`${value}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 
 // Accepts common US phone formats, returns +1XXXXXXXXXX
 function normalizePhone(raw: string): string | null {
