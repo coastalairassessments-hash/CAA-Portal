@@ -12,18 +12,18 @@ export default function ConfirmForm(props: {
     error: null,
   });
   return (
-    <form action={action}>
+    <form action={action} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <input type="hidden" name="id" value={props.id} />
-      <div className="fields">
-        <div className="field">
-          <label htmlFor="date">Date</label>
-          <input id="date" name="date" type="date" defaultValue={props.defaultDate} required />
-        </div>
-        <div className="field">
+      <div className="adm-field">
+        <label htmlFor="date">Date</label>
+        <input id="date" name="date" type="date" defaultValue={props.defaultDate} required />
+      </div>
+      <div className="adm-row">
+        <div className="adm-field">
           <label htmlFor="time">Start time</label>
           <input id="time" name="time" type="time" step={900} defaultValue={props.defaultTime} required />
         </div>
-        <div className="field">
+        <div className="adm-field">
           <label htmlFor="hours">Time on site</label>
           <select id="hours" name="hours" defaultValue="2">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((h) => (
@@ -34,8 +34,8 @@ export default function ConfirmForm(props: {
           </select>
         </div>
       </div>
-      {state.error && <p className="error" role="alert">{state.error}</p>}
-      <button className="btn" type="submit" disabled={pending}>
+      {state.error && <p className="adm-err" role="alert">{state.error}</p>}
+      <button className="adm-btn primary wide" type="submit" disabled={pending}>
         {pending ? "Confirming..." : props.label}
       </button>
     </form>

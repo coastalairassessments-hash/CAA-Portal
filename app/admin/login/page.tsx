@@ -8,8 +8,8 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <main className="wrap" style={{ maxWidth: 420, paddingBlock: "4rem" }}>
-      <h1>Sign in</h1>
+    <main className="adm-wrap" style={{ paddingTop: "4rem" }}>
+      <h1 className="adm-title" style={{ marginBottom: 16 }}>Sign in</h1>
       <LoginForm />
     </main>
   );

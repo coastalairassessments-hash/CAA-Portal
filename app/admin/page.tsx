@@ -1,40 +1,71 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { supabaseForUser } from "@/lib/supabase/server";
-import { formatPhone, formatTime, issueLabel, sizeLabel } from "@/lib/labels";
-import { formatDateLabel } from "@/lib/dates";
+import { formatDateLabel, todayInNewYork } from "@/lib/dates";
+import { formatTime, issueLabel, sizeLabel } from "@/lib/labels";
+import {
+  counts,
+  filterRows,
+  mapsLink,
+  parseTab,
+  todayLabel,
+  type AdminRow,
+  type Tab,
+} from "@/lib/admin";
 import { logout } from "./actions";
 
 export const metadata: Metadata = {
-  title: "Your list | Coastal Air Assessments",
+  title: "Your day | Coastal Air Assessments",
   robots: { index: false, follow: false },
 };
 
-type Row = {
-  id: string;
-  created_at: string;
-  status: string;
-  issue: string;
-  size_band: string;
-  preferred_date: string;
-  preferred_time: string;
-  name: string;
-  phone: string;
-  email: string;
-  address: string;
-  city: string;
-  zip: string;
-  notes: string;
-  text_consent: boolean;
-  confirmed_date: string | null;
-  confirmed_time: string | null;
-  block_hours: number | null;
-  area: "core" | "outside";
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+const TAB_LABELS: Record<Tab, string> = { new: "New", booked: "Booked", declined: "Declined", all: "All" };
+const EMPTY: Record<Tab, string> = {
+  new: "Nothing waiting. You're caught up.",
+  booked: "No booked jobs yet.",
+  declined: "Nothing here.",
+  all: "No requests yet.",
 };
 
-async function List() {
+function Card({ r }: { r: AdminRow }) {
+  const booked = r.status === "confirmed" && r.confirmed_date && r.confirmed_time;
+  return (
+    <article className={`adm-card${r.area === "outside" ? " outside" : ""}`}>
+      <h2>{r.name}</h2>
+      <div className="adm-chips">
+        {r.status === "confirmed" && <span className="adm-chip solid">Confirmed</span>}
+        {r.status === "declined" && <span className="adm-chip">Declined</span>}
+        {r.area === "outside" && <span className="adm-chip warn">Outside area</span>}
+      </div>
+      <p className="adm-line">
+        {issueLabel(r.issue)} · {sizeLabel(r.size_band)}
+      </p>
+      <p className="adm-muted">
+        {booked
+          ? `Booked ${formatDateLabel(r.confirmed_date!)} at ${formatTime(r.confirmed_time!)} · ${r.block_hours}h`
+          : `Wants ${formatDateLabel(r.preferred_date)} at ${formatTime(r.preferred_time)}`}{" "}
+        · {r.city} {r.zip}
+      </p>
+      <div className="adm-actions">
+        <a className="adm-btn" href={`tel:${r.phone}`}>Call</a>
+        {r.text_consent ? (
+          <a className="adm-btn" href={`sms:${r.phone}`}>Text</a>
+        ) : (
+          <span className="adm-btn" aria-disabled="true" style={{ opacity: 0.45 }}>Text</span>
+        )}
+        <a className="adm-btn" href={mapsLink(r)}>Navigate</a>
+        <Link className="adm-btn primary" href={`/admin/${r.id}`}>Open</Link>
+      </div>
+    </article>
+  );
+}
+
+async function Dashboard({ searchParams }: Props) {
+  const tab = parseTab((await searchParams).tab);
   const supabase = await supabaseForUser();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) redirect("/admin/login");
@@ -42,7 +73,7 @@ async function List() {
   const { data: isAdmin } = await supabase.rpc("is_admin");
   if (!isAdmin) {
     return (
-      <p className="error">
+      <p className="adm-err">
         This account is signed in but is not on the admin list. Add it to admin_users in Supabase.
       </p>
     );
@@ -55,70 +86,49 @@ async function List() {
     )
     .order("created_at", { ascending: false })
     .limit(200);
-  if (error) return <p className="error">Could not load requests. (Ref: list-{error.code ?? "unknown"})</p>;
+  if (error) return <p className="adm-err">Could not load requests. (Ref: list-{error.code ?? "unknown"})</p>;
 
-  const rows = (data ?? []) as Row[];
-  if (rows.length === 0) return <p>No requests yet.</p>;
+  const all = (data ?? []) as AdminRow[];
+  const c = counts(all, todayInNewYork());
+  const rows = filterRows(all, tab);
 
   return (
-    <ul style={{ listStyle: "none", padding: 0, display: "grid", gap: "1rem" }}>
-      {rows.map((r) => (
-        <li
-          key={r.id}
-          style={{
-            border: "1px solid var(--line)",
-            borderLeft: `6px solid ${r.area === "outside" ? "var(--signal)" : "var(--tide)"}`,
-            borderRadius: 8,
-            padding: "1rem",
-            background: "#fff",
-          }}
-        >
-          <p style={{ margin: 0, fontWeight: 600 }}>
-            {r.name}
-            {r.area === "outside" && (
-              <span style={{ color: "var(--signal)", marginLeft: 8 }}>OUTSIDE AREA</span>
-            )}
-            <span style={{ color: "var(--muted)", marginLeft: 8, fontWeight: 400 }}>
-              {r.status}
-            </span>
-          </p>
-          <p style={{ margin: "0.25rem 0" }}>
-            {issueLabel(r.issue)} · {sizeLabel(r.size_band)}
-          </p>
-          <p style={{ margin: "0.25rem 0" }}>
-            {r.status === "confirmed" && r.confirmed_date && r.confirmed_time
-              ? `Booked ${formatDateLabel(r.confirmed_date)} at ${formatTime(r.confirmed_time)} · ${r.block_hours}h`
-              : `Wants ${formatDateLabel(r.preferred_date)} at ${formatTime(r.preferred_time)}`}
-          </p>
-          <p style={{ margin: "0.25rem 0" }}>
-            {r.address}, {r.city} {r.zip}
-          </p>
-          <p style={{ margin: "0.25rem 0" }}>
-            <a href={`tel:${r.phone}`}>{formatPhone(r.phone)}</a>
-            {r.text_consent ? " (ok to text)" : " (no texting)"} ·{" "}
-            <a href={`mailto:${r.email}`}>{r.email}</a>
-          </p>
-          {r.notes && <p style={{ margin: "0.25rem 0" }}>Notes: {r.notes}</p>}
-          <p style={{ margin: "0.5rem 0 0" }}>
-            <Link href={`/admin/${r.id}`}>Open</Link>
-          </p>
-        </li>
-      ))}
-    </ul>
+    <>
+      <div className="adm-stats">
+        <div className={`adm-stat${c.new > 0 ? " hot" : ""}`}><b>{c.new}</b><span>New requests</span></div>
+        <div className="adm-stat"><b>{c.upcoming}</b><span>Upcoming jobs</span></div>
+        <div className="adm-stat"><b>{c.outside}</b><span>Outside area</span></div>
+      </div>
+      <nav className="adm-seg" aria-label="Filter">
+        {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
+          <Link key={t} href={t === "new" ? "/admin" : `/admin?tab=${t}`} aria-current={t === tab ? "page" : undefined}>
+            {TAB_LABELS[t]}
+          </Link>
+        ))}
+      </nav>
+      {rows.length === 0 ? (
+        <p className="adm-empty">{EMPTY[tab]}</p>
+      ) : (
+        rows.map((r) => <Card key={r.id} r={r} />)
+      )}
+    </>
   );
 }
 
-export default function AdminPage() {
+export default function AdminPage(props: Props) {
   return (
-    <main className="wrap" style={{ paddingBlock: "2rem" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1>Your list</h1>
+    <main className="adm-wrap">
+      <header className="adm-top">
+        <div>
+          <div className="adm-date">{todayLabel()}</div>
+          <h1 className="adm-title">Your day</h1>
+        </div>
         <form action={logout}>
-          <button className="btn btn-quiet btn-small" type="submit">Sign out</button>
+          <button className="adm-link" type="submit">Sign out</button>
         </form>
       </header>
-      <Suspense fallback={<p>Loading...</p>}>
-        <List />
+      <Suspense fallback={<p className="adm-empty">Loading...</p>}>
+        <Dashboard {...props} />
       </Suspense>
     </main>
   );

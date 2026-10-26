@@ -185,6 +185,13 @@ describe("alerts", () => {
     expect(text).toContain("no texting");
   });
 
+  it("puts a tap-to-open link and clean phone and date in the alert", () => {
+    const { text } = buildAlert(row, "https://example.test/");
+    expect(text).toContain("Open it: https://example.test/admin/abc-123");
+    expect(text).toContain("(772) 555-0142");
+    expect(text).toContain("Tue, Oct 27 at 10:00 AM");
+  });
+
   it("skips quietly when email keys are not set", async () => {
     const fetchMock = vi.fn();
     await sendEmailAlert(row, {}, fetchMock as unknown as typeof fetch);
