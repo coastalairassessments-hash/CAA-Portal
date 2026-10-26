@@ -8,7 +8,7 @@ import { HOW_HEARD } from "@/lib/request";
 const ISSUES = [
   { value: "musty_smell", label: "Musty smell", hint: "Odor or suspected mold" },
   { value: "water_damage", label: "Water damage", hint: "A leak, flood or storm intrusion" },
-  { value: "post_remediation", label: "Post-remediation check", hint: "Confirm a cleanup worked (PRV)" },
+  { value: "post_remediation", label: "Post-remediation verification (PRV)", hint: "Confirm a mold cleanup worked" },
   { value: "air_quality", label: "Air quality concern", hint: "Allergies, odors or general testing" },
   { value: "other", label: "Something else", hint: "You can explain in the notes" },
 ];
@@ -364,10 +364,14 @@ export default function RequestFlow({ dates }: { dates: string[] }) {
                 I have read and agree to the{" "}
                 <a href="/terms" target="_blank" rel="noreferrer">
                   Mold Assessment and Sampling Terms
+                </a>{" "}
+                and the{" "}
+                <a href="/policy" target="_blank" rel="noreferrer">
+                  Booking and Payment Policy
                 </a>
                 <small>
                   This is a limited, non-destructive assessment. The terms explain what it covers and
-                  what it does not.
+                  what it does not. The policy covers deposits and cancellation.
                 </small>
               </label>
               {errors.termsAccepted && (

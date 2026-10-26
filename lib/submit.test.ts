@@ -59,6 +59,8 @@ describe("submitRequest", () => {
     const row = (deps.insert.mock.calls[0] as unknown[])[0] as Record<string, unknown>;
     expect(row.terms_version).toBe("v1-2026-10");
     expect(row.terms_accepted_at).toBe(NOW.toISOString());
+    expect(row.policy_version).toBe("v1-2026-10");
+    expect(row.policy_accepted_at).toBe(NOW.toISOString());
   });
 
   it("refuses a request that did not agree to the terms", async () => {
@@ -194,6 +196,8 @@ describe("alerts", () => {
     text_consent: false,
     terms_version: "v1-2026-10",
     terms_accepted_at: "2026-10-25T17:00:00.000Z",
+    policy_version: "v1-2026-10",
+    policy_accepted_at: "2026-10-25T17:00:00.000Z",
     area: "outside" as const,
     zone_id: null,
     ip_hash: null,

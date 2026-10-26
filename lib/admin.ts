@@ -22,6 +22,8 @@ export type AdminRow = {
   confirmed_time: string | null;
   block_hours: number | null;
   area: "core" | "outside";
+  cancel_refund?: boolean | null;
+  refunded_at?: string | null;
 };
 
 export const TABS = ["requests", "booked", "declined", "all"] as const;

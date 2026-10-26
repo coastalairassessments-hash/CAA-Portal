@@ -22,7 +22,8 @@ export async function logout() {
 }
 
 // ---- Offer, deposit, decline ----
-import { confirmEmail, declineEmail, offerEmail, parseConfirm, takenEmail } from "@/lib/confirm";
+import { cancelEmail, confirmEmail, declineEmail, offerEmail, parseConfirm, takenEmail } from "@/lib/confirm";
+import { refundDue } from "@/lib/cancel";
 import { SITE_URL_FALLBACK, sendEmail } from "@/lib/notify";
 import { depositCents } from "@/lib/pricing";
 import { overlaps } from "@/lib/slots";
@@ -274,4 +275,40 @@ export async function cancelJob(form: FormData): Promise<void> {
   if (!supabase || !/^[0-9a-f-]{36}$/i.test(id)) redirect("/admin");
   const { error } = await supabase.from("requests").update({ status: "cancelled" }).eq("id", id);
   redirect(error ? `/admin/${id}?error=save` : "/admin/today");
+}
+
+// Cancel a client's booking. A paid deposit comes back only if the visit is more than 24 hours away.
+export async function cancelBooking(form: FormData): Promise<void> {
+  const supabase = await adminClient();
+  const id = String(form.get("id") ?? "");
+  if (!supabase || !/^[0-9a-f-]{36}$/i.test(id)) redirect("/admin");
+
+  const { data: row } = await supabase
+    .from("requests")
+    .select(`${CLIENT_COLUMNS}, source, status, confirmed_date, confirmed_time, block_hours`)
+    .eq("id", id).single();
+  if (!row || row.source !== "client" || !["offered", "confirmed"].includes(row.status)) {
+    redirect(`/admin/${id}?error=save`);
+  }
+  const slot = { date: row.confirmed_date as string, time: row.confirmed_time as string, hours: row.block_hours as number };
+  const paid = row.status === "confirmed";
+  const refund = paid ? refundDue(slot.date, slot.time) : false;
+
+  const { error } = await supabase
+    .from("requests")
+    .update({ status: "cancelled", cancelled_at: new Date().toISOString(), cancel_refund: paid ? refund : null })
+    .eq("id", id);
+  if (error) redirect(`/admin/${id}?error=save`);
+
+  const sent = await sendEmail({ to: row.email, ...cancelEmail(row, slot, refund, paid) });
+  if (!sent.ok) console.error(`[cancel] client email not sent: ${sent.reason}`);
+  redirect(`/admin/${id}?email=${sent.ok ? "sent" : "failed"}`);
+}
+
+export async function markRefunded(form: FormData): Promise<void> {
+  const supabase = await adminClient();
+  const id = String(form.get("id") ?? "");
+  if (!supabase || !/^[0-9a-f-]{36}$/i.test(id)) redirect("/admin");
+  const { error } = await supabase.from("requests").update({ refunded_at: new Date().toISOString() }).eq("id", id);
+  redirect(`/admin/${id}${error ? "?error=save" : ""}`);
 }

@@ -45,9 +45,11 @@ export function confirmEmail(row: ConfirmRow, b: Booking, siteUrl = "https://caa
       `We have planned about ${hoursWord(b.hours)} on site. Every visit has a one-hour minimum.`,
       "If you would like to limit our time on site, reply to this email. The assessment will then cover the areas we can complete in that time.",
       "",
+      "To cancel or reschedule, reply to this email. More than 24 hours before your visit is a full refund of your deposit.",
       "Reply to this email with any questions.",
       "",
       `Terms you agreed to: ${siteUrl.replace(/\/+$/, "")}/terms`,
+      `Booking and payment policy: ${siteUrl.replace(/\/+$/, "")}/policy`,
       "",
       "Coastal Air Assessments",
     ].join("\n"),
@@ -76,6 +78,7 @@ export function offerEmail(row: ConfirmRow, b: Booking, deposit: number, siteUrl
       "Reply to this email with any questions.",
       "",
       `Terms you agreed to: ${siteUrl.replace(/\/+$/, "")}/terms`,
+      `Booking and payment policy: ${siteUrl.replace(/\/+$/, "")}/policy`,
       "",
       "Coastal Air Assessments",
     ].join("\n"),
@@ -132,4 +135,28 @@ export function onMyWayText(row: { name: string }): string {
 }
 export function runningLateText(row: { name: string }, minutes = 15): string {
   return `Hi ${firstName(row.name)}, this is Coastal Air Assessments. I'm running about ${minutes} minutes behind. Thank you for your patience.`;
+}
+
+// Sent when a booking is cancelled. Says plainly whether the deposit comes back.
+export function cancelEmail(row: ConfirmRow, b: Booking, refund: boolean, paid: boolean) {
+  const money = !paid
+    ? ""
+    : refund
+      ? "Your deposit will be refunded in full. It can take a few business days to appear."
+      : "Because this is within 24 hours of the visit, the deposit is not refunded, as described in the booking policy.";
+  return {
+    subject: `Your visit is cancelled: ${whenOf(b)}`,
+    text: [
+      `Hi ${firstName(row.name)},`,
+      "",
+      `Your Coastal Air Assessments visit on ${whenOf(b)} is cancelled.`,
+      money,
+      "",
+      "If you would like to book another day, reply to this email.",
+      "",
+      "Coastal Air Assessments",
+    ]
+      .filter((l, i, a) => l !== "" || a[i - 1] !== "")
+      .join("\n"),
+  };
 }

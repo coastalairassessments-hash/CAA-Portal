@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { onMyWayText, runningLateText, confirmEmail, confirmText, declineEmail, offerEmail, offerText, parseConfirm, smsLink, takenEmail } from "./confirm";
+import { cancelEmail, onMyWayText, runningLateText, confirmEmail, confirmText, declineEmail, offerEmail, offerText, parseConfirm, smsLink, takenEmail } from "./confirm";
 import { sendEmail } from "./notify";
 
 const NOW = new Date("2026-10-25T17:00:00Z");
@@ -55,6 +55,21 @@ describe("messages", () => {
     const link = smsLink(row.phone, confirmText(row, b));
     expect(link.startsWith("sms:+17725550142&body=")).toBe(true);
     expect(link).not.toContain(" ");
+  });
+});
+
+describe("cancel email", () => {
+  const b = { date: "2026-10-27", time: "12:30", hours: 2 };
+  it("promises the refund when it is due", () => {
+    expect(cancelEmail(row, b, true, true).text).toContain("refunded in full");
+  });
+  it("says the deposit is kept inside 24 hours", () => {
+    expect(cancelEmail(row, b, false, true).text).toContain("not refunded");
+  });
+  it("says nothing about money when no deposit was paid", () => {
+    const t = cancelEmail(row, b, false, false).text;
+    expect(t).not.toContain("refund");
+    expect(t).toContain("cancelled");
   });
 });
 

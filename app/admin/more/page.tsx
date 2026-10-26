@@ -15,10 +15,11 @@ export default function MorePage() {
       </header>
       <section className="adm-group">
         <Link className="adm-btn wide" href="/admin?tab=booked">Booked jobs</Link>
-        <Link className="adm-btn wide" href="/admin?tab=declined">Declined requests</Link>
+        <Link className="adm-btn wide" href="/admin?tab=declined">Declined and cancelled</Link>
         <Link className="adm-btn wide" href="/admin?tab=all">All requests</Link>
         <a className="adm-btn wide" href="/request">Public request page</a>
         <a className="adm-btn wide" href="/terms">Terms clients agree to</a>
+        <a className="adm-btn wide" href="/policy">Booking policy</a>
       </section>
       <form action={logout}>
         <button className="adm-btn wide" type="submit">Sign out</button>

@@ -2,7 +2,7 @@
 const ISSUE_LABELS: Record<string, string> = {
   musty_smell: "Musty smell",
   water_damage: "Water damage",
-  post_remediation: "After mold cleanup (PRV)",
+  post_remediation: "Post-remediation verification (PRV)",
   air_quality: "Air quality concern",
   other: "Other",
 };

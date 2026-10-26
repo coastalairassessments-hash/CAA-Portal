@@ -15,13 +15,10 @@ export default function DonePage() {
       </header>
       <main className="wrap done">
         <h1>Request received.</h1>
+        <p>We will reply with your day and time. There is nothing to pay today.</p>
         <p>
-          We will review it and confirm your date by phone, text or email. There is no payment
-          today.
-        </p>
-        <p>
-          Once your date is confirmed, you will get a link to pay a 75% deposit, which holds the
-          date for you.
+          A 75% deposit then holds your date. If two people ask for the same time, the first
+          deposit gets it.
         </p>
         <p style={{ marginTop: "1.75rem" }}>
           <Link href="/" className="btn btn-quiet">

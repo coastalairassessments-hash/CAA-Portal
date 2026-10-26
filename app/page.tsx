@@ -91,7 +91,7 @@ export default function Home() {
               </details>
             </li>
             <li>
-              <h3>After-cleanup check (PRV)</h3>
+              <h3>Post-remediation verification (PRV)</h3>
               <span className="price">$575</span>
               <p className="blurb">
                 Confirms a mold cleanup worked. First hour included, then $195 an hour.
@@ -183,6 +183,14 @@ export default function Home() {
               </p>
             </details>
             <details>
+              <summary>What if I need to cancel?</summary>
+              <p>
+                Cancel more than 24 hours before your visit and your deposit is refunded in full.
+                Within 24 hours it is not. The details are in our{" "}
+                <Link href="/policy">booking policy</Link>.
+              </p>
+            </details>
+            <details>
               <summary>Where do you work?</summary>
               <p>
                 Martin, St. Lucie and Palm Beach counties. Outside that? Send a request anyway and
@@ -206,7 +214,8 @@ export default function Home() {
       <footer className="wrap site-footer">
         <p>Coastal Air Assessments. Serving Martin, St. Lucie and Palm Beach counties, Florida.</p>
         <p>
-          <Link href="/terms">Mold assessment and sampling terms</Link>
+          <Link href="/terms">Mold assessment and sampling terms</Link> ·{" "}
+          <Link href="/policy">Booking and payment policy</Link>
         </p>
       </footer>
     </>

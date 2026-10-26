@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-const TAB_LABELS: Record<Tab, string> = { requests: "Requests", booked: "Booked jobs", declined: "Declined", all: "All" };
+const TAB_LABELS: Record<Tab, string> = { requests: "Requests", booked: "Booked jobs", declined: "Declined and cancelled", all: "All" };
 const EMPTY: Record<Tab, string> = {
   requests: "Nothing waiting. You're caught up.",
   booked: "No booked jobs yet.",
@@ -41,6 +41,9 @@ function Card({ r }: { r: AdminRow }) {
         {r.status === "confirmed" && <span className="adm-chip solid">Booked</span>}
         {r.status === "offered" && <span className="adm-chip warn">Deposit waiting</span>}
         {r.status === "declined" && <span className="adm-chip">Declined</span>}
+        {r.status === "cancelled" && !r.cancel_refund && <span className="adm-chip">Cancelled</span>}
+        {r.status === "cancelled" && r.cancel_refund && !r.refunded_at && <span className="adm-chip warn">Refund due</span>}
+        {r.status === "cancelled" && r.cancel_refund && r.refunded_at && <span className="adm-chip">Cancelled, refunded</span>}
         {r.area === "outside" && <span className="adm-chip warn">Outside area</span>}
       </div>
       <p className="adm-line">
@@ -91,7 +94,7 @@ async function Dashboard({ searchParams }: Props) {
   const { data, error } = await supabase
     .from("requests")
     .select(
-      "id, created_at, status, issue, size_band, preferred_date, preferred_time, name, phone, email, address, city, zip, notes, text_consent, confirmed_date, confirmed_time, block_hours, area, source",
+      "id, created_at, status, issue, size_band, preferred_date, preferred_time, name, phone, email, address, city, zip, notes, text_consent, confirmed_date, confirmed_time, block_hours, area, source, cancel_refund, refunded_at",
     )
     .order("created_at", { ascending: false })
     .limit(200);

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { parseRequest } from "./request";
 import { classifyZip } from "./zones";
 import { TERMS_VERSION } from "./terms";
+import { POLICY_VERSION } from "./policy";
 
 // Row shape matches the `requests` table (supabase/migrations/0001_requests.sql).
 export type NewRequestRow = {
@@ -20,6 +21,8 @@ export type NewRequestRow = {
   text_consent: boolean;
   terms_version: string;
   terms_accepted_at: string;
+  policy_version: string;
+  policy_accepted_at: string;
   area: "core" | "outside";
   zone_id: string | null;
   ip_hash: string | null;
@@ -131,6 +134,8 @@ export async function submitRequest(
     text_consent: data.textConsent,
     terms_version: TERMS_VERSION,
     terms_accepted_at: now.toISOString(),
+    policy_version: POLICY_VERSION,
+    policy_accepted_at: now.toISOString(),
     area: zone.area,
     zone_id: zone.zoneId,
     ip_hash: ipHash,

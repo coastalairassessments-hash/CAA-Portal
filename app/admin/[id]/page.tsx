@@ -9,7 +9,8 @@ import { mapsLink } from "@/lib/admin";
 import { confirmText, offerText, smsLink } from "@/lib/confirm";
 import { depositCents, formatMoney } from "@/lib/pricing";
 import { googleCalendarLink } from "@/lib/calendar";
-import { cancelJob, declineRequest, markDepositReceived } from "../actions";
+import { cancelBooking, cancelJob, declineRequest, markDepositReceived, markRefunded } from "../actions";
+import { hoursUntil, refundDue } from "@/lib/cancel";
 import ConfirmForm from "./ConfirmForm";
 import Drawers from "./Drawers";
 
@@ -156,7 +157,41 @@ async function Detail({ params, searchParams }: Props) {
         </section>
       )}
 
+      {r.status === "cancelled" && r.cancel_refund && (
+        <section className="adm-group">
+          <h2>{r.refunded_at ? "Deposit refunded" : "Refund due"}</h2>
+          <p className="adm-line">
+            {r.refunded_at
+              ? `Refunded ${formatStamp(r.refunded_at)}.`
+              : `Refund the ${formatMoney(deposit)} deposit in QuickBooks, then mark it refunded.`}
+          </p>
+          {!r.refunded_at && (
+            <form action={markRefunded}>
+              <input type="hidden" name="id" value={r.id} />
+              <button className="adm-btn primary wide" type="submit">Mark refunded</button>
+            </form>
+          )}
+        </section>
+      )}
+
       <Drawers r={r} saved={typeof query.saved === "string" ? query.saved : undefined} />
+
+      {!contractor && slot && (r.status === "offered" || r.status === "confirmed") && (
+        <section className="adm-group">
+          <h2>Cancel booking</h2>
+          <p className="adm-muted">
+            {r.status === "offered"
+              ? "No deposit received yet, so nothing to refund."
+              : refundDue(slot.date, slot.time)
+                ? `The visit is ${Math.round(hoursUntil(slot.date, slot.time))} hours away. The deposit is refunded in full.`
+                : "The visit is within 24 hours. The deposit is kept, as the policy says."}
+          </p>
+          <form action={cancelBooking}>
+            <input type="hidden" name="id" value={r.id} />
+            <button className="adm-btn wide" type="submit">Cancel and email client</button>
+          </form>
+        </section>
+      )}
 
       {contractor && r.status === "confirmed" && (
         <form action={cancelJob}>

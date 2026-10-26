@@ -84,7 +84,7 @@ export function buildRequestSchema(now: Date = new Date()) {
     notes: z.string().trim().max(1000).optional().default(""),
     howHeard: z.enum(["google", "referral", "contractor", "social", "other"]).optional(),
     textConsent: z.boolean(),
-    termsAccepted: z.literal(true, { error: "Please agree to the terms to continue" }),
+    termsAccepted: z.literal(true, { error: "Please agree to the terms and policy to continue" }),
     // Honeypot: real people never see or fill this field. Bots do.
     website: z.string().max(0).optional().default(""),
   });
