@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import Logo from "@/app/components/Logo";
 
 const sizes: { label: string; time: string; h: string; open?: boolean }[] = [
   { label: "Under 2,000 sq ft", time: "About 1 hour", h: "36px" },
@@ -12,9 +13,7 @@ export default function Home() {
   return (
     <>
       <header className="wrap site-header">
-        <Link href="/" className="wordmark">
-          Coastal Air Assessments
-        </Link>
+        <Logo />
         <Link href="/request" className="btn btn-small">
           Request a date
         </Link>

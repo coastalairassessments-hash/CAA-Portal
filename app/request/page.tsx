@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Logo from "@/app/components/Logo";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { nextBookableDates } from "@/lib/dates";
@@ -20,9 +21,7 @@ export default function RequestPage() {
   return (
     <>
       <header className="wrap site-header">
-        <Link href="/" className="wordmark">
-          Coastal Air Assessments
-        </Link>
+        <Logo />
       </header>
       <main className="wrap">
         <Suspense fallback={<p className="step-count">Loading...</p>}>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Logo from "@/app/components/Logo";
 
 export const metadata: Metadata = {
   title: "Request received | Coastal Air Assessments",
@@ -10,9 +11,7 @@ export default function DonePage() {
   return (
     <>
       <header className="wrap site-header">
-        <Link href="/" className="wordmark">
-          Coastal Air Assessments
-        </Link>
+        <Logo />
       </header>
       <main className="wrap done">
         <h1>Request received.</h1>

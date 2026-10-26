@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Logo from "@/app/components/Logo";
 import {
   TERMS_PREAMBLE,
   TERMS_SECTIONS,
@@ -38,9 +39,7 @@ export default function TermsPage() {
   return (
     <>
       <header className="wrap site-header">
-        <Link href="/" className="wordmark">
-          Coastal Air Assessments
-        </Link>
+        <Logo />
       </header>
       <main className="wrap section terms">
         <h1>{TERMS_TITLE}</h1>
