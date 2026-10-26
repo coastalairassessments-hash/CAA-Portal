@@ -25,6 +25,14 @@ export const SIZE_BANDS = [
 // Bookable times. Cory sets the real slot and block length when he confirms.
 export const TIMES = ["10:00", "12:30"] as const;
 
+export const HOW_HEARD = [
+  { value: "google", label: "Google search" },
+  { value: "referral", label: "Friend, family or past client" },
+  { value: "contractor", label: "Contractor or agent" },
+  { value: "social", label: "Facebook or Instagram" },
+  { value: "other", label: "Other" },
+] as const;
+
 const MAX_DAYS_AHEAD = 120;
 
 // Accepts common US phone formats, returns +1XXXXXXXXXX
@@ -74,6 +82,7 @@ export function buildRequestSchema(now: Date = new Date()) {
       .regex(/^\d{5}(-\d{4})?$/, "Enter a 5-digit ZIP code")
       .transform((v) => v.slice(0, 5)),
     notes: z.string().trim().max(1000).optional().default(""),
+    howHeard: z.enum(["google", "referral", "contractor", "social", "other"]).optional(),
     textConsent: z.boolean(),
     termsAccepted: z.literal(true, { error: "Please agree to the terms to continue" }),
     // Honeypot: real people never see or fill this field. Bots do.

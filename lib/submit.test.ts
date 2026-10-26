@@ -190,6 +190,7 @@ describe("alerts", () => {
     city: "Miami",
     zip: "33101",
     notes: "",
+    how_heard: null,
     text_consent: false,
     terms_version: "v1-2026-10",
     terms_accepted_at: "2026-10-25T17:00:00.000Z",

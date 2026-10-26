@@ -16,6 +16,7 @@ export type NewRequestRow = {
   city: string;
   zip: string;
   notes: string;
+  how_heard: string | null;
   text_consent: boolean;
   terms_version: string;
   terms_accepted_at: string;
@@ -126,6 +127,7 @@ export async function submitRequest(
     city: data.city,
     zip: data.zip,
     notes: data.notes,
+    how_heard: data.howHeard ?? null,
     text_consent: data.textConsent,
     terms_version: TERMS_VERSION,
     terms_accepted_at: now.toISOString(),

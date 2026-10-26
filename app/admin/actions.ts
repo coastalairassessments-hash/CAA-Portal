@@ -26,6 +26,7 @@ import { confirmEmail, declineEmail, offerEmail, parseConfirm, takenEmail } from
 import { SITE_URL_FALLBACK, sendEmail } from "@/lib/notify";
 import { depositCents } from "@/lib/pricing";
 import { overlaps } from "@/lib/slots";
+import { isSection, parseSection } from "@/lib/job";
 
 export type ConfirmState = { error: string | null };
 
@@ -158,4 +159,42 @@ export async function declineRequest(form: FormData): Promise<void> {
   const sent = await sendEmail({ to: client.email, ...declineEmail(client) });
   if (!sent.ok) console.error(`[decline] client email not sent: ${sent.reason}`);
   redirect(`/admin/${id}?email=${sent.ok ? "sent" : "failed"}`);
+}
+
+// ---- Job drawers: client extras, lab, money ----
+export async function saveSection(form: FormData): Promise<void> {
+  const supabase = await adminClient();
+  const id = String(form.get("id") ?? "");
+  const section = form.get("section");
+  if (!supabase || !/^[0-9a-f-]{36}$/i.test(id) || !isSection(section)) redirect("/admin");
+
+  const input: Record<string, FormDataEntryValue | null> = {};
+  for (const [k, v] of form.entries()) if (k !== "id" && k !== "section") input[k] = v;
+  const parsed = parseSection(section, input);
+  if (!parsed.success) redirect(`/admin/${id}?error=check`);
+
+  const { error } = await supabase.from("requests").update(parsed.data).eq("id", id);
+  if (error) redirect(`/admin/${id}?error=save`);
+  redirect(`/admin/${id}?saved=${section}`);
+}
+
+// Arrived / Left buttons. Stamps the current time; "clear" undoes a mistap.
+export async function stampTime(form: FormData): Promise<void> {
+  const supabase = await adminClient();
+  const id = String(form.get("id") ?? "");
+  const which = form.get("which");
+  if (!supabase || !/^[0-9a-f-]{36}$/i.test(id) || (which !== "arrived_at" && which !== "left_at")) redirect("/admin");
+  const value = form.get("clear") ? null : new Date().toISOString();
+  const { error } = await supabase.from("requests").update({ [which]: value }).eq("id", id);
+  redirect(`/admin/${id}${error ? "?error=save" : ""}`);
+}
+
+// The final invoice was paid. This is what later releases the report.
+export async function markFinalPaid(form: FormData): Promise<void> {
+  const supabase = await adminClient();
+  const id = String(form.get("id") ?? "");
+  if (!supabase || !/^[0-9a-f-]{36}$/i.test(id)) redirect("/admin");
+  const value = form.get("clear") ? null : new Date().toISOString();
+  const { error } = await supabase.from("requests").update({ final_paid_at: value }).eq("id", id);
+  redirect(`/admin/${id}${error ? "?error=save" : ""}`);
 }

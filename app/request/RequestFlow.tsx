@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateLabel } from "@/lib/dates";
+import { HOW_HEARD } from "@/lib/request";
 
 const ISSUES = [
   { value: "musty_smell", label: "Musty smell", hint: "Odor or suspected mold" },
@@ -51,6 +52,7 @@ export default function RequestFlow({ dates }: { dates: string[] }) {
   const [city, setCity] = useState("");
   const [zip, setZip] = useState("");
   const [notes, setNotes] = useState("");
+  const [howHeard, setHowHeard] = useState("");
   const [textConsent, setTextConsent] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [website, setWebsite] = useState(""); // hidden bot trap
@@ -90,6 +92,7 @@ export default function RequestFlow({ dates }: { dates: string[] }) {
           city,
           zip,
           notes,
+          howHeard: howHeard || undefined,
           textConsent,
           termsAccepted,
           website,
@@ -321,6 +324,18 @@ export default function RequestFlow({ dates }: { dates: string[] }) {
                 onChange={(e) => setNotes(e.target.value)}
                 maxLength={1000}
               />
+            </div>
+
+            <div className="field">
+              <label htmlFor="howHeard">
+                How did you hear about us? <span className="optional">(optional)</span>
+              </label>
+              <select id="howHeard" value={howHeard} onChange={(e) => setHowHeard(e.target.value)}>
+                <option value="">Choose one</option>
+                {HOW_HEARD.map((h) => (
+                  <option key={h.value} value={h.value}>{h.label}</option>
+                ))}
+              </select>
             </div>
 
             <div className="field consent">

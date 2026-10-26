@@ -81,6 +81,11 @@ describe("parseRequest", () => {
     expect(parseRequest({ ...good, website: "http://spam.example" }, NOW).success).toBe(false);
   });
 
+  it("accepts an optional how-heard answer and rejects unknown ones", () => {
+    expect(parseRequest({ ...good, howHeard: "google" }, NOW).success).toBe(true);
+    expect(parseRequest({ ...good }, NOW).success).toBe(true);
+    expect(parseRequest({ ...good, howHeard: "tv" }, NOW).success).toBe(false);
+  });
   it("rejects oversized notes", () => {
     expect(parseRequest({ ...good, notes: "x".repeat(1001) }, NOW).success).toBe(false);
   });

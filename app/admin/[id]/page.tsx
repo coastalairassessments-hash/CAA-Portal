@@ -11,6 +11,7 @@ import { depositCents, formatMoney } from "@/lib/pricing";
 import { googleCalendarLink } from "@/lib/calendar";
 import { declineRequest, markDepositReceived } from "../actions";
 import ConfirmForm from "./ConfirmForm";
+import Drawers from "./Drawers";
 
 export const metadata: Metadata = {
   title: "Request | Coastal Air Assessments",
@@ -68,7 +69,10 @@ async function Detail({ params, searchParams }: Props) {
           Another paid job already holds that time, so this deposit could not be booked. Change this client's time below, then mark it again.
         </p>
       )}
-      {query.error && query.error !== "taken" && (
+      {query.error === "check" && (
+        <p className="adm-err" style={{ marginBottom: 14 }}>Check the numbers and dates, then save again.</p>
+      )}
+      {query.error && query.error !== "taken" && query.error !== "check" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>Something did not save. Try again.</p>
       )}
 
@@ -142,6 +146,8 @@ async function Detail({ params, searchParams }: Props) {
           )}
         </section>
       )}
+
+      <Drawers r={r} saved={typeof query.saved === "string" ? query.saved : undefined} />
 
       {r.status !== "declined" && r.status !== "cancelled" && (
         <section className="adm-group">
