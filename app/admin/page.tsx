@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { supabaseForUser } from "@/lib/supabase/server";
 import { formatDateLabel, todayInNewYork } from "@/lib/dates";
 import { formatTime, issueLabel, sizeLabel } from "@/lib/labels";
@@ -64,6 +65,12 @@ function Card({ r }: { r: AdminRow }) {
   );
 }
 
+// Today's date is computed fresh on each visit.
+async function TodayDate() {
+  await connection();
+  return <>{todayLabel()}</>;
+}
+
 async function Dashboard({ searchParams }: Props) {
   const tab = parseTab((await searchParams).tab);
   const supabase = await supabaseForUser();
@@ -120,7 +127,11 @@ export default function AdminPage(props: Props) {
     <main className="adm-wrap">
       <header className="adm-top">
         <div>
-          <div className="adm-date">{todayLabel()}</div>
+          <div className="adm-date">
+            <Suspense fallback={null}>
+              <TodayDate />
+            </Suspense>
+          </div>
           <h1 className="adm-title">Your day</h1>
         </div>
         <form action={logout}>
