@@ -37,8 +37,9 @@ export default function Home() {
         <section className="wrap section" aria-labelledby="time-heading">
           <h2 id="time-heading">How long a visit takes</h2>
           <p>
-            These are estimates of our time on site, based on the size of the property. We confirm
-            the actual time for your property when we confirm your date.
+            Every visit has a one-hour minimum. These are the times we typically recommend to assess
+            the whole property, based on its size. We confirm the time for your property when we
+            confirm your date, and you may choose to limit it.
           </p>
           <ol className="ruler" aria-hidden="true">
             {sizes.map((s) => (
@@ -59,7 +60,10 @@ export default function Home() {
 
         <section className="wrap section" aria-labelledby="price-heading">
           <h2 id="price-heading">What it costs</h2>
-          <p>Your first hour on site is a flat price. Time after that is billed by the hour.</p>
+          <p>
+            Every visit includes a minimum of one hour on site at a flat price. Time after that is
+            billed by the hour, and you may choose to limit it.
+          </p>
           <ul className="price-list">
             <li>
               <h3>Mold and indoor air quality assessment</h3>
@@ -163,10 +167,13 @@ export default function Home() {
           <h2 id="faq-heading">Common questions</h2>
           <div style={{ marginTop: "1.25rem" }}>
             <details>
-              <summary>Can I choose how long the visit lasts?</summary>
+              <summary>Can I limit how long the visit lasts?</summary>
               <p>
-                No. We set the time based on the property so the assessment is done properly. The
-                size guide above shows what to expect.
+                Yes. Every visit is billed for a minimum of one hour, so we are on site for at least
+                that long. Larger properties usually take longer to assess fully. If you prefer to
+                limit our time on site, that is your decision. The assessment will then cover only
+                the areas we can complete in that time, and the findings will reflect only those
+                areas. Let us know when you request your date.
               </p>
             </details>
             <details>
