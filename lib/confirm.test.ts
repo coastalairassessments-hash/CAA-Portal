@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { confirmEmail, confirmText, declineEmail, parseConfirm, smsLink } from "./confirm";
+import { confirmEmail, confirmText, declineEmail, offerEmail, offerText, parseConfirm, smsLink, takenEmail } from "./confirm";
 import { sendEmail } from "./notify";
 
 const NOW = new Date("2026-10-25T17:00:00Z");
@@ -31,6 +31,22 @@ describe("messages", () => {
     expect(text).toContain("2 hours");
     expect(text).toContain("Hi Pat");
     expect(confirmEmail(row, b, "https://x.test/").text).toContain("https://x.test/terms");
+  });
+  it("offer email states the deposit and that the first deposit holds the date", () => {
+    const { subject, text } = offerEmail(row, b, 51375);
+    expect(subject).toContain("12:30 PM");
+    expect(text).toContain("$513.75");
+    expect(text).toContain("first deposit holds it");
+    expect(text).toContain("one-hour minimum");
+    expect(offerText(row, b, 51375)).toContain("$513.75");
+  });
+  it("taken email names the lost time and asks for another day", () => {
+    const { text } = takenEmail(row, b);
+    expect(text).toContain("Tue, Oct 27");
+    expect(text).toContain("another day");
+  });
+  it("confirmation says the deposit was received", () => {
+    expect(confirmEmail(row, b).text).toContain("received your deposit");
   });
   it("decline email is polite and short", () => {
     expect(declineEmail(row).text).toContain("Hi Pat");

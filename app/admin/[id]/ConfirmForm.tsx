@@ -1,6 +1,6 @@
 "use client";
 import { useActionState } from "react";
-import { confirmRequest, type ConfirmState } from "../actions";
+import { offerRequest, type ConfirmState } from "../actions";
 
 export default function ConfirmForm(props: {
   id: string;
@@ -8,7 +8,7 @@ export default function ConfirmForm(props: {
   defaultTime: string;
   label: string;
 }) {
-  const [state, action, pending] = useActionState<ConfirmState, FormData>(confirmRequest, {
+  const [state, action, pending] = useActionState<ConfirmState, FormData>(offerRequest, {
     error: null,
   });
   return (
@@ -36,7 +36,7 @@ export default function ConfirmForm(props: {
       </div>
       {state.error && <p className="adm-err" role="alert">{state.error}</p>}
       <button className="adm-btn primary wide" type="submit" disabled={pending}>
-        {pending ? "Confirming..." : props.label}
+        {pending ? "Sending..." : props.label}
       </button>
     </form>
   );

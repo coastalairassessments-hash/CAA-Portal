@@ -6,9 +6,10 @@ import { supabaseForUser } from "@/lib/supabase/server";
 import { formatPhone, formatStamp, formatTime, issueLabel, sizeLabel } from "@/lib/labels";
 import { formatDateLabel } from "@/lib/dates";
 import { mapsLink } from "@/lib/admin";
-import { confirmText, smsLink } from "@/lib/confirm";
+import { confirmText, offerText, smsLink } from "@/lib/confirm";
+import { depositCents, formatMoney } from "@/lib/pricing";
 import { googleCalendarLink } from "@/lib/calendar";
-import { declineRequest } from "../actions";
+import { declineRequest, markDepositReceived } from "../actions";
 import ConfirmForm from "./ConfirmForm";
 
 export const metadata: Metadata = {
@@ -35,10 +36,14 @@ async function Detail({ params, searchParams }: Props) {
   const { data: r } = await supabase.from("requests").select("*").eq("id", id).maybeSingle();
   if (!r) notFound();
 
-  const booked = r.status === "confirmed" && r.confirmed_date;
-  const booking = booked
+  const held = r.status === "confirmed" && r.confirmed_date;
+  const offered = r.status === "offered" && r.confirmed_date;
+  const slot = r.confirmed_date
     ? { date: r.confirmed_date as string, time: r.confirmed_time as string, hours: r.block_hours as number }
     : null;
+  const booking = held ? slot : null;
+  const offer = offered ? slot : null;
+  const deposit = (r.deposit_cents as number | null) ?? depositCents(r.issue);
   const emailNote = query.email;
 
   return (
@@ -47,7 +52,7 @@ async function Detail({ params, searchParams }: Props) {
       <h1 className="adm-title" style={{ margin: "4px 0 8px" }}>{r.name}</h1>
       <div className="adm-chips" style={{ marginBottom: 14 }}>
         <span className={`adm-chip${r.status === "confirmed" ? " solid" : ""}`}>
-          {r.status === "new" ? "New" : r.status === "confirmed" ? "Confirmed" : r.status}
+          {r.status === "new" ? "New" : r.status === "offered" ? "Deposit waiting" : r.status === "confirmed" ? "Booked" : r.status}
         </span>
         {r.area === "outside" && <span className="adm-chip warn">Outside area</span>}
       </div>
@@ -58,7 +63,14 @@ async function Detail({ params, searchParams }: Props) {
           The email to the client could not be sent. Use the text button, or contact them yourself.
         </p>
       )}
-      {query.error && <p className="adm-err" style={{ marginBottom: 14 }}>Something did not save. Try again.</p>}
+      {query.error === "taken" && (
+        <p className="adm-err" style={{ marginBottom: 14 }}>
+          Another paid job already holds that time, so this deposit could not be booked. Change this client's time below, then mark it again.
+        </p>
+      )}
+      {query.error && query.error !== "taken" && (
+        <p className="adm-err" style={{ marginBottom: 14 }}>Something did not save. Try again.</p>
+      )}
 
       <section className="adm-group">
         <p className="adm-line">{issueLabel(r.issue)} · {sizeLabel(r.size_band)}</p>
@@ -87,9 +99,31 @@ async function Detail({ params, searchParams }: Props) {
         </div>
       </section>
 
+      {offer && (
+        <section className="adm-group">
+          <h2>Deposit waiting</h2>
+          <p className="adm-line" style={{ fontSize: 18, fontWeight: 600 }}>
+            {formatDateLabel(offer.date)} at {formatTime(offer.time)}
+          </p>
+          <p className="adm-muted">
+            Not held yet. {formatMoney(deposit)} deposit holds it. First deposit marked paid wins.
+          </p>
+          <form action={markDepositReceived}>
+            <input type="hidden" name="id" value={r.id} />
+            <button className="adm-btn primary wide" type="submit">Mark deposit received</button>
+          </form>
+          {r.text_consent && (
+            <a className="adm-btn wide" href={smsLink(r.phone, offerText(r, offer, deposit))}>
+              Text client the offer
+            </a>
+          )}
+        </section>
+      )}
+
       {booking && (
         <section className="adm-group">
           <h2>Booked</h2>
+          <p className="adm-muted">Deposit received {r.deposit_paid_at ? formatStamp(r.deposit_paid_at) : ""}</p>
           <p className="adm-line" style={{ fontSize: 18, fontWeight: 600 }}>
             {formatDateLabel(booking.date)} at {formatTime(booking.time)}
           </p>
@@ -111,12 +145,12 @@ async function Detail({ params, searchParams }: Props) {
 
       {r.status !== "declined" && r.status !== "cancelled" && (
         <section className="adm-group">
-          <h2>{booking ? "Change the booking" : "Confirm"}</h2>
+          <h2>{booking ? "Change the booking" : offer ? "Change the offer" : "Approve"}</h2>
           <ConfirmForm
             id={r.id}
-            defaultDate={booking?.date ?? r.preferred_date}
-            defaultTime={booking?.time ?? r.preferred_time}
-            label={booking ? "Update and email client" : "Confirm and email client"}
+            defaultDate={slot?.date ?? r.preferred_date}
+            defaultTime={slot?.time ?? r.preferred_time}
+            label={booking ? "Update and email client" : offer ? "Resend offer" : "Approve and send deposit offer"}
           />
           {!booking && (
             <form action={declineRequest}>

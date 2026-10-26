@@ -24,21 +24,23 @@ export const metadata: Metadata = {
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-const TAB_LABELS: Record<Tab, string> = { new: "New", booked: "Booked", declined: "Declined", all: "All" };
+const TAB_LABELS: Record<Tab, string> = { new: "New", waiting: "Waiting", booked: "Booked", declined: "Declined", all: "All" };
 const EMPTY: Record<Tab, string> = {
   new: "Nothing waiting. You're caught up.",
+  waiting: "No deposits pending.",
   booked: "No booked jobs yet.",
   declined: "Nothing here.",
   all: "No requests yet.",
 };
 
 function Card({ r }: { r: AdminRow }) {
-  const booked = r.status === "confirmed" && r.confirmed_date && r.confirmed_time;
+  const booked = (r.status === "confirmed" || r.status === "offered") && r.confirmed_date && r.confirmed_time;
   return (
     <article className={`adm-card${r.area === "outside" ? " outside" : ""}`}>
       <h2>{r.name}</h2>
       <div className="adm-chips">
-        {r.status === "confirmed" && <span className="adm-chip solid">Confirmed</span>}
+        {r.status === "confirmed" && <span className="adm-chip solid">Booked</span>}
+        {r.status === "offered" && <span className="adm-chip warn">Deposit waiting</span>}
         {r.status === "declined" && <span className="adm-chip">Declined</span>}
         {r.area === "outside" && <span className="adm-chip warn">Outside area</span>}
       </div>
@@ -47,7 +49,7 @@ function Card({ r }: { r: AdminRow }) {
       </p>
       <p className="adm-muted">
         {booked
-          ? `Booked ${formatDateLabel(r.confirmed_date!)} at ${formatTime(r.confirmed_time!)} · ${r.block_hours}h`
+          ? `${r.status === "offered" ? "Offered" : "Booked"} ${formatDateLabel(r.confirmed_date!)} at ${formatTime(r.confirmed_time!)} · ${r.block_hours}h`
           : `Wants ${formatDateLabel(r.preferred_date)} at ${formatTime(r.preferred_time)}`}{" "}
         · {r.city} {r.zip}
       </p>
@@ -103,8 +105,8 @@ async function Dashboard({ searchParams }: Props) {
     <>
       <div className="adm-stats">
         <div className={`adm-stat${c.new > 0 ? " hot" : ""}`}><b>{c.new}</b><span>New requests</span></div>
+        <div className={`adm-stat${c.waiting > 0 ? " hot" : ""}`}><b>{c.waiting}</b><span>Deposit waiting</span></div>
         <div className="adm-stat"><b>{c.upcoming}</b><span>Upcoming jobs</span></div>
-        <div className="adm-stat"><b>{c.outside}</b><span>Outside area</span></div>
       </div>
       <nav className="adm-seg" aria-label="Filter">
         {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (

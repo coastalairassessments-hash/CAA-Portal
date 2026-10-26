@@ -23,7 +23,7 @@ export type AdminRow = {
   area: "core" | "outside";
 };
 
-export const TABS = ["new", "booked", "declined", "all"] as const;
+export const TABS = ["new", "waiting", "booked", "declined", "all"] as const;
 export type Tab = (typeof TABS)[number];
 
 export function parseTab(v: string | string[] | undefined): Tab {
@@ -32,7 +32,7 @@ export function parseTab(v: string | string[] | undefined): Tab {
 }
 
 const sortKey = (r: AdminRow) =>
-  r.status === "confirmed" && r.confirmed_date
+  (r.status === "confirmed" || r.status === "offered") && r.confirmed_date
     ? `${r.confirmed_date} ${r.confirmed_time ?? ""}`
     : "";
 
@@ -40,6 +40,10 @@ export function filterRows(rows: AdminRow[], tab: Tab): AdminRow[] {
   switch (tab) {
     case "new":
       return rows.filter((r) => r.status === "new");
+    case "waiting":
+      return rows
+        .filter((r) => r.status === "offered")
+        .sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
     case "booked":
       // Soonest job first.
       return rows
@@ -58,6 +62,7 @@ export function counts(rows: AdminRow[], today: string) {
     upcoming: rows.filter(
       (r) => r.status === "confirmed" && r.confirmed_date && r.confirmed_date >= today,
     ).length,
+    waiting: rows.filter((r) => r.status === "offered").length,
     outside: rows.filter((r) => r.status === "new" && r.area === "outside").length,
   };
 }

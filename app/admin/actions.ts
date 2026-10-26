@@ -21,9 +21,11 @@ export async function logout() {
   redirect("/admin/login");
 }
 
-// ---- Brick 2: confirm or decline a request ----
-import { confirmEmail, declineEmail, parseConfirm } from "@/lib/confirm";
+// ---- Offer, deposit, decline ----
+import { confirmEmail, declineEmail, offerEmail, parseConfirm, takenEmail } from "@/lib/confirm";
 import { SITE_URL_FALLBACK, sendEmail } from "@/lib/notify";
+import { depositCents } from "@/lib/pricing";
+import { overlaps } from "@/lib/slots";
 
 export type ConfirmState = { error: string | null };
 
@@ -35,9 +37,13 @@ async function adminClient() {
   return ok ? supabase : null;
 }
 
+const siteUrl = () => process.env.SITE_URL?.trim() || SITE_URL_FALLBACK;
 const CLIENT_COLUMNS = "name, phone, email, address, city, zip";
+const EXCLUSION_VIOLATION = "23P01";
 
-export async function confirmRequest(_prev: ConfirmState, form: FormData): Promise<ConfirmState> {
+// Approve a request and send the offer. The date is not held until the deposit is received.
+// If the job is already booked (deposit paid), this changes the booking instead.
+export async function offerRequest(_prev: ConfirmState, form: FormData): Promise<ConfirmState> {
   const supabase = await adminClient();
   if (!supabase) return { error: "This account is not on the admin list." };
 
@@ -50,25 +56,90 @@ export async function confirmRequest(_prev: ConfirmState, form: FormData): Promi
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form." };
   const { id, date, time, hours } = parsed.data;
 
-  const { data: client, error: readErr } = await supabase
-    .from("requests").select(CLIENT_COLUMNS).eq("id", id).single();
-  if (readErr || !client) return { error: "Could not find that request." };
+  const { data: row, error: readErr } = await supabase
+    .from("requests").select(`${CLIENT_COLUMNS}, issue, status`).eq("id", id).single();
+  if (readErr || !row) return { error: "Could not find that request." };
+  if (!["new", "offered", "confirmed"].includes(row.status)) {
+    return { error: "This request is closed. Nothing to send." };
+  }
 
+  const alreadyBooked = row.status === "confirmed";
+  const deposit = depositCents(row.issue);
+  const now = new Date().toISOString();
   const { error: saveErr } = await supabase
     .from("requests")
-    .update({
-      status: "confirmed",
-      confirmed_date: date,
-      confirmed_time: time,
-      block_hours: hours,
-      confirmed_at: new Date().toISOString(),
-    })
+    .update(
+      alreadyBooked
+        ? { confirmed_date: date, confirmed_time: time, block_hours: hours }
+        : {
+            status: "offered",
+            confirmed_date: date,
+            confirmed_time: time,
+            block_hours: hours,
+            offered_at: now,
+            deposit_cents: deposit,
+          },
+    )
     .eq("id", id);
-  if (saveErr) return { error: `Could not save. (Ref: confirm-${saveErr.code ?? "unknown"})` };
+  if (saveErr) {
+    if (saveErr.code === EXCLUSION_VIOLATION) {
+      return { error: "Another paid job already holds that time. Pick a different time." };
+    }
+    return { error: `Could not save. (Ref: offer-${saveErr.code ?? "unknown"})` };
+  }
 
-  const mail = confirmEmail(client, { date, time, hours }, process.env.SITE_URL?.trim() || SITE_URL_FALLBACK);
-  const sent = await sendEmail({ to: client.email, ...mail });
-  if (!sent.ok) console.error(`[confirm] client email not sent: ${sent.reason}`);
+  const booking = { date, time, hours };
+  const mail = alreadyBooked
+    ? confirmEmail(row, booking, siteUrl())
+    : offerEmail(row, booking, deposit, siteUrl());
+  const sent = await sendEmail({ to: row.email, ...mail });
+  if (!sent.ok) console.error(`[offer] client email not sent: ${sent.reason}`);
+  redirect(`/admin/${id}?email=${sent.ok ? "sent" : "failed"}`);
+}
+
+// The deposit arrived. The date is now held. First one marked paid wins; the database enforces it.
+export async function markDepositReceived(form: FormData): Promise<void> {
+  const supabase = await adminClient();
+  const id = String(form.get("id") ?? "");
+  if (!supabase || !/^[0-9a-f-]{36}$/i.test(id)) redirect("/admin");
+
+  const { data: row } = await supabase
+    .from("requests")
+    .select(`${CLIENT_COLUMNS}, status, confirmed_date, confirmed_time, block_hours`)
+    .eq("id", id).single();
+  if (!row || row.status !== "offered" || !row.confirmed_date || !row.confirmed_time || !row.block_hours) {
+    redirect(`/admin/${id}?error=save`);
+  }
+  const slot = { date: row.confirmed_date as string, time: row.confirmed_time as string, hours: row.block_hours as number };
+
+  const { error } = await supabase
+    .from("requests")
+    .update({ status: "confirmed", deposit_paid_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("status", "offered");
+  if (error) redirect(`/admin/${id}?error=${error.code === EXCLUSION_VIOLATION ? "taken" : "save"}`);
+
+  // Anyone else offered an overlapping time lost it. Tell them and put them back in New.
+  const { data: others } = await supabase
+    .from("requests")
+    .select(`id, ${CLIENT_COLUMNS}, confirmed_time, block_hours`)
+    .eq("status", "offered")
+    .eq("confirmed_date", slot.date)
+    .neq("id", id);
+  for (const o of others ?? []) {
+    const theirs = { date: slot.date, time: o.confirmed_time as string, hours: o.block_hours as number };
+    if (!overlaps(slot, theirs)) continue;
+    const { error: resetErr } = await supabase
+      .from("requests")
+      .update({ status: "new", confirmed_date: null, confirmed_time: null, block_hours: null, offered_at: null, deposit_cents: null })
+      .eq("id", o.id);
+    if (resetErr) continue;
+    const lost = await sendEmail({ to: o.email, ...takenEmail(o, theirs) });
+    if (!lost.ok) console.error(`[taken] client email not sent: ${lost.reason}`);
+  }
+
+  const sent = await sendEmail({ to: row.email, ...confirmEmail(row, slot, siteUrl()) });
+  if (!sent.ok) console.error(`[deposit] client email not sent: ${sent.reason}`);
   redirect(`/admin/${id}?email=${sent.ok ? "sent" : "failed"}`);
 }
 

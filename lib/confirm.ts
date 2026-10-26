@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { formatDateLabel, isRealDate, todayInNewYork } from "./dates";
 import { formatTime } from "./labels";
+import { formatMoney } from "./pricing";
 
 // What Cory enters on the confirm screen.
 export function parseConfirm(input: unknown, now: Date = new Date()) {
@@ -37,14 +38,12 @@ export function confirmEmail(row: ConfirmRow, b: Booking, siteUrl = "https://caa
     text: [
       `Hi ${firstName(row.name)},`,
       "",
-      "Your Coastal Air Assessments visit is confirmed.",
+      "We received your deposit, and your Coastal Air Assessments visit is confirmed.",
       "",
       `When: ${when}`,
       `Where: ${row.address}, ${row.city} ${row.zip}`,
       `We have planned about ${hoursWord(b.hours)} on site. Every visit has a one-hour minimum.`,
       "If you would like to limit our time on site, reply to this email. The assessment will then cover the areas we can complete in that time.",
-      "",
-      "Your deposit link comes next, in a separate message. Your date is held for you in the meantime.",
       "",
       "Reply to this email with any questions.",
       "",
@@ -53,6 +52,54 @@ export function confirmEmail(row: ConfirmRow, b: Booking, siteUrl = "https://caa
       "Coastal Air Assessments",
     ].join("\n"),
   };
+}
+
+const whenOf = (b: Booking) => `${formatDateLabel(b.date)} at ${formatTime(b.time)}`;
+
+// Sent when Cory approves a request. The date is NOT held until the deposit arrives.
+export function offerEmail(row: ConfirmRow, b: Booking, deposit: number, siteUrl = "https://caaportal.netlify.app") {
+  return {
+    subject: `Your proposed visit: ${whenOf(b)}`,
+    text: [
+      `Hi ${firstName(row.name)},`,
+      "",
+      "Thank you for your request. We can see you here:",
+      "",
+      `When: ${whenOf(b)}`,
+      `Where: ${row.address}, ${row.city} ${row.zip}`,
+      `We have planned about ${hoursWord(b.hours)} on site. Every visit has a one-hour minimum.`,
+      "If you would like to limit our time on site, reply to this email. The assessment will then cover the areas we can complete in that time.",
+      "",
+      `A 75% deposit of ${formatMoney(deposit)} holds the date. Your deposit invoice follows in a separate message.`,
+      "The date is held when the deposit is received. If two people ask for the same time, the first deposit holds it.",
+      "",
+      "Reply to this email with any questions.",
+      "",
+      `Terms you agreed to: ${siteUrl.replace(/\/+$/, "")}/terms`,
+      "",
+      "Coastal Air Assessments",
+    ].join("\n"),
+  };
+}
+
+// Sent to a client whose offered time was taken by an earlier deposit.
+export function takenEmail(row: ConfirmRow, b: Booking) {
+  return {
+    subject: "That time is no longer available",
+    text: [
+      `Hi ${firstName(row.name)},`,
+      "",
+      `Another client's deposit arrived first for ${whenOf(b)}, so that time is no longer available.`,
+      "",
+      "Reply to this email with another day that works and we'll set it up.",
+      "",
+      "Coastal Air Assessments",
+    ].join("\n"),
+  };
+}
+
+export function offerText(row: ConfirmRow, b: Booking, deposit: number): string {
+  return `Hi ${firstName(row.name)}, this is Coastal Air Assessments. We can see you ${whenOf(b)} at ${row.address}. A 75% deposit (${formatMoney(deposit)}) holds the date. The invoice is coming by email.`;
 }
 
 export function declineEmail(row: ConfirmRow) {
@@ -71,7 +118,7 @@ export function declineEmail(row: ConfirmRow) {
 }
 
 export function confirmText(row: ConfirmRow, b: Booking): string {
-  return `Hi ${firstName(row.name)}, this is Coastal Air Assessments. You're confirmed for ${formatDateLabel(b.date)} at ${formatTime(b.time)} at ${row.address}. Plan on about ${hoursWord(b.hours)}. Your deposit link is coming by email.`;
+  return `Hi ${firstName(row.name)}, this is Coastal Air Assessments. You're confirmed for ${formatDateLabel(b.date)} at ${formatTime(b.time)} at ${row.address}. Plan on about ${hoursWord(b.hours)}. Thank you for the deposit.`;
 }
 
 // Opens the Messages app with the text already written. Cory taps send.

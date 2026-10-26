@@ -14,6 +14,7 @@ const rows: AdminRow[] = [
   { ...base, id: "b1", status: "confirmed", confirmed_date: "2026-10-27", confirmed_time: "12:30" },
   { ...base, id: "old", status: "confirmed", confirmed_date: "2026-10-01", confirmed_time: "10:00" },
   { ...base, id: "d1", status: "declined" },
+  { ...base, id: "w1", status: "offered", confirmed_date: "2026-10-30", confirmed_time: "10:00" },
 ];
 
 describe("admin helpers", () => {
@@ -27,10 +28,11 @@ describe("admin helpers", () => {
     expect(filterRows(rows, "new").map((r) => r.id)).toEqual(["n1", "n2"]);
     expect(filterRows(rows, "booked").map((r) => r.id)).toEqual(["old", "b1", "b2"]);
     expect(filterRows(rows, "declined").map((r) => r.id)).toEqual(["d1"]);
-    expect(filterRows(rows, "all")).toHaveLength(6);
+    expect(filterRows(rows, "waiting").map((r) => r.id)).toEqual(["w1"]);
+    expect(filterRows(rows, "all")).toHaveLength(7);
   });
   it("counts new, upcoming booked, and outside-area new", () => {
-    expect(counts(rows, "2026-10-26")).toEqual({ new: 2, upcoming: 2, outside: 1 });
+    expect(counts(rows, "2026-10-26")).toEqual({ new: 2, waiting: 1, upcoming: 2, outside: 1 });
   });
   it("builds a maps link", () => {
     expect(mapsLink(base)).toBe("https://maps.apple.com/?daddr=1%20Main%20St%2C%20Stuart%20FL%2034994");
