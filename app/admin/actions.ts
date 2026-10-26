@@ -30,6 +30,11 @@ import { depositCents } from "@/lib/pricing";
 import { overlaps } from "@/lib/slots";
 import { isSection, parseSection } from "@/lib/job";
 import { issueForService, parseContractorJob } from "@/lib/contractorJob";
+import { finalInvoice, minutesOnSite } from "@/lib/billing";
+import { finalInvoicePayload } from "@/lib/qbInvoice";
+import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, qbConnected } from "@/lib/qbSync";
+import { addDays, todayInNewYork } from "@/lib/dates";
+import { jobLabel } from "@/lib/labels";
 
 export type ConfirmState = { error: string | null };
 
@@ -61,7 +66,7 @@ export async function offerRequest(_prev: ConfirmState, form: FormData): Promise
   const { id, date, time, hours } = parsed.data;
 
   const { data: row, error: readErr } = await supabase
-    .from("requests").select(`${CLIENT_COLUMNS}, issue, status`).eq("id", id).single();
+    .from("requests").select(`${CLIENT_COLUMNS}, issue, status, qb_customer_id`).eq("id", id).single();
   if (readErr || !row) return { error: "Could not find that request." };
   if (!["new", "offered", "confirmed"].includes(row.status)) {
     return { error: "This request is closed. Nothing to send." };
@@ -90,6 +95,16 @@ export async function offerRequest(_prev: ConfirmState, form: FormData): Promise
       return { error: "Another paid job already holds that time. Pick a different time." };
     }
     return { error: `Could not save. (Ref: offer-${saveErr.code ?? "unknown"})` };
+  }
+
+  // Approving a new request also puts the client in QuickBooks (best effort; never blocks the offer).
+  if (!alreadyBooked && !row.qb_customer_id && (await qbConnected())) {
+    try {
+      const customerId = await ensureCustomer(row);
+      await supabase.from("requests").update({ qb_customer_id: customerId }).eq("id", id);
+    } catch (e) {
+      console.error("[qb] could not add customer:", e instanceof Error ? e.message : e);
+    }
   }
 
   const booking = { date, time, hours };
@@ -326,4 +341,60 @@ export async function markRefunded(form: FormData): Promise<void> {
   if (!supabase || !/^[0-9a-f-]{36}$/i.test(id)) redirect("/admin");
   const { error } = await supabase.from("requests").update({ refunded_at: new Date().toISOString() }).eq("id", id);
   redirect(`/admin/${id}${error ? "?error=save" : ""}`);
+}
+
+
+// Create the final invoice in QuickBooks and email it. QuickBooks sends it; we keep the number.
+export async function sendFinalInvoice(form: FormData): Promise<void> {
+  const supabase = await adminClient();
+  const id = String(form.get("id") ?? "");
+  if (!supabase || !/^[0-9a-f-]{36}$/i.test(id)) redirect("/admin");
+
+  const { data: r } = await supabase.from("requests").select("*").eq("id", id).single();
+  if (!r || r.status !== "confirmed") redirect(`/admin/${id}?error=save`);
+  if (r.qb_invoice_id) redirect(`/admin/${id}`);
+
+  let sent = false;
+  try {
+    if (!(await qbConnected())) redirect(`/admin/${id}?error=qbconnect`);
+    const customerId = r.qb_customer_id || (await ensureCustomer(r));
+    const itemId = await ensureServiceItem();
+    const minutes = minutesOnSite(r.arrived_at, r.left_at);
+    const inv = finalInvoice({
+      issue: r.issue,
+      minutes,
+      samples: r.lab_samples,
+      extrasCents: r.extras_cents ?? 0,
+      depositPaidCents: r.deposit_paid_at && typeof r.deposit_cents === "number" ? r.deposit_cents : null,
+    });
+    const today = todayInNewYork();
+    const payload = finalInvoicePayload({
+      customerId,
+      itemId,
+      service: jobLabel(r),
+      inv,
+      quarterMinutes: inv.quarters * 15,
+      samples: r.lab_samples ?? 0,
+      email: r.email,
+      txnDate: today,
+      dueDate: r.source === "contractor" ? addDays(today, 7) : today,
+    });
+    const made = await createInvoice(payload);
+    sent = await emailInvoice(made.id, r.email);
+    const { error } = await supabase
+      .from("requests")
+      .update({
+        qb_customer_id: customerId,
+        qb_invoice_id: made.id,
+        final_invoice_no: made.number || r.final_invoice_no,
+        final_invoiced_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+    if (error) console.error("[qb] invoice made but not saved:", error.code);
+  } catch (e) {
+    if (e && typeof e === "object" && "digest" in e) throw e; // let redirect() through
+    console.error("[qb] final invoice failed:", e instanceof Error ? e.message : e);
+    redirect(`/admin/${id}?error=qb`);
+  }
+  redirect(`/admin/${id}?saved=${sent ? "invoice" : "invoice-unsent"}`);
 }

@@ -77,7 +77,16 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
       {query.error === "check" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>Check the numbers and dates, then save again.</p>
       )}
-      {query.error && query.error !== "taken" && query.error !== "check" && (
+      {query.error === "qbconnect" && (
+        <p className="adm-err" style={{ marginBottom: 14 }}>QuickBooks is not connected. Connect it on the More screen.</p>
+      )}
+      {query.error === "qb" && (
+        <p className="adm-err" style={{ marginBottom: 14 }}>QuickBooks did not accept the invoice. Nothing was sent. Try again.</p>
+      )}
+      {query.saved === "invoice-unsent" && (
+        <p className="adm-err" style={{ marginBottom: 14 }}>The invoice is in QuickBooks, but it could not be emailed. Send it from QuickBooks.</p>
+      )}
+      {query.error && !["taken", "check", "qb", "qbconnect"].includes(String(query.error)) && (
         <p className="adm-err" style={{ marginBottom: 14 }}>Something did not save. Try again.</p>
       )}
 
