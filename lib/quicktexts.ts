@@ -1,6 +1,6 @@
 // Ready-to-send texts. Cory taps one, Messages opens with it written, he picks who gets it.
 // Paste your Google review link between the quotes to turn on review texts and emails.
-export const GOOGLE_REVIEW_URL = "";
+export const GOOGLE_REVIEW_URL = "https://g.page/r/CR_el8247giREBM/review";
 
 const base = (siteUrl: string) => siteUrl.replace(/\/+$/, "");
 const firstName = (name: string) => name.trim().split(/\s+/)[0] || "there";
