@@ -6,6 +6,7 @@ import { supabaseForUser } from "@/lib/supabase/server";
 import { formatPhone, formatTime, issueLabel, sizeLabel } from "@/lib/labels";
 import { formatDateLabel } from "@/lib/dates";
 import { confirmText, smsLink } from "@/lib/confirm";
+import { googleCalendarLink } from "@/lib/calendar";
 import { declineRequest } from "../actions";
 import ConfirmForm from "./ConfirmForm";
 
@@ -73,6 +74,11 @@ async function Detail({ params, searchParams }: Props) {
           <p>
             {formatDateLabel(booking.date)} at {formatTime(booking.time)} · {booking.hours}{" "}
             {booking.hours === 1 ? "hour" : "hours"}
+          </p>
+          <p>
+            <a className="btn" href={googleCalendarLink(r, booking)} target="_blank" rel="noreferrer">
+              Add to Google Calendar
+            </a>
           </p>
           {r.text_consent ? (
             <p>
