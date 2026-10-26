@@ -70,7 +70,7 @@ async function Detail({ params, searchParams }: Props) {
       )}
       {query.error === "taken" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>
-          Another paid job already holds that time, so this deposit could not be booked. Change this client's time below, then mark it again.
+          Another paid job already holds that time, so this deposit could not be booked. Change this client&apos;s time below, then mark it again.
         </p>
       )}
       {query.error === "check" && (

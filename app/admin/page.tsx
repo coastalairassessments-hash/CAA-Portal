@@ -23,9 +23,10 @@ export const metadata: Metadata = {
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-const TAB_LABELS: Record<Tab, string> = { requests: "Requests", booked: "Booked jobs", declined: "Declined and cancelled", all: "All" };
+const TAB_LABELS: Record<Tab, string> = { requests: "Requests", booked: "Booked jobs", owed: "Finished, not paid", declined: "Declined and cancelled", all: "All" };
 const EMPTY: Record<Tab, string> = {
   requests: "Nothing waiting. You're caught up.",
+  owed: "Nothing owed. Every finished job is paid.",
   booked: "No booked jobs yet.",
   declined: "Nothing here.",
   all: "No requests yet.",
@@ -37,6 +38,9 @@ function Card({ r }: { r: AdminRow }) {
     <article className={`adm-card${r.area === "outside" ? " outside" : ""}`}>
       <h2>{r.name}</h2>
       <div className="adm-chips">
+        {r.status === "confirmed" && r.left_at && !r.final_paid_at && (
+          <span className="adm-chip warn">{r.final_invoice_no ? "Invoiced, unpaid" : "Send invoice"}</span>
+        )}
         {r.source === "contractor" && <span className="adm-chip">Contractor</span>}
         {r.status === "confirmed" && <span className="adm-chip solid">Booked</span>}
         {r.status === "offered" && <span className="adm-chip warn">Deposit waiting</span>}
@@ -94,7 +98,7 @@ async function Dashboard({ searchParams }: Props) {
   const { data, error } = await supabase
     .from("requests")
     .select(
-      "id, created_at, status, issue, size_band, preferred_date, preferred_time, name, phone, email, address, city, zip, notes, text_consent, confirmed_date, confirmed_time, block_hours, area, source, cancel_refund, refunded_at",
+      "id, created_at, status, issue, size_band, preferred_date, preferred_time, name, phone, email, address, city, zip, notes, text_consent, confirmed_date, confirmed_time, block_hours, area, source, cancel_refund, refunded_at, left_at, final_paid_at, final_invoice_no",
     )
     .order("created_at", { ascending: false })
     .limit(200);

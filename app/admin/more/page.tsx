@@ -16,6 +16,7 @@ export default function MorePage() {
       <section className="adm-group">
         <Link className="adm-btn primary wide" href="/admin/texts">Quick texts</Link>
         <Link className="adm-btn wide" href="/admin?tab=booked">Booked jobs</Link>
+        <Link className="adm-btn wide" href="/admin?tab=owed">Finished, not paid</Link>
         <Link className="adm-btn wide" href="/admin?tab=declined">Declined and cancelled</Link>
         <Link className="adm-btn wide" href="/admin?tab=all">All requests</Link>
         <a className="adm-btn wide" href="/request">Public request page</a>

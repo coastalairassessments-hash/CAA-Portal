@@ -31,6 +31,15 @@ describe("admin helpers", () => {
     expect(filterRows(rows, "declined").map((r) => r.id)).toEqual(["d1"]);
     expect(filterRows(rows, "all")).toHaveLength(7);
   });
+  it("lists finished, unpaid visits oldest first", () => {
+    const owed = [
+      { ...base, id: "o2", status: "confirmed", left_at: "2026-10-20T16:00:00Z" },
+      { ...base, id: "o1", status: "confirmed", left_at: "2026-10-10T16:00:00Z" },
+      { ...base, id: "paid", status: "confirmed", left_at: "2026-10-10T16:00:00Z", final_paid_at: "2026-10-11T00:00:00Z" },
+      { ...base, id: "notyet", status: "confirmed" },
+    ];
+    expect(filterRows(owed, "owed").map((r) => r.id)).toEqual(["o1", "o2"]);
+  });
   it("counts new, upcoming booked, and outside-area new", () => {
     expect(counts(rows, "2026-10-26")).toEqual({ new: 2, waiting: 1, upcoming: 2, outside: 1 });
   });

@@ -22,11 +22,14 @@ export type AdminRow = {
   confirmed_time: string | null;
   block_hours: number | null;
   area: "core" | "outside";
+  left_at?: string | null;
+  final_paid_at?: string | null;
+  final_invoice_no?: string | null;
   cancel_refund?: boolean | null;
   refunded_at?: string | null;
 };
 
-export const TABS = ["requests", "booked", "declined", "all"] as const;
+export const TABS = ["requests", "booked", "owed", "declined", "all"] as const;
 export type Tab = (typeof TABS)[number];
 
 export function parseTab(v: string | string[] | undefined): Tab {
@@ -54,6 +57,11 @@ export function filterRows(rows: AdminRow[], tab: Tab): AdminRow[] {
       return rows
         .filter((r) => r.status === "confirmed")
         .sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
+    case "owed":
+      // Finished visits that are not paid yet, oldest first.
+      return rows
+        .filter((r) => r.status === "confirmed" && !!r.left_at && !r.final_paid_at)
+        .sort((a, b) => (a.left_at ?? "").localeCompare(b.left_at ?? ""));
     case "declined":
       return rows.filter((r) => r.status === "declined" || r.status === "cancelled");
     default:
