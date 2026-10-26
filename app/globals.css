@@ -663,3 +663,13 @@ details.adm-group[open] > summary::after { content: "\2212"; }
 .adm-table { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-size: 15px; }
 .adm-table .tot { font-weight: 600; border-top: 1px solid var(--line); padding-top: 6px; }
 .adm-table .amt { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Bottom navigation bar (admin) */
+.adm-wrap { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+.adm-sub { font-size: 20px; font-weight: 600; margin: 4px 0 12px; }
+.adm-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--card); border-top: 1px solid var(--line); padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
+.adm-bar a { min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11px; font-weight: 600; color: var(--mute); text-decoration: none; border-radius: 10px; }
+.adm-bar a[aria-current="page"] { color: var(--acc); }
+.adm-bar a:focus-visible { outline: 3px solid var(--acc); outline-offset: -3px; }
+.adm-bar-icon { position: relative; display: inline-flex; }
+.adm-bar-badge { position: absolute; top: -4px; left: 14px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: var(--acc); color: var(--accfg); font-size: 11px; line-height: 18px; text-align: center; }

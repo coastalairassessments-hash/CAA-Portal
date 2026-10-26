@@ -15,7 +15,6 @@ import {
   type AdminRow,
   type Tab,
 } from "@/lib/admin";
-import { logout } from "./actions";
 
 export const metadata: Metadata = {
   title: "Your day | Coastal Air Assessments",
@@ -24,7 +23,7 @@ export const metadata: Metadata = {
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-const TAB_LABELS: Record<Tab, string> = { new: "New", waiting: "Waiting", booked: "Booked", declined: "Declined", all: "All" };
+const TAB_LABELS: Record<Tab, string> = { new: "New requests", waiting: "Waiting for deposit", booked: "Booked", declined: "Declined", all: "All requests" };
 const EMPTY: Record<Tab, string> = {
   new: "Nothing waiting. You're caught up.",
   waiting: "No deposits pending.",
@@ -108,13 +107,7 @@ async function Dashboard({ searchParams }: Props) {
         <div className={`adm-stat${c.waiting > 0 ? " hot" : ""}`}><b>{c.waiting}</b><span>Deposit waiting</span></div>
         <div className="adm-stat"><b>{c.upcoming}</b><span>Upcoming jobs</span></div>
       </div>
-      <nav className="adm-seg" aria-label="Filter">
-        {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
-          <Link key={t} href={t === "new" ? "/admin" : `/admin?tab=${t}`} aria-current={t === tab ? "page" : undefined}>
-            {TAB_LABELS[t]}
-          </Link>
-        ))}
-      </nav>
+      <h2 className="adm-sub">{TAB_LABELS[tab]}</h2>
       {rows.length === 0 ? (
         <p className="adm-empty">{EMPTY[tab]}</p>
       ) : (
@@ -136,9 +129,6 @@ export default function AdminPage(props: Props) {
           </div>
           <h1 className="adm-title">Your day</h1>
         </div>
-        <form action={logout}>
-          <button className="adm-link" type="submit">Sign out</button>
-        </form>
       </header>
       <Suspense fallback={<p className="adm-empty">Loading...</p>}>
         <Dashboard {...props} />

@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "CAA", statusBarStyle: "default" },
 };
 
+import NavBar from "./NavBar";
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return <div className="adm">{children}</div>;
+  return (
+    <div className="adm">
+      {children}
+      <NavBar />
+    </div>
+  );
 }
