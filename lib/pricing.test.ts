@@ -11,6 +11,10 @@ describe("pricing", () => {
     expect(depositCents("musty_smell")).toBe(51375);
     expect(depositCents("post_remediation")).toBe(43125);
   });
+  it("consultation is $375 with a 75% deposit", () => {
+    expect(firstHourCents("consultation")).toBe(37500);
+    expect(depositCents("consultation")).toBe(28125);
+  });
   it("formats money", () => {
     expect(formatMoney(51375)).toBe("$513.75");
     expect(formatMoney(100000)).toBe("$1,000.00");

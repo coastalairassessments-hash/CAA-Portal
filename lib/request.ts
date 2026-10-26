@@ -12,6 +12,7 @@ export const ISSUES = [
   "water_damage",
   "post_remediation",
   "air_quality",
+  "consultation",
   "other",
 ] as const;
 

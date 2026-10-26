@@ -10,6 +10,7 @@ const ISSUES = [
   { value: "water_damage", label: "Water damage", hint: "A leak, flood or storm intrusion" },
   { value: "post_remediation", label: "Post-remediation verification (PRV)", hint: "Confirm a mold cleanup worked" },
   { value: "air_quality", label: "Air quality concern", hint: "Allergies, odors or general testing" },
+  { value: "consultation", label: "Consultation", hint: "One hour on site, no written report" },
   { value: "other", label: "Something else", hint: "You can explain in the notes" },
 ];
 

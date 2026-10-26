@@ -2,7 +2,9 @@
 export const DEPOSIT_RATE = 0.75;
 
 export function firstHourCents(issue: string): number {
-  return issue === "post_remediation" ? 57500 : 68500;
+  if (issue === "post_remediation") return 57500;
+  if (issue === "consultation") return 37500;
+  return 68500;
 }
 
 export const depositCents = (issue: string): number =>

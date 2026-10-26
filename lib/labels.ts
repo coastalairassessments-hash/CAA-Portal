@@ -4,6 +4,7 @@ const ISSUE_LABELS: Record<string, string> = {
   water_damage: "Water damage",
   post_remediation: "Post-remediation verification (PRV)",
   air_quality: "Air quality concern",
+  consultation: "Consultation (one-hour walkthrough)",
   other: "Other",
 };
 

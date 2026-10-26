@@ -64,6 +64,22 @@ export default function Home() {
           <h2 id="price-heading">What it costs</h2>
           <ul className="price-list">
             <li>
+              <h3>Consultation</h3>
+              <span className="price">$375</span>
+              <p className="blurb">
+                One hour on site with an expert and instruments. A good start when you are not sure
+                what you need. No written report.
+              </p>
+              <details className="detail">
+                <summary>Details</summary>
+                <p>
+                  A one-hour walkthrough with expert instruments, so we can see the building, take
+                  preliminary readings and talk through what the evidence suggests. We then advise
+                  on next steps and scope. Time after the first hour is $195 an hour.
+                </p>
+              </details>
+            </li>
+            <li>
               <h3>Mold and air quality assessment</h3>
               <span className="price">$685</span>
               <p className="blurb">
@@ -183,10 +199,10 @@ export default function Home() {
               </p>
             </details>
             <details>
-              <summary>What if I need to cancel?</summary>
+              <summary>What if I need to cancel or reschedule?</summary>
               <p>
                 Cancel more than 24 hours before your visit and your deposit is refunded in full.
-                Within 24 hours it is not. The details are in our{" "}
+                You can also reschedule at no charge. Within 24 hours the deposit is not refunded. The details are in our{" "}
                 <Link href="/policy">booking policy</Link>.
               </p>
             </details>
