@@ -50,6 +50,7 @@ export default function MorePage({ searchParams }: { searchParams: Promise<Recor
       </Suspense>
       <section className="adm-group">
         <Link className="adm-btn primary wide" href="/admin/texts">Quick texts</Link>
+        <Link className="adm-btn wide" href="/admin/clients">Find a client (QuickBooks)</Link>
         <Link className="adm-btn wide" href="/admin?tab=booked">Booked jobs</Link>
         <Link className="adm-btn wide" href="/admin?tab=owed">Finished, not paid</Link>
         <Link className="adm-btn wide" href="/admin?tab=declined">Declined and cancelled</Link>

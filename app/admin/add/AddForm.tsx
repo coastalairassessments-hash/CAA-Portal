@@ -1,12 +1,14 @@
 "use client";
+import Link from "next/link";
 import { useActionState } from "react";
 import { addContractorJob, type ConfirmState } from "../actions";
 import { SERVICES } from "@/lib/contractorJob";
 
-export default function AddForm({ contractors, defaultDate }: { contractors: { id: string; name: string }[]; defaultDate: string }) {
+export default function AddForm({ contractors, defaultDate, initialName = "", initialAddress = "" }: { contractors: { id: string; name: string }[]; defaultDate: string; initialName?: string; initialAddress?: string }) {
   const [state, action, pending] = useActionState<ConfirmState, FormData>(addContractorJob, { error: null });
   return (
     <form action={action} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <Link className="adm-link" href="/admin/clients">Find a client in QuickBooks</Link>
       {contractors.length > 0 && (
         <div className="adm-field">
           <label htmlFor="contractorId">Contractor</label>
@@ -20,7 +22,7 @@ export default function AddForm({ contractors, defaultDate }: { contractors: { i
       )}
       <div className="adm-field">
         <label htmlFor="newName">{contractors.length > 0 ? "Or new contractor name" : "Contractor name"}</label>
-        <input id="newName" name="newName" type="text" autoComplete="off" />
+        <input id="newName" name="newName" type="text" autoComplete="off" defaultValue={initialName} />
       </div>
       <div className="adm-field">
         <label htmlFor="service">Service</label>
@@ -32,7 +34,7 @@ export default function AddForm({ contractors, defaultDate }: { contractors: { i
       </div>
       <div className="adm-field">
         <label htmlFor="address">Job address</label>
-        <input id="address" name="address" type="text" autoComplete="off" placeholder="Street, city" required />
+        <input id="address" name="address" type="text" autoComplete="off" placeholder="Street, city" defaultValue={initialAddress} required />
       </div>
       <div className="adm-field">
         <label htmlFor="date">Date</label>
