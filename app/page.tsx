@@ -21,25 +21,27 @@ export default function Home() {
 
       <main>
         <section className="wrap hero">
-          <h1>Mold and air quality assessments, with the price up front.</h1>
+          <h1>It&rsquo;s not about samples. It&rsquo;s about what your building is doing.</h1>
           <p className="lede">
-            See what a visit costs and how long it takes, then request a date in about two
-            minutes. A licensed Florida mold assessor handles every visit.
+            We look at moisture, airflow and building conditions to find the cause. Samples are one
+            tool, used only when they help answer the question.
+          </p>
+          <p className="lede">
+            Licensed Florida mold assessors in Martin, St. Lucie and Palm Beach counties. Pick a
+            day in two minutes. Nothing to pay to request.
           </p>
           <div className="actions">
             <Link href="/request" className="btn">
               Request a date
             </Link>
-            <span className="fine">No payment to request.</span>
           </div>
         </section>
 
         <section className="wrap section" aria-labelledby="time-heading">
           <h2 id="time-heading">How long a visit takes</h2>
           <p>
-            Every visit has a one-hour minimum. These are the times we typically recommend to assess
-            the whole property, based on its size. We confirm the time for your property when we
-            confirm your date, and you may choose to limit it.
+            About an hour for a small home, two to four for a larger one. One hour minimum. You can
+            limit our time, and the assessment then covers only what we finish.
           </p>
           <ol className="ruler" aria-hidden="true">
             {sizes.map((s) => (
@@ -60,15 +62,16 @@ export default function Home() {
 
         <section className="wrap section" aria-labelledby="price-heading">
           <h2 id="price-heading">What it costs</h2>
-          <p>
-            Every visit includes a minimum of one hour on site at a flat price. Time after that is
-            billed by the hour, and you may choose to limit it.
-          </p>
           <ul className="price-list">
             <li>
-              <h3>Mold and indoor air quality assessment</h3>
+              <h3>Mold and air quality assessment</h3>
               <span className="price">$685</span>
-              <div className="detail">
+              <p className="blurb">
+                A careful look at what&rsquo;s feeding mold, moisture or poor air. First hour
+                included, then $195 an hour.
+              </p>
+              <details className="detail">
+                <summary>Details</summary>
                 <p>
                   A noninvasive, science-based inspection to find what is feeding mold, moisture or
                   poor air quality in your home, and why.
@@ -85,13 +88,16 @@ export default function Home() {
                   limited to accessible areas, and the readings are diagnostic indicators, not
                   medical advice.
                 </p>
-                <p>Includes the first hour on site. Each additional hour is $195.</p>
-              </div>
+              </details>
             </li>
             <li>
-              <h3>Post-remediation verification (PRV)</h3>
+              <h3>After-cleanup check (PRV)</h3>
               <span className="price">$575</span>
-              <div className="detail">
+              <p className="blurb">
+                Confirms a mold cleanup worked. First hour included, then $195 an hour.
+              </p>
+              <details className="detail">
+                <summary>Details</summary>
                 <p>
                   Done after a mold cleanup to evaluate how well it worked in the designated
                   containment areas.
@@ -103,28 +109,29 @@ export default function Home() {
                   <li>Air and/or surface sampling when it applies, following AIHA and ASTM D7338 protocols.</li>
                   <li>Photos and a detailed report with recommendations based on IICRC S520, AIHA and ASTM guidelines.</li>
                 </ul>
-                <p>
-                  Includes the first hour on site, and most take about an hour. Each additional hour
-                  is $195.
-                </p>
-              </div>
+                <p>Most take about an hour.</p>
+              </details>
             </li>
             <li>
-              <h3>Mold lab sample</h3>
+              <h3>Lab sample</h3>
               <span className="price">$85</span>
-              <div className="detail">
+              <p className="blurb">
+                Each. Used when it helps answer the question. Independent lab, report included.
+              </p>
+              <details className="detail">
+                <summary>Details</summary>
                 <p>
                   A sample of air, a surface, or material, analyzed by an independent accredited lab.
                   We take at least two: one from the affected area and one from an unaffected area to
-                  compare against. The lab report is included.
+                  compare against.
                 </p>
-                <p>
-                  Per sample, when lab testing is part of your assessment. Other kinds of sampling
-                  are quoted once we know what you need.
-                </p>
-              </div>
+                <p>Other kinds of sampling are quoted once we know what you need.</p>
+              </details>
             </li>
           </ul>
+          <p>
+            Every visit comes with a written report you can share with your insurer or contractor.
+          </p>
         </section>
 
         <section className="wrap section" aria-labelledby="how-heading">
@@ -132,69 +139,54 @@ export default function Home() {
           <ol className="steps">
             <li>
               <div>
-                <h3>Request a date</h3>
-                <p>Tell us what you are seeing and where. No payment yet.</p>
+                <h3>Request a day</h3>
+                <p>Tell us what you are seeing and where.</p>
               </div>
             </li>
             <li>
               <div>
-                <h3>We confirm your date</h3>
-                <p>We review your request and confirm the day, time and how long we expect to be on site.</p>
+                <h3>We confirm</h3>
+                <p>We reply with the day, time and how long we expect to be there.</p>
               </div>
             </li>
             <li>
               <div>
-                <h3>Lock it in with a deposit</h3>
-                <p>You get a payment link for 75% of the service price. Paying it holds your date.</p>
+                <h3>A 75% deposit holds it</h3>
+                <p>If two people ask for the same time, the first deposit gets it.</p>
               </div>
             </li>
             <li>
               <div>
-                <h3>We inspect</h3>
-                <p>We take measurements, collect data and talk through what we find with you.</p>
-              </div>
-            </li>
-            <li>
-              <div>
-                <h3>Final invoice and report</h3>
-                <p>The balance and any extras go on the final invoice. Your written report is issued within a few days of final payment.</p>
+                <h3>We visit</h3>
+                <p>You pay the balance after, and your report follows within days.</p>
               </div>
             </li>
           </ol>
         </section>
 
         <section className="wrap section faq" aria-labelledby="faq-heading">
-          <h2 id="faq-heading">Common questions</h2>
+          <h2 id="faq-heading">Questions</h2>
           <div style={{ marginTop: "1.25rem" }}>
             <details>
               <summary>Can I limit how long the visit lasts?</summary>
               <p>
-                Yes. Every visit is billed for a minimum of one hour, so we are on site for at least
-                that long. Larger properties usually take longer to assess fully. If you prefer to
-                limit our time on site, that is your decision. The assessment will then cover only
-                the areas we can complete in that time, and the findings will reflect only those
-                areas. Let us know when you request your date.
+                Yes. Every visit is billed for a one-hour minimum. If you would rather limit our
+                time, that is your decision. The assessment then covers only the areas we complete,
+                and the findings reflect only those areas. Tell us when you request your date.
               </p>
             </details>
             <details>
-              <summary>Can I pick my exact time?</summary>
+              <summary>Can I pick my time?</summary>
               <p>
-                We schedule Monday through Thursday, with visits starting at 10:00 AM or 12:30 PM.
-                Tell us your preferred day and start time and we confirm what works.
+                We schedule Monday through Thursday, starting at 10:00 AM or 12:30 PM. Tell us what
+                you prefer and we will confirm what works.
               </p>
             </details>
             <details>
               <summary>Where do you work?</summary>
               <p>
-                Martin, St. Lucie and Palm Beach counties are our core area. Outside it? Send a
-                request anyway and we will let you know what is possible.
-              </p>
-            </details>
-            <details>
-              <summary>What if the problem is more complex?</summary>
-              <p>
-                Some situations start with an initial inspection, where we collect data and talk
-                through next steps with you. A follow-up visit happens only if you choose to proceed.
+                Martin, St. Lucie and Palm Beach counties. Outside that? Send a request anyway and
+                we will tell you what is possible.
               </p>
             </details>
           </div>
@@ -202,8 +194,8 @@ export default function Home() {
 
         <section className="wrap">
           <div className="closing">
-            <h2>Ready to get a date on the calendar?</h2>
-            <p>It takes about two minutes, and there is nothing to pay until we confirm.</p>
+            <h2>Ready?</h2>
+            <p>It takes about two minutes. Nothing to pay until we confirm.</p>
             <Link href="/request" className="btn">
               Request a date
             </Link>
