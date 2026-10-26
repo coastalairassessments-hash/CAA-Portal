@@ -213,6 +213,7 @@ export default function Home() {
 
       <footer className="wrap site-footer">
         <p>Coastal Air Assessments. Serving Martin, St. Lucie and Palm Beach counties, Florida.</p>
+        <p>Questions? Call or text <a href="tel:+15614000929">561-400-0929</a>.</p>
         <p>
           <Link href="/terms">Mold assessment and sampling terms</Link> ·{" "}
           <Link href="/policy">Booking and payment policy</Link> ·{" "}
