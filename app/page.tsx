@@ -215,7 +215,9 @@ export default function Home() {
         <p>Coastal Air Assessments. Serving Martin, St. Lucie and Palm Beach counties, Florida.</p>
         <p>
           <Link href="/terms">Mold assessment and sampling terms</Link> ·{" "}
-          <Link href="/policy">Booking and payment policy</Link>
+          <Link href="/policy">Booking and payment policy</Link> ·{" "}
+          <Link href="/privacy">Privacy</Link> ·{" "}
+          <Link href="/eula">Terms of use</Link>
         </p>
       </footer>
     </>
