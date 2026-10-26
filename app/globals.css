@@ -643,3 +643,6 @@ a {
 .terms .muted { color: var(--muted); }
 .price-list .detail p { margin: 0 0 0.5rem; }
 .price-list .detail p:last-child { margin-bottom: 0; }
+.price-list .detail ul { margin: 0.25rem 0 0.75rem; padding-left: 1.1rem; list-style: disc; }
+.price-list .detail li { display: list-item; padding: 0; border: 0; margin-bottom: 0.3rem; }
+.price-list .detail li:first-child { border-top: 0; }

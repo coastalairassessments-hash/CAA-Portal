@@ -67,11 +67,20 @@ export default function Home() {
               <span className="price">$685</span>
               <div className="detail">
                 <p>
-                  A licensed Florida mold assessor inspects the areas you are concerned about for
-                  visible mold and moisture. Moisture meters and other instruments help find where
-                  moisture is coming from. If lab testing would help, we collect samples and send
-                  them to an independent accredited lab. We review what we find with you on site and
-                  recommend next steps.
+                  A noninvasive, science-based inspection to find what is feeding mold, moisture or
+                  poor air quality in your home, and why.
+                </p>
+                <ul>
+                  <li>Room-by-room visual inspection of accessible interior areas and exterior interfaces, for visible mold, water damage and construction issues.</li>
+                  <li>Instrument readings: temperature, humidity, carbon dioxide, carbon monoxide, formaldehyde, and a particle counter that measures airborne particles room by room.</li>
+                  <li>Thermal imaging and moisture mapping to find hidden moisture, thermal bridging and humidity traps.</li>
+                  <li>Real-time InstaScope screening where it helps guide the investigation.</li>
+                  <li>A written report with photos, your results, a Condition 1, 2 or 3 rating, and recommendations.</li>
+                </ul>
+                <p>
+                  Follows ASTM D7338, with guidance from AIHA, ASHRAE, EPA and IICRC S520. It is
+                  limited to accessible areas, and the readings are diagnostic indicators, not
+                  medical advice.
                 </p>
                 <p>Includes the first hour on site. Each additional hour is $195.</p>
               </div>
@@ -81,10 +90,16 @@ export default function Home() {
               <span className="price">$575</span>
               <div className="detail">
                 <p>
-                  Done after a mold cleanup to confirm the work is complete. We inspect the cleaned
-                  area against the cleanup scope and, where needed, test to verify the result,
-                  following IICRC S520.
+                  Done after a mold cleanup to evaluate how well it worked in the designated
+                  containment areas.
                 </p>
+                <ul>
+                  <li>Visual assessment for any remaining visible fungal growth.</li>
+                  <li>Moisture readings of building materials with professional-grade instruments.</li>
+                  <li>Verification of cleanliness and the condition of the containment zones.</li>
+                  <li>Air and/or surface sampling when it applies, following AIHA and ASTM D7338 protocols.</li>
+                  <li>Photos and a detailed report with recommendations based on IICRC S520, AIHA and ASTM guidelines.</li>
+                </ul>
                 <p>
                   Includes the first hour on site, and most take about an hour. Each additional hour
                   is $195.
