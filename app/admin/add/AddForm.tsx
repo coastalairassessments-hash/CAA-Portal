@@ -52,7 +52,7 @@ export default function AddForm({ contractors, defaultDate }: { contractors: { i
           </select>
         </div>
       </div>
-      <p className="adm-muted">No deposit. You invoice after the job.</p>
+      <div className="adm-panel tint" style={{ gap: 4 }}><b>Billing</b><span className="adm-muted">No deposit. Invoice after the job, due in 7 days.</span></div>
       {state.error && <p className="adm-err" role="alert">{state.error}</p>}
       <button className="adm-btn primary wide" type="submit" disabled={pending}>
         {pending ? "Adding..." : "Add to schedule"}

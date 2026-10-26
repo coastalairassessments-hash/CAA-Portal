@@ -27,8 +27,9 @@ export function JobCard({ r, today }: { r: Job; today: boolean }) {
   const canText = !!r.phone && r.text_consent;
   const slot = { name: r.name };
   return (
+    <div className="adm-jobrow">
+    <div className="t">{formatTime(r.confirmed_time!)}</div>
     <article className="adm-card">
-      <div className="adm-job-time">{formatTime(r.confirmed_time!)}</div>
       <div className="adm-chips">
         <span className={`adm-chip${contractor ? "" : " solid"}`}>{contractor ? "Contractor" : "Homeowner"}</span>
         {contractor ? <span className="adm-chip warn">Invoice after</span> : <span className="adm-chip">Deposit paid</span>}
@@ -54,6 +55,7 @@ export function JobCard({ r, today }: { r: Job; today: boolean }) {
         </div>
       )}
     </article>
+    </div>
   );
 }
 
