@@ -132,6 +132,7 @@ export default function TodayPage(props: Props) {
           </div>
           <h1 className="adm-title">Today</h1>
         </div>
+        <Link className="adm-link" href="/admin/texts">Quick texts</Link>
       </header>
       <Suspense fallback={<p className="adm-empty">Loading...</p>}>
         <Schedule {...props} />

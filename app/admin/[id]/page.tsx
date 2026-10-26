@@ -7,6 +7,7 @@ import { formatPhone, formatStamp, formatTime, fullAddress, jobLabel, sizeLabel 
 import { formatDateLabel } from "@/lib/dates";
 import { mapsLink } from "@/lib/admin";
 import { confirmText, offerText, smsLink } from "@/lib/confirm";
+import { GOOGLE_REVIEW_URL, depositReminderText, reviewText } from "@/lib/quicktexts";
 import { depositCents, formatMoney } from "@/lib/pricing";
 import { googleCalendarLink } from "@/lib/calendar";
 import { cancelBooking, cancelJob, declineRequest, markDepositReceived, markRefunded } from "../actions";
@@ -126,9 +127,20 @@ async function Detail({ params, searchParams }: Props) {
             <button className="adm-btn primary wide" type="submit">Mark deposit received</button>
           </form>
           {r.text_consent && (
-            <a className="adm-btn wide" href={smsLink(r.phone, offerText(r, offer, deposit))}>
-              Text client the offer
-            </a>
+            <>
+              <a className="adm-btn wide" href={smsLink(r.phone, offerText(r, offer, deposit))}>
+                Text client the offer
+              </a>
+              <a
+                className="adm-btn wide"
+                href={smsLink(
+                  r.phone,
+                  depositReminderText(r, `${formatDateLabel(offer.date)} at ${formatTime(offer.time)}`, formatMoney(deposit)),
+                )}
+              >
+                Text a deposit reminder
+              </a>
+            </>
           )}
         </section>
       )}
@@ -172,6 +184,12 @@ async function Detail({ params, searchParams }: Props) {
             </form>
           )}
         </section>
+      )}
+
+      {!contractor && r.final_paid_at && r.text_consent && GOOGLE_REVIEW_URL && (
+        <a className="adm-btn wide" href={smsLink(r.phone, reviewText(r, GOOGLE_REVIEW_URL))} style={{ marginBottom: 14 }}>
+          Text a review request
+        </a>
       )}
 
       <Drawers r={r} saved={typeof query.saved === "string" ? query.saved : undefined} />

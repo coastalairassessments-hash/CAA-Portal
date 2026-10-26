@@ -14,6 +14,7 @@ export default function MorePage() {
         <h1 className="adm-title">More</h1>
       </header>
       <section className="adm-group">
+        <Link className="adm-btn primary wide" href="/admin/texts">Quick texts</Link>
         <Link className="adm-btn wide" href="/admin?tab=booked">Booked jobs</Link>
         <Link className="adm-btn wide" href="/admin?tab=declined">Declined and cancelled</Link>
         <Link className="adm-btn wide" href="/admin?tab=all">All requests</Link>

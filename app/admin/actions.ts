@@ -24,6 +24,7 @@ export async function logout() {
 // ---- Offer, deposit, decline ----
 import { cancelEmail, confirmEmail, declineEmail, offerEmail, parseConfirm, takenEmail } from "@/lib/confirm";
 import { refundDue } from "@/lib/cancel";
+import { GOOGLE_REVIEW_URL, reviewEmail } from "@/lib/quicktexts";
 import { SITE_URL_FALLBACK, sendEmail } from "@/lib/notify";
 import { depositCents } from "@/lib/pricing";
 import { overlaps } from "@/lib/slots";
@@ -197,9 +198,23 @@ export async function markFinalPaid(form: FormData): Promise<void> {
   const supabase = await adminClient();
   const id = String(form.get("id") ?? "");
   if (!supabase || !/^[0-9a-f-]{36}$/i.test(id)) redirect("/admin");
-  const value = form.get("clear") ? null : new Date().toISOString();
-  const { error } = await supabase.from("requests").update({ final_paid_at: value }).eq("id", id);
-  redirect(`/admin/${id}${error ? "?error=save" : ""}`);
+  const clearing = !!form.get("clear");
+
+  const { data: row } = await supabase
+    .from("requests").select("name, email, source, final_paid_at").eq("id", id).single();
+  const { error } = await supabase
+    .from("requests")
+    .update({ final_paid_at: clearing ? null : new Date().toISOString() })
+    .eq("id", id);
+  if (error) redirect(`/admin/${id}?error=save`);
+
+  // First time paid, and a review link is set: thank the client and ask for a review.
+  if (!clearing && row && !row.final_paid_at && row.source === "client" && row.email && GOOGLE_REVIEW_URL) {
+    const sent = await sendEmail({ to: row.email, ...reviewEmail(row, GOOGLE_REVIEW_URL) });
+    if (!sent.ok) console.error(`[review] email not sent: ${sent.reason}`);
+    redirect(`/admin/${id}?email=${sent.ok ? "sent" : "failed"}`);
+  }
+  redirect(`/admin/${id}`);
 }
 
 // ---- Contractor jobs ----
