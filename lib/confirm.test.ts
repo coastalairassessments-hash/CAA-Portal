@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { confirmEmail, confirmText, declineEmail, offerEmail, offerText, parseConfirm, smsLink, takenEmail } from "./confirm";
+import { onMyWayText, runningLateText, confirmEmail, confirmText, declineEmail, offerEmail, offerText, parseConfirm, smsLink, takenEmail } from "./confirm";
 import { sendEmail } from "./notify";
 
 const NOW = new Date("2026-10-25T17:00:00Z");
@@ -55,6 +55,14 @@ describe("messages", () => {
     const link = smsLink(row.phone, confirmText(row, b));
     expect(link.startsWith("sms:+17725550142&body=")).toBe(true);
     expect(link).not.toContain(" ");
+  });
+});
+
+describe("road texts", () => {
+  it("say who is writing and what is happening", () => {
+    expect(onMyWayText(row)).toContain("Hi Pat");
+    expect(onMyWayText(row)).toContain("on my way");
+    expect(runningLateText(row)).toContain("15 minutes");
   });
 });
 

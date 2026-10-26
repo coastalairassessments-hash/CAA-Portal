@@ -680,3 +680,9 @@ details.adm-group[open] > summary::after { content: "\2212"; }
 .price-list details.detail[open] summary { margin-bottom: 0.25rem; }
 .hero .lede + .lede { margin-top: 0.75rem; }
 .price-list + p { margin-top: 1.25rem; }
+
+/* Today and Add */
+.adm-seg.two { grid-template-columns: repeat(2, 1fr); }
+.adm-job-time { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+.adm-bar-add .adm-bar-icon { background: var(--acc); color: var(--accfg); width: 44px; height: 44px; border-radius: 22px; align-items: center; justify-content: center; margin-top: -10px; }
+.adm-bar-add[aria-current="page"] { color: var(--mute); }

@@ -125,3 +125,11 @@ export function confirmText(row: ConfirmRow, b: Booking): string {
 export function smsLink(phone: string, body: string): string {
   return `sms:${phone}&body=${encodeURIComponent(body)}`;
 }
+
+// One-tap texts from the Today screen. Cory taps send.
+export function onMyWayText(row: { name: string }): string {
+  return `Hi ${firstName(row.name)}, this is Coastal Air Assessments. I'm on my way.`;
+}
+export function runningLateText(row: { name: string }, minutes = 15): string {
+  return `Hi ${firstName(row.name)}, this is Coastal Air Assessments. I'm running about ${minutes} minutes behind. Thank you for your patience.`;
+}

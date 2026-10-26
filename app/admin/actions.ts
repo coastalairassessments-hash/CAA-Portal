@@ -27,6 +27,7 @@ import { SITE_URL_FALLBACK, sendEmail } from "@/lib/notify";
 import { depositCents } from "@/lib/pricing";
 import { overlaps } from "@/lib/slots";
 import { isSection, parseSection } from "@/lib/job";
+import { issueForService, parseContractorJob } from "@/lib/contractorJob";
 
 export type ConfirmState = { error: string | null };
 
@@ -186,6 +187,7 @@ export async function stampTime(form: FormData): Promise<void> {
   if (!supabase || !/^[0-9a-f-]{36}$/i.test(id) || (which !== "arrived_at" && which !== "left_at")) redirect("/admin");
   const value = form.get("clear") ? null : new Date().toISOString();
   const { error } = await supabase.from("requests").update({ [which]: value }).eq("id", id);
+  if (form.get("back") === "today") redirect("/admin/today");
   redirect(`/admin/${id}${error ? "?error=save" : ""}`);
 }
 
@@ -197,4 +199,79 @@ export async function markFinalPaid(form: FormData): Promise<void> {
   const value = form.get("clear") ? null : new Date().toISOString();
   const { error } = await supabase.from("requests").update({ final_paid_at: value }).eq("id", id);
   redirect(`/admin/${id}${error ? "?error=save" : ""}`);
+}
+
+// ---- Contractor jobs ----
+export async function addContractorJob(_prev: ConfirmState, form: FormData): Promise<ConfirmState> {
+  const supabase = await adminClient();
+  if (!supabase) return { error: "This account is not on the admin list." };
+
+  const parsed = parseContractorJob({
+    contractorId: form.get("contractorId") ?? "",
+    newName: form.get("newName") ?? "",
+    service: form.get("service"),
+    address: form.get("address"),
+    date: form.get("date"),
+    time: form.get("time"),
+    hours: form.get("hours"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form." };
+  const v = parsed.data;
+
+  // Find or create the contractor.
+  let contractorId = v.contractorId;
+  let contractorName = "";
+  if (contractorId) {
+    const { data } = await supabase.from("contractors").select("name").eq("id", contractorId).single();
+    if (!data) return { error: "Could not find that contractor." };
+    contractorName = data.name;
+  } else {
+    const name = v.newName;
+    const { data: found } = await supabase.from("contractors").select("id, name").ilike("name", name).maybeSingle();
+    if (found) {
+      contractorId = found.id;
+      contractorName = found.name;
+    } else {
+      const { data: made, error: makeErr } = await supabase.from("contractors").insert({ name }).select("id, name").single();
+      if (makeErr || !made) return { error: `Could not save the contractor. (Ref: contractor-${makeErr?.code ?? "unknown"})` };
+      contractorId = made.id;
+      contractorName = made.name;
+    }
+  }
+
+  const { data: job, error } = await supabase
+    .from("requests")
+    .insert({
+      source: "contractor",
+      contractor_id: contractorId,
+      status: "confirmed",
+      issue: issueForService(v.service),
+      name: contractorName,
+      address: v.address,
+      preferred_date: v.date,
+      preferred_time: "10:00", // unused for contractor jobs
+      text_consent: false,
+      area: "core",
+      confirmed_date: v.date,
+      confirmed_time: v.time,
+      block_hours: v.hours,
+      confirmed_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  if (error || !job) {
+    if (error?.code === EXCLUSION_VIOLATION) {
+      return { error: "That time overlaps a job that is already held. Pick another time." };
+    }
+    return { error: `Could not save. (Ref: add-${error?.code ?? "unknown"})` };
+  }
+  redirect("/admin/today?added=1");
+}
+
+export async function cancelJob(form: FormData): Promise<void> {
+  const supabase = await adminClient();
+  const id = String(form.get("id") ?? "");
+  if (!supabase || !/^[0-9a-f-]{36}$/i.test(id)) redirect("/admin");
+  const { error } = await supabase.from("requests").update({ status: "cancelled" }).eq("id", id);
+  redirect(error ? `/admin/${id}?error=save` : "/admin/today");
 }

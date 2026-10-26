@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { supabaseForUser } from "@/lib/supabase/server";
 import { formatDateLabel, todayInNewYork } from "@/lib/dates";
-import { formatTime, issueLabel, sizeLabel } from "@/lib/labels";
+import { formatTime, fullAddress, jobLabel, sizeLabel } from "@/lib/labels";
 import {
   counts,
   filterRows,
@@ -23,10 +23,9 @@ export const metadata: Metadata = {
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-const TAB_LABELS: Record<Tab, string> = { new: "New requests", waiting: "Waiting for deposit", booked: "Booked", declined: "Declined", all: "All requests" };
+const TAB_LABELS: Record<Tab, string> = { requests: "Requests", booked: "Booked jobs", declined: "Declined", all: "All" };
 const EMPTY: Record<Tab, string> = {
-  new: "Nothing waiting. You're caught up.",
-  waiting: "No deposits pending.",
+  requests: "Nothing waiting. You're caught up.",
   booked: "No booked jobs yet.",
   declined: "Nothing here.",
   all: "No requests yet.",
@@ -38,23 +37,25 @@ function Card({ r }: { r: AdminRow }) {
     <article className={`adm-card${r.area === "outside" ? " outside" : ""}`}>
       <h2>{r.name}</h2>
       <div className="adm-chips">
+        {r.source === "contractor" && <span className="adm-chip">Contractor</span>}
         {r.status === "confirmed" && <span className="adm-chip solid">Booked</span>}
         {r.status === "offered" && <span className="adm-chip warn">Deposit waiting</span>}
         {r.status === "declined" && <span className="adm-chip">Declined</span>}
         {r.area === "outside" && <span className="adm-chip warn">Outside area</span>}
       </div>
       <p className="adm-line">
-        {issueLabel(r.issue)} · {sizeLabel(r.size_band)}
+        {jobLabel(r)}
+        {r.size_band ? ` · ${sizeLabel(r.size_band)}` : ""}
       </p>
       <p className="adm-muted">
         {booked
           ? `${r.status === "offered" ? "Offered" : "Booked"} ${formatDateLabel(r.confirmed_date!)} at ${formatTime(r.confirmed_time!)} · ${r.block_hours}h`
           : `Wants ${formatDateLabel(r.preferred_date)} at ${formatTime(r.preferred_time)}`}{" "}
-        · {r.city} {r.zip}
+        · {r.city ? `${r.city} ${r.zip ?? ""}` : r.address}
       </p>
       <div className="adm-actions">
-        <a className="adm-btn" href={`tel:${r.phone}`}>Call</a>
-        {r.text_consent ? (
+        {r.phone ? <a className="adm-btn" href={`tel:${r.phone}`}>Call</a> : <span className="adm-btn" aria-disabled="true" style={{ opacity: 0.45 }}>Call</span>}
+        {r.phone && r.text_consent ? (
           <a className="adm-btn" href={`sms:${r.phone}`}>Text</a>
         ) : (
           <span className="adm-btn" aria-disabled="true" style={{ opacity: 0.45 }}>Text</span>
@@ -90,7 +91,7 @@ async function Dashboard({ searchParams }: Props) {
   const { data, error } = await supabase
     .from("requests")
     .select(
-      "id, created_at, status, issue, size_band, preferred_date, preferred_time, name, phone, email, address, city, zip, notes, text_consent, confirmed_date, confirmed_time, block_hours, area",
+      "id, created_at, status, issue, size_band, preferred_date, preferred_time, name, phone, email, address, city, zip, notes, text_consent, confirmed_date, confirmed_time, block_hours, area, source",
     )
     .order("created_at", { ascending: false })
     .limit(200);

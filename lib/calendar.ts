@@ -1,15 +1,16 @@
 import { addDays } from "./dates";
-import { formatPhone, issueLabel } from "./labels";
+import { formatPhone, jobLabel } from "./labels";
 
 // A link that opens Google Calendar with the job already filled in. Cory taps Save.
 // Times are Eastern ("floating" with ctz), so no timezone math is needed here.
 export type CalendarJob = {
   name: string;
-  phone: string;
+  phone: string | null;
   address: string;
-  city: string;
-  zip: string;
+  city: string | null;
+  zip: string | null;
   issue: string;
+  source?: string | null;
   notes: string;
 };
 export type CalendarBooking = { date: string; time: string; hours: number };
@@ -28,8 +29,8 @@ export function googleCalendarLink(job: CalendarJob, b: CalendarBooking): string
   const start = h * 60 + m;
   const end = start + b.hours * 60;
   const details = [
-    `${issueLabel(job.issue)}`,
-    `Phone: ${formatPhone(job.phone)}`,
+    `${jobLabel(job)}`,
+    job.phone ? `Phone: ${formatPhone(job.phone)}` : "",
     job.notes ? `Notes: ${job.notes}` : "",
   ]
     .filter(Boolean)
@@ -39,7 +40,7 @@ export function googleCalendarLink(job: CalendarJob, b: CalendarBooking): string
     text: `CAA: ${job.name}`,
     dates: `${stamp(b.date, start)}/${stamp(b.date, end)}`,
     ctz: "America/New_York",
-    location: `${job.address}, ${job.city} FL ${job.zip}`,
+    location: job.city ? `${job.address}, ${job.city} FL ${job.zip ?? ""}`.trim() : job.address,
     details,
   });
   return `https://calendar.google.com/calendar/render?${params.toString()}`;

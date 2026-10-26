@@ -39,3 +39,19 @@ export function formatStamp(iso: string): string {
   const time = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }).format(d);
   return `${date} at ${time}`;
 }
+
+// "88 Indian St, Jensen Beach" for contractor jobs; "123 5th St, Stuart 34997" for clients.
+export function fullAddress(r: { address: string; city?: string | null; zip?: string | null }): string {
+  const tail = [r.city, r.zip].filter(Boolean).join(" ");
+  return tail ? `${r.address}, ${tail}` : r.address;
+}
+
+// Contractor jobs are named by service; client jobs by what the client reported.
+export function jobLabel(r: { issue: string; source?: string | null }): string {
+  if (r.source === "contractor") {
+    return r.issue === "post_remediation"
+      ? "Post-remediation verification (PRV)"
+      : "Mold and air quality assessment";
+  }
+  return issueLabel(r.issue);
+}

@@ -19,3 +19,16 @@ describe("labels", () => {
     expect(formatStamp("2026-10-26T23:41:00Z")).toBe("Oct 26 at 7:41 PM");
   });
 });
+
+import { fullAddress, jobLabel } from "./labels";
+describe("address and job labels", () => {
+  it("joins what exists", () => {
+    expect(fullAddress({ address: "123 5th St", city: "Stuart", zip: "34997" })).toBe("123 5th St, Stuart 34997");
+    expect(fullAddress({ address: "88 Indian St, Jensen Beach", city: null, zip: null })).toBe("88 Indian St, Jensen Beach");
+  });
+  it("names contractor jobs by service", () => {
+    expect(jobLabel({ issue: "post_remediation", source: "contractor" })).toContain("PRV");
+    expect(jobLabel({ issue: "air_quality", source: "contractor" })).toBe("Mold and air quality assessment");
+    expect(jobLabel({ issue: "musty_smell", source: "client" })).toBe("Musty smell");
+  });
+});

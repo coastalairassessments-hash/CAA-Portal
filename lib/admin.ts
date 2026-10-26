@@ -6,15 +6,16 @@ export type AdminRow = {
   created_at: string;
   status: string;
   issue: string;
-  size_band: string;
+  size_band: string | null;
   preferred_date: string;
   preferred_time: string;
   name: string;
-  phone: string;
-  email: string;
+  phone: string | null;
+  email: string | null;
   address: string;
-  city: string;
-  zip: string;
+  city: string | null;
+  zip: string | null;
+  source: string;
   notes: string;
   text_consent: boolean;
   confirmed_date: string | null;
@@ -23,12 +24,12 @@ export type AdminRow = {
   area: "core" | "outside";
 };
 
-export const TABS = ["new", "waiting", "booked", "declined", "all"] as const;
+export const TABS = ["requests", "booked", "declined", "all"] as const;
 export type Tab = (typeof TABS)[number];
 
 export function parseTab(v: string | string[] | undefined): Tab {
   const s = Array.isArray(v) ? v[0] : v;
-  return (TABS as readonly string[]).includes(s ?? "") ? (s as Tab) : "new";
+  return (TABS as readonly string[]).includes(s ?? "") ? (s as Tab) : "requests";
 }
 
 const sortKey = (r: AdminRow) =>
@@ -38,12 +39,14 @@ const sortKey = (r: AdminRow) =>
 
 export function filterRows(rows: AdminRow[], tab: Tab): AdminRow[] {
   switch (tab) {
-    case "new":
-      return rows.filter((r) => r.status === "new");
-    case "waiting":
-      return rows
-        .filter((r) => r.status === "offered")
-        .sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
+    case "requests":
+      // New first, then deposits waiting (soonest date first).
+      return [
+        ...rows.filter((r) => r.status === "new"),
+        ...rows
+          .filter((r) => r.status === "offered")
+          .sort((a, b) => sortKey(a).localeCompare(sortKey(b))),
+      ];
     case "booked":
       // Soonest job first.
       return rows
@@ -68,8 +71,9 @@ export function counts(rows: AdminRow[], today: string) {
 }
 
 // Opens Apple Maps on iPhone and Mac with directions to the job.
-export function mapsLink(r: { address: string; city: string; zip: string }): string {
-  return `https://maps.apple.com/?daddr=${encodeURIComponent(`${r.address}, ${r.city} FL ${r.zip}`)}`;
+export function mapsLink(r: { address: string; city?: string | null; zip?: string | null }): string {
+  const where = r.city ? `${r.address}, ${r.city} FL ${r.zip ?? ""}`.trim() : r.address;
+  return `https://maps.apple.com/?daddr=${encodeURIComponent(where)}`;
 }
 
 export function todayLabel(now: Date = new Date()): string {

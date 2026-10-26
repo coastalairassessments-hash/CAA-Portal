@@ -18,9 +18,8 @@ async function Counts() {
   const today = todayInNewYork();
   const rows = data ?? [];
   const counts: NavCounts = {
-    new: rows.filter((r) => r.status === "new").length,
-    waiting: rows.filter((r) => r.status === "offered").length,
-    upcoming: rows.filter((r) => r.status === "confirmed" && r.confirmed_date && r.confirmed_date >= today).length,
+    today: rows.filter((r) => r.status === "confirmed" && r.confirmed_date === today).length,
+    requests: rows.filter((r) => r.status === "new" || r.status === "offered").length,
   };
   return <TabBar counts={counts} />;
 }
