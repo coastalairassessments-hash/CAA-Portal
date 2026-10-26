@@ -65,25 +65,46 @@ export default function Home() {
             <li>
               <h3>Mold and indoor air quality assessment</h3>
               <span className="price">$685</span>
-              <span className="detail">
-                Includes the first hour on site. Each additional hour is $195.
-              </span>
+              <div className="detail">
+                <p>
+                  A licensed Florida mold assessor inspects the areas you are concerned about for
+                  visible mold and moisture. Moisture meters and other instruments help find where
+                  moisture is coming from. If lab testing would help, we collect samples and send
+                  them to an independent accredited lab. We review what we find with you on site and
+                  recommend next steps.
+                </p>
+                <p>Includes the first hour on site. Each additional hour is $195.</p>
+              </div>
             </li>
             <li>
               <h3>Post-remediation verification (PRV)</h3>
               <span className="price">$575</span>
-              <span className="detail">
-                Confirms a cleanup worked. Includes the first hour on site, and most take about an
-                hour. Each additional hour is $195.
-              </span>
+              <div className="detail">
+                <p>
+                  Done after a mold cleanup to confirm the work is complete. We inspect the cleaned
+                  area against the cleanup scope and, where needed, test to verify the result,
+                  following IICRC S520.
+                </p>
+                <p>
+                  Includes the first hour on site, and most take about an hour. Each additional hour
+                  is $195.
+                </p>
+              </div>
             </li>
             <li>
               <h3>Mold lab sample</h3>
               <span className="price">$85</span>
-              <span className="detail">
-                Per sample, when lab testing is part of your assessment. Other kinds of sampling are
-                quoted once we know what you need.
-              </span>
+              <div className="detail">
+                <p>
+                  A sample of air, a surface, or material, analyzed by an independent accredited lab.
+                  We take at least two: one from the affected area and one from an unaffected area to
+                  compare against. The lab report is included.
+                </p>
+                <p>
+                  Per sample, when lab testing is part of your assessment. Other kinds of sampling
+                  are quoted once we know what you need.
+                </p>
+              </div>
             </li>
           </ul>
         </section>
@@ -171,6 +192,9 @@ export default function Home() {
 
       <footer className="wrap site-footer">
         <p>Coastal Air Assessments. Serving Martin, St. Lucie and Palm Beach counties, Florida.</p>
+        <p>
+          <Link href="/terms">Mold assessment and sampling terms</Link>
+        </p>
       </footer>
     </>
   );

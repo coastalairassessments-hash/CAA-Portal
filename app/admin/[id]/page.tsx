@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { supabaseForUser } from "@/lib/supabase/server";
-import { formatPhone, formatTime, issueLabel, sizeLabel } from "@/lib/labels";
+import { formatPhone, formatStamp, formatTime, issueLabel, sizeLabel } from "@/lib/labels";
 import { formatDateLabel } from "@/lib/dates";
 import { mapsLink } from "@/lib/admin";
 import { confirmText, smsLink } from "@/lib/confirm";
@@ -71,6 +71,11 @@ async function Detail({ params, searchParams }: Props) {
           {r.text_consent ? " · ok to text" : " · no texting"}
         </p>
         {r.notes && <p className="adm-line">Notes: {r.notes}</p>}
+        <p className="adm-muted">
+          {r.terms_accepted_at
+            ? `Terms agreed (${r.terms_version}) on ${formatStamp(r.terms_accepted_at)}`
+            : "No terms agreement on file (earlier request)"}
+        </p>
         <div className="adm-actions three">
           <a className="adm-btn" href={`tel:${r.phone}`}>Call</a>
           {r.text_consent ? (

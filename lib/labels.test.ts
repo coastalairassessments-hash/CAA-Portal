@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPhone, formatTime, issueLabel, sizeLabel } from "./labels";
+import { formatPhone, formatStamp, formatTime, issueLabel, sizeLabel } from "./labels";
 
 describe("labels", () => {
   it("formats phones and falls back to the raw value", () => {
@@ -14,5 +14,8 @@ describe("labels", () => {
     expect(issueLabel("water_damage")).toBe("Water damage");
     expect(sizeLabel("over_6000")).toBe("Over 6,000 sq ft");
     expect(issueLabel("new_thing")).toBe("new_thing");
+  });
+  it("formats a timestamp in Eastern time", () => {
+    expect(formatStamp("2026-10-26T23:41:00Z")).toBe("Oct 26 at 7:41 PM");
   });
 });

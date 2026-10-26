@@ -17,6 +17,7 @@ const good = {
   zip: "34994",
   notes: "Smell in the guest room",
   textConsent: true,
+  termsAccepted: true,
   website: "",
 };
 
@@ -50,6 +51,22 @@ describe("submitRequest", () => {
     expect(row.area).toBe("core");
     expect(row.zone_id).toBe("martin");
     expect(deps.notify).toHaveBeenCalledTimes(1);
+  });
+
+  it("records which terms version was agreed to, and when", async () => {
+    const deps = makeDeps();
+    await submitRequest(good, "203.0.113.9", deps);
+    const row = (deps.insert.mock.calls[0] as unknown[])[0] as Record<string, unknown>;
+    expect(row.terms_version).toBe("v1-2026-10");
+    expect(row.terms_accepted_at).toBe(NOW.toISOString());
+  });
+
+  it("refuses a request that did not agree to the terms", async () => {
+    const deps = makeDeps();
+    const result = await submitRequest({ ...good, termsAccepted: false }, "203.0.113.9", deps);
+    expect(result.ok).toBe(false);
+    if (!result.ok && result.status === 400) expect(result.errors.termsAccepted).toBeTruthy();
+    expect(deps.insert).not.toHaveBeenCalled();
   });
 
   it("flags an outside-area ZIP silently", async () => {
@@ -174,6 +191,8 @@ describe("alerts", () => {
     zip: "33101",
     notes: "",
     text_consent: false,
+    terms_version: "v1-2026-10",
+    terms_accepted_at: "2026-10-25T17:00:00.000Z",
     area: "outside" as const,
     zone_id: null,
     ip_hash: null,

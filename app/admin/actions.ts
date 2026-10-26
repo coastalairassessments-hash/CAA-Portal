@@ -23,7 +23,7 @@ export async function logout() {
 
 // ---- Brick 2: confirm or decline a request ----
 import { confirmEmail, declineEmail, parseConfirm } from "@/lib/confirm";
-import { sendEmail } from "@/lib/notify";
+import { SITE_URL_FALLBACK, sendEmail } from "@/lib/notify";
 
 export type ConfirmState = { error: string | null };
 
@@ -66,7 +66,7 @@ export async function confirmRequest(_prev: ConfirmState, form: FormData): Promi
     .eq("id", id);
   if (saveErr) return { error: `Could not save. (Ref: confirm-${saveErr.code ?? "unknown"})` };
 
-  const mail = confirmEmail(client, { date, time, hours });
+  const mail = confirmEmail(client, { date, time, hours }, process.env.SITE_URL?.trim() || SITE_URL_FALLBACK);
   const sent = await sendEmail({ to: client.email, ...mail });
   if (!sent.ok) console.error(`[confirm] client email not sent: ${sent.reason}`);
   redirect(`/admin/${id}?email=${sent.ok ? "sent" : "failed"}`);

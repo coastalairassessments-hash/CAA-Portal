@@ -17,6 +17,7 @@ const good = {
   zip: "34994",
   notes: "",
   textConsent: true,
+  termsAccepted: true,
   website: "",
 };
 

@@ -30,3 +30,12 @@ export function formatTime(hhmm: string): string {
   const h = Number(m[1]);
   return `${h % 12 === 0 ? 12 : h % 12}:${m[2]} ${h >= 12 ? "PM" : "AM"}`;
 }
+
+// "2026-10-26T23:41:00Z" -> "Oct 26 at 7:41 PM" (Eastern time)
+export function formatStamp(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const date = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" }).format(d);
+  const time = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }).format(d);
+  return `${date} at ${time}`;
+}

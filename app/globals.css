@@ -634,3 +634,12 @@ a {
 .adm-err { color: var(--err); font-size: 14px; margin: 0; }
 .adm-ok { background: var(--chip); border-radius: 10px; padding: 10px 12px; font-size: 14px; margin: 0 0 14px; }
 .adm-empty { text-align: center; color: var(--mute); padding: 40px 0; }
+
+/* Terms page: readable long-form */
+.terms { max-width: 46rem; }
+.terms h2 { font-size: 1.15rem; margin: 1.75rem 0 0.5rem; }
+.terms p, .terms li { line-height: 1.6; }
+.terms ul { padding-left: 1.25rem; }
+.terms .muted { color: var(--muted); }
+.price-list .detail p { margin: 0 0 0.5rem; }
+.price-list .detail p:last-child { margin-bottom: 0; }

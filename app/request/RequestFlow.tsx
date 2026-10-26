@@ -52,6 +52,7 @@ export default function RequestFlow({ dates }: { dates: string[] }) {
   const [zip, setZip] = useState("");
   const [notes, setNotes] = useState("");
   const [textConsent, setTextConsent] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [website, setWebsite] = useState(""); // hidden bot trap
 
   const [busy, setBusy] = useState(false);
@@ -90,6 +91,7 @@ export default function RequestFlow({ dates }: { dates: string[] }) {
           zip,
           notes,
           textConsent,
+          termsAccepted,
           website,
         }),
       });
@@ -332,6 +334,30 @@ export default function RequestFlow({ dates }: { dates: string[] }) {
                 Text me updates about this request
                 <small>Message and data rates may apply. You can reply STOP at any time.</small>
               </label>
+            </div>
+
+            <div className="field consent">
+              <input
+                id="termsAccepted"
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                aria-invalid={!!errors.termsAccepted}
+                aria-describedby={errors.termsAccepted ? "terms-err" : undefined}
+              />
+              <label htmlFor="termsAccepted">
+                I have read and agree to the{" "}
+                <a href="/terms" target="_blank" rel="noreferrer">
+                  Mold Assessment and Sampling Terms
+                </a>
+                <small>
+                  This is a limited, non-destructive assessment. The terms explain what it covers and
+                  what it does not.
+                </small>
+              </label>
+              {errors.termsAccepted && (
+                <p className="error" id="terms-err">{errors.termsAccepted}</p>
+              )}
             </div>
 
             {/* Hidden bot trap: leave empty */}

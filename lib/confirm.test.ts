@@ -30,6 +30,7 @@ describe("messages", () => {
     expect(text).toContain("123 Ocean Blvd");
     expect(text).toContain("2 hours");
     expect(text).toContain("Hi Pat");
+    expect(confirmEmail(row, b, "https://x.test/").text).toContain("https://x.test/terms");
   });
   it("decline email is polite and short", () => {
     expect(declineEmail(row).text).toContain("Hi Pat");

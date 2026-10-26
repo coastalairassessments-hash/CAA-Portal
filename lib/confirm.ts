@@ -30,7 +30,7 @@ export type Booking = { date: string; time: string; hours: number };
 const firstName = (name: string) => name.trim().split(/\s+/)[0] || "there";
 const hoursWord = (h: number) => (h === 1 ? "1 hour" : `${h} hours`);
 
-export function confirmEmail(row: ConfirmRow, b: Booking) {
+export function confirmEmail(row: ConfirmRow, b: Booking, siteUrl = "https://caaportal.netlify.app") {
   const when = `${formatDateLabel(b.date)} at ${formatTime(b.time)}`;
   return {
     subject: `Your visit is confirmed: ${when}`,
@@ -46,6 +46,8 @@ export function confirmEmail(row: ConfirmRow, b: Booking) {
       "Your deposit link comes next, in a separate message. Your date is held for you in the meantime.",
       "",
       "Reply to this email with any questions.",
+      "",
+      `Terms you agreed to: ${siteUrl.replace(/\/+$/, "")}/terms`,
       "",
       "Coastal Air Assessments",
     ].join("\n"),

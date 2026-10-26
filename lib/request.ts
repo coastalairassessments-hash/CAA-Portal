@@ -75,6 +75,7 @@ export function buildRequestSchema(now: Date = new Date()) {
       .transform((v) => v.slice(0, 5)),
     notes: z.string().trim().max(1000).optional().default(""),
     textConsent: z.boolean(),
+    termsAccepted: z.literal(true, { error: "Please agree to the terms to continue" }),
     // Honeypot: real people never see or fill this field. Bots do.
     website: z.string().max(0).optional().default(""),
   });
