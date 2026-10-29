@@ -3,7 +3,8 @@ import Link from "next/link";
 import Logo from "@/app/components/Logo";
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { nextBookableDates } from "@/lib/dates";
+import { nextBookableDates, todayInNewYork } from "@/lib/dates";
+import { heldSlots } from "@/lib/availabilityServer";
 import RequestFlow from "./RequestFlow";
 
 export const metadata: Metadata = {
@@ -14,7 +15,8 @@ export const metadata: Metadata = {
 async function Flow() {
   await connection();
   const dates = nextBookableDates(new Date(), 40, 1);
-  return <RequestFlow dates={dates} />;
+  const held = await heldSlots(todayInNewYork());
+  return <RequestFlow dates={dates} held={held} />;
 }
 
 export default function RequestPage() {

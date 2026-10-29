@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateLabel } from "@/lib/dates";
 import SlotCalendar from "./SlotCalendar";
+import type { Slot } from "@/lib/slots";
 import { HOW_HEARD, isLongVisit } from "@/lib/request";
 
 const ISSUES = [
@@ -36,7 +37,7 @@ const STEP_TITLES = [
 
 type FieldErrors = Record<string, string>;
 
-export default function RequestFlow({ dates }: { dates: string[] }) {
+export default function RequestFlow({ dates, held }: { dates: string[]; held: Slot[] }) {
   const router = useRouter();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -191,6 +192,7 @@ export default function RequestFlow({ dates }: { dates: string[] }) {
           date={preferredDate}
           time={preferredTime}
           longVisit={isLongVisit(sizeBand)}
+          held={held}
           onPick={(d, t) => {
             setPreferredDate(d);
             setPreferredTime(t);
@@ -204,6 +206,11 @@ export default function RequestFlow({ dates }: { dates: string[] }) {
           <p className="summary">
             {issueLabel}, {sizeLabel}, {preferredDate && formatDateLabel(preferredDate)} at {timeLabel}
           </p>
+          <ol className="how">
+            <li><strong>You request</strong> this time. Nothing to pay today.</li>
+            <li><strong>We confirm</strong> and send a secure deposit link.</li>
+            <li><strong>Your deposit locks it.</strong> 75% of the first hour. First deposit paid gets the time.</li>
+          </ol>
 
           <div className="fields">
             <div className="field">

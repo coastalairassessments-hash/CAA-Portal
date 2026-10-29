@@ -450,6 +450,9 @@ a {
 .cal-num { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
 .cal-slot { min-height: 2.75rem; border: 2px solid var(--line); border-radius: 0.5rem; background: #fff; color: var(--ink); font: inherit; font-size: 0.95rem; font-weight: 600; cursor: pointer; }
 .cal-slot:disabled { opacity: 0.35; cursor: default; background: transparent; }
+.cal-slot.taken { opacity: 0.45; text-decoration: line-through; }
+.cal-full { font-size: 0.85rem; font-weight: 600; color: var(--muted); text-align: center; padding: 0.9rem 0; }
+.how { margin: 0 0 1.25rem; padding-left: 1.25rem; display: grid; gap: 0.4rem; font-size: 0.95rem; }
 .cal-slot:hover:not(:disabled) { border-color: var(--tide); }
 .cal-slot[aria-pressed="true"] { border-color: var(--tide); background: var(--tide); color: #fff; }
 .cal-slot:focus-visible, .cal-nav:focus-visible { outline: 3px solid var(--tide); outline-offset: 2px; }
