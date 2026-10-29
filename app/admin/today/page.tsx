@@ -77,9 +77,10 @@ async function Schedule({ searchParams }: Props) {
       <MoneyCard m={money(all)} />
 
       <div className="adm-actions" style={{ gridTemplateColumns: "1fr 1fr" }}>
-        <Link className="adm-btn" href="/admin/texts">Quick texts</Link>
+        <Link className="adm-btn" href="/admin/week">Week view</Link>
         <Link className="adm-btn primary" href="/admin/add">Add job</Link>
       </div>
+      <p style={{ marginTop: 12 }}><Link className="adm-link" href="/admin/texts">Quick texts</Link></p>
     </>
   );
 }

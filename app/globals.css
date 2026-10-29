@@ -732,3 +732,16 @@ details.adm-group[open] > summary::after { content: "\2212"; }
 .adm-tile span { font-size: 13px; color: var(--mute); }
 .adm-tile.hot { background: var(--acc); color: var(--accfg); }
 .adm-tile.hot span { color: var(--accfg); opacity: 0.85; }
+
+/* Admin week view */
+.wk-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.wk-cell { display: flex; flex-direction: column; gap: 2px; min-height: 84px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; }
+.wk-time { font-size: 13px; color: #4a6168; }
+.wk-state { font-size: 15px; font-weight: 600; }
+.wk-who { font-size: 15px; }
+.wk-what { font-size: 13px; color: #4a6168; }
+.wk-cell.open { background: var(--chip); border-style: dashed; }
+.wk-cell.pending { border-color: #b8860b; background: #fff8e6; }
+.wk-cell.booked { border-color: var(--acc); background: #eaf1f8; }
+.wk-cell.blocked { background: #eef1f2; color: #4a6168; }
+.wk-past { opacity: 0.5; }
