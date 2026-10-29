@@ -54,6 +54,7 @@ export default function AddForm({ contractors, defaultDate, initialName = "", in
           </select>
         </div>
       </div>
+      <p className="adm-muted">Over 2 hours blocks the whole day. 2 hours leaves 12:30 open. Latest start is 1:00 PM.</p>
       <div className="adm-panel tint" style={{ gap: 4 }}><b>Billing</b><span className="adm-muted">No deposit. Invoice after the job, due in 7 days.</span></div>
       {state.error && <p className="adm-err" role="alert">{state.error}</p>}
       <button className="adm-btn primary wide" type="submit" disabled={pending}>

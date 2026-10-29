@@ -1,3 +1,4 @@
+import { LATEST_START } from "./slots";
 import { z } from "zod";
 import { formatDateLabel, isRealDate, todayInNewYork } from "./dates";
 import { formatTime } from "./labels";
@@ -13,7 +14,7 @@ export function parseConfirm(input: unknown, now: Date = new Date()) {
         .string()
         .refine(isRealDate, "Pick a valid date")
         .refine((v) => v >= today, "Pick a date that is not in the past"),
-      time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Pick a start time"),
+      time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Pick a start time").refine((v) => v <= LATEST_START, "The latest start is 1:00 PM"),
       hours: z.coerce.number().int("Pick the hours").min(1, "Pick the hours").max(8, "Pick the hours"),
     })
     .safeParse(input);

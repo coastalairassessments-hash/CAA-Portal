@@ -34,6 +34,7 @@ export default function ConfirmForm(props: {
           </select>
         </div>
       </div>
+      <p className="adm-muted">Over 2 hours blocks the whole day. 2 hours leaves 12:30 open. Latest start is 1:00 PM.</p>
       {state.error && <p className="adm-err" role="alert">{state.error}</p>}
       <button className="adm-btn primary wide" type="submit" disabled={pending}>
         {pending ? "Sending..." : props.label}

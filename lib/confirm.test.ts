@@ -12,6 +12,10 @@ describe("parseConfirm", () => {
     expect(r.success).toBe(true);
     if (r.success) expect(r.data.hours).toBe(2);
   });
+  it("the latest start is 1:00 PM", () => {
+    expect(parseConfirm({ id, date: "2026-10-27", time: "13:00", hours: "1" }, NOW).success).toBe(true);
+    expect(parseConfirm({ id, date: "2026-10-27", time: "13:30", hours: "1" }, NOW).success).toBe(false);
+  });
   it("rejects past dates, bad times and odd hours", () => {
     expect(parseConfirm({ id, date: "2026-10-20", time: "10:00", hours: "2" }, NOW).success).toBe(false);
     expect(parseConfirm({ id, date: "2026-10-27", time: "25:00", hours: "2" }, NOW).success).toBe(false);
