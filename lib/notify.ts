@@ -53,7 +53,7 @@ export async function sendEmailAlert(
 export type SendResult = { ok: true } | { ok: false; reason: string };
 
 export async function sendEmail(
-  msg: { to: string; subject: string; text: string },
+  msg: { to: string; subject: string; text: string; attachments?: { filename: string; content: string }[] },
   env: Record<string, string | undefined> = process.env,
   fetchImpl: typeof fetch = fetch,
 ): Promise<SendResult> {
@@ -70,6 +70,7 @@ export async function sendEmail(
         to: [msg.to],
         subject: msg.subject,
         text: msg.text,
+        ...(msg.attachments?.length ? { attachments: msg.attachments } : {}),
         ...(replyTo ? { reply_to: replyTo } : {}),
       }),
     });

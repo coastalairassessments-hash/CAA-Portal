@@ -1,7 +1,8 @@
 // SERVER ONLY. Uses the Supabase service key, which must never reach a browser.
 // Import this file only from route handlers / server code.
 import { createClient } from "@supabase/supabase-js";
-import { sendEmailAlert } from "./notify";
+import { sendEmail, sendEmailAlert } from "./notify";
+import { receivedEmail } from "./ack";
 import type { SubmitDeps } from "./submit";
 
 export function productionDeps(
@@ -50,6 +51,12 @@ export function productionDeps(
       if (error) throw error;
       return { id: data.id as string };
     },
-    notify: (row) => sendEmailAlert(row, env),
+    async notify(row) {
+      // Tell Cory, and tell the client their request landed. Neither may fail the request.
+      await Promise.allSettled([
+        sendEmailAlert(row, env),
+        sendEmail({ to: row.email, ...receivedEmail(row) }, env),
+      ]);
+    },
   };
 }

@@ -46,6 +46,7 @@ export function confirmEmail(row: ConfirmRow, b: Booking, siteUrl = "https://caa
       `We have planned about ${hoursWord(b.hours)} on site. Every visit has a one-hour minimum.`,
       "If you would like to limit our time on site, reply to this email. The assessment will then cover the areas we can complete in that time.",
       "",
+      "A calendar invite is attached. Tap it to add the visit to your calendar.",
       "To cancel or reschedule, reply to this email. More than 24 hours before your visit is a full refund of your deposit.",
       "Reply to this email with any questions.",
       "",
