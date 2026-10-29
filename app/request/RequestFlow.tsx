@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateLabel } from "@/lib/dates";
-import { HOW_HEARD } from "@/lib/request";
+import SlotCalendar from "./SlotCalendar";
+import { HOW_HEARD, isLongVisit } from "@/lib/request";
 
 const ISSUES = [
   { value: "musty_smell", label: "Musty smell", hint: "Odor or suspected mold" },
@@ -29,8 +30,7 @@ const TIMES = [
 const STEP_TITLES = [
   "What are you dealing with?",
   "About how big is the property?",
-  "Which day works best?",
-  "What start time do you prefer?",
+  "Pick a day and start time",
   "Where should we contact you?",
 ];
 
@@ -110,8 +110,7 @@ export default function RequestFlow({ dates }: { dates: string[] }) {
         // A problem in an earlier step sends the person back to fix it.
         if (fieldErrors.issue) setStep(0);
         else if (fieldErrors.sizeBand) setStep(1);
-        else if (fieldErrors.preferredDate) setStep(2);
-        else if (fieldErrors.preferredTime) setStep(3);
+        else if (fieldErrors.preferredDate || fieldErrors.preferredTime) setStep(2);
         else setFormError("Please check the highlighted fields.");
       } else {
         setFormError(
@@ -135,13 +134,13 @@ export default function RequestFlow({ dates }: { dates: string[] }) {
         className="progress"
         role="progressbar"
         aria-valuemin={1}
-        aria-valuemax={5}
+        aria-valuemax={4}
         aria-valuenow={step + 1}
         aria-label="Request progress"
       >
-        <span style={{ width: `${((step + 1) / 5) * 100}%` }} />
+        <span style={{ width: `${((step + 1) / 4) * 100}%` }} />
       </div>
-      <p className="step-count">Step {step + 1} of 5</p>
+      <p className="step-count">Step {step + 1} of 4</p>
 
       <h1 ref={headingRef} tabIndex={-1}>
         {STEP_TITLES[step]}
@@ -176,7 +175,7 @@ export default function RequestFlow({ dates }: { dates: string[] }) {
                 type="button"
                 className="choice"
                 aria-pressed={sizeBand === o.value}
-                onClick={() => pick(setSizeBand, o.value)}
+                onClick={() => { setPreferredDate(""); setPreferredTime(""); pick(setSizeBand, o.value); }}
               >
                 <span className="label">{o.label}</span>
                 <span className="hint">{o.hint}</span>
@@ -187,41 +186,20 @@ export default function RequestFlow({ dates }: { dates: string[] }) {
       )}
 
       {step === 2 && (
-        <>
-          <p className="help">We schedule Monday through Thursday. We confirm the final day with you.</p>
-          <div className="choices grid-2">
-            {dates.map((d) => (
-              <button
-                key={d}
-                type="button"
-                className="choice"
-                aria-pressed={preferredDate === d}
-                onClick={() => pick(setPreferredDate, d)}
-              >
-                <span className="label">{formatDateLabel(d)}</span>
-              </button>
-            ))}
-          </div>
-        </>
+        <SlotCalendar
+          dates={dates}
+          date={preferredDate}
+          time={preferredTime}
+          longVisit={isLongVisit(sizeBand)}
+          onPick={(d, t) => {
+            setPreferredDate(d);
+            setPreferredTime(t);
+            setStep(3);
+          }}
+        />
       )}
 
       {step === 3 && (
-        <div className="choices grid-2">
-          {TIMES.map((o) => (
-            <button
-              key={o.value}
-              type="button"
-              className="choice"
-              aria-pressed={preferredTime === o.value}
-              onClick={() => pick(setPreferredTime, o.value)}
-            >
-              <span className="label">{o.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {step === 4 && (
         <form onSubmit={submit} noValidate>
           <p className="summary">
             {issueLabel}, {sizeLabel}, {preferredDate && formatDateLabel(preferredDate)} at {timeLabel}
@@ -401,7 +379,7 @@ export default function RequestFlow({ dates }: { dates: string[] }) {
           )}
 
           <div className="nav-row">
-            <button type="button" className="btn btn-quiet" onClick={() => setStep(3)}>
+            <button type="button" className="btn btn-quiet" onClick={() => setStep(2)}>
               Back
             </button>
             <button type="submit" className="btn" disabled={busy}>
@@ -411,7 +389,7 @@ export default function RequestFlow({ dates }: { dates: string[] }) {
         </form>
       )}
 
-      {step > 0 && step < 4 && (
+      {step > 0 && step < 3 && (
         <div className="nav-row">
           <button type="button" className="btn btn-quiet" onClick={() => setStep(step - 1)}>
             Back

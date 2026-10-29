@@ -26,6 +26,11 @@ export const SIZE_BANDS = [
 // Bookable times. Cory sets the real slot and block length when he confirms.
 export const TIMES = ["10:00", "12:30"] as const;
 
+// Larger properties take more than two hours, so they start at 10:00 and hold the rest of the day.
+export const LONG_VISIT_BANDS: readonly string[] = ["2000_4000", "4000_6000", "over_6000"];
+export const isLongVisit = (sizeBand: string) => LONG_VISIT_BANDS.includes(sizeBand);
+export const timesFor = (sizeBand: string): readonly string[] => (isLongVisit(sizeBand) ? ["10:00"] : TIMES);
+
 export const HOW_HEARD = [
   { value: "google", label: "Google search" },
   { value: "referral", label: "Friend, family or past client" },
@@ -88,6 +93,9 @@ export function buildRequestSchema(now: Date = new Date()) {
     termsAccepted: z.literal(true, { error: "Please agree to the terms and policy to continue" }),
     // Honeypot: real people never see or fill this field. Bots do.
     website: z.string().max(0).optional().default(""),
+  }).refine((v) => timesFor(v.sizeBand).includes(v.preferredTime), {
+    message: "Larger properties start at 10:00 AM",
+    path: ["preferredTime"],
   });
 }
 

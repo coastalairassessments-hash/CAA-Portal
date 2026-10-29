@@ -89,4 +89,9 @@ describe("parseRequest", () => {
   it("rejects oversized notes", () => {
     expect(parseRequest({ ...good, notes: "x".repeat(1001) }, NOW).success).toBe(false);
   });
+  it("larger properties can only start at 10:00", () => {
+    expect(parseRequest({ ...good, sizeBand: "2000_4000", preferredTime: "12:30" }, NOW).success).toBe(false);
+    expect(parseRequest({ ...good, sizeBand: "over_6000", preferredTime: "10:00" }, NOW).success).toBe(true);
+    expect(parseRequest({ ...good, sizeBand: "under_2000", preferredTime: "12:30" }, NOW).success).toBe(true);
+  });
 });

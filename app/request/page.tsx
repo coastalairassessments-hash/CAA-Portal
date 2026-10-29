@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 // Dates depend on today, so this part is built fresh for each visit.
 async function Flow() {
   await connection();
-  const dates = nextBookableDates(new Date(), 12, 1);
+  const dates = nextBookableDates(new Date(), 40, 1);
   return <RequestFlow dates={dates} />;
 }
 

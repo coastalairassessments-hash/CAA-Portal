@@ -436,6 +436,24 @@ a {
   color: #d5e6e3;
 }
 
+/* Booking calendar: Monday to Thursday, two time buttons per day */
+.cal { margin-top: 1.25rem; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+.cal-head h2 { margin: 0; font-size: 1.15rem; }
+.cal-nav { width: 2.75rem; height: 2.75rem; border: 1px solid var(--line); border-radius: 0.6rem; background: #fff; color: var(--ink); font-size: 1.5rem; line-height: 1; cursor: pointer; }
+.cal-nav:disabled { opacity: 0.35; cursor: default; }
+.cal-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.4rem; margin-bottom: 0.4rem; }
+.cal-days span { text-align: center; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+.cal-cell { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.4rem; border: 1px solid var(--line); border-radius: 0.6rem; background: #fff; }
+.cal-cell.empty { border: 0; background: transparent; }
+.cal-cell.off { background: transparent; border-style: dashed; opacity: 0.5; }
+.cal-num { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+.cal-slot { min-height: 2.75rem; border: 2px solid var(--line); border-radius: 0.5rem; background: #fff; color: var(--ink); font: inherit; font-size: 0.95rem; font-weight: 600; cursor: pointer; }
+.cal-slot:disabled { opacity: 0.35; cursor: default; background: transparent; }
+.cal-slot:hover:not(:disabled) { border-color: var(--tide); }
+.cal-slot[aria-pressed="true"] { border-color: var(--tide); background: var(--tide); color: #fff; }
+.cal-slot:focus-visible, .cal-nav:focus-visible { outline: 3px solid var(--tide); outline-offset: 2px; }
+
 .nav-row {
   display: flex;
   gap: 0.75rem;

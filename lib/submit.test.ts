@@ -8,7 +8,7 @@ const good = {
   issue: "water_damage",
   sizeBand: "2000_4000",
   preferredDate: "2026-10-27",
-  preferredTime: "12:30",
+  preferredTime: "10:00",
   name: "Pat Client",
   phone: "772-555-0142",
   email: "pat@example.com",
