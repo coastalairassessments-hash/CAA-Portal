@@ -14,13 +14,19 @@ export async function heldSlots(fromDate: string): Promise<Slot[]> {
     .select("confirmed_date, confirmed_time, block_hours")
     .eq("status", "confirmed")
     .gte("confirmed_date", fromDate);
+  const { data: blocks } = await db.from("time_blocks").select("day, slot").gte("day", fromDate);
+  const closed: Slot[] = (blocks ?? []).map((b) =>
+    b.slot === "all"
+      ? { date: b.day as string, time: "10:00", hours: 3 }
+      : { date: b.day as string, time: b.slot as string, hours: 1 },
+  );
   // If the lookup fails the calendar still works; the database rule still prevents a double booking.
   if (error || !data) return [];
-  return data
+  return [...closed, ...data
     .filter((r) => r.confirmed_date && r.confirmed_time)
     .map((r) => ({
       date: r.confirmed_date as string,
       time: String(r.confirmed_time).slice(0, 5),
       hours: Number(r.block_hours ?? 1),
-    }));
+    }))];
 }

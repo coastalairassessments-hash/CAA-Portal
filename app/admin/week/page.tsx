@@ -7,6 +7,7 @@ import { supabaseForUser } from "@/lib/supabase/server";
 import { addDays, formatDateLabel, todayInNewYork } from "@/lib/dates";
 import { buildWeek, mondayOf, type WeekRow } from "@/lib/week";
 import { formatTime, issueLabel } from "@/lib/labels";
+import { closeSlot, openSlot } from "../actions";
 
 export const metadata: Metadata = {
   title: "Week | Coastal Air Assessments",
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-const STATE_LABEL = { open: "Open", pending: "Asked for", booked: "Booked", blocked: "Day held" } as const;
+const STATE_LABEL = { open: "Open", pending: "Asked for", booked: "Booked", blocked: "Day held", closed: "Closed" } as const;
 
 async function WeekGrid({ searchParams }: Props) {
   const q = await searchParams;
@@ -37,10 +38,11 @@ async function WeekGrid({ searchParams }: Props) {
     .limit(500);
   if (error) return <p className="adm-err">Could not load the week. (Ref: week-{error.code ?? "unknown"})</p>;
 
-  const days = buildWeek((data ?? []) as WeekRow[], monday).filter((d) => d.date <= end);
+  const { data: blockData } = await supabase.from("time_blocks").select("day, slot").gte("day", monday).lte("day", end);
+  const days = buildWeek((data ?? []) as WeekRow[], monday, blockData ?? []).filter((d) => d.date <= end);
   const counts = days.flatMap((d) => d.cells).reduce(
     (a, c) => ({ ...a, [c.state]: a[c.state] + 1 }),
-    { open: 0, pending: 0, booked: 0, blocked: 0 },
+    { open: 0, pending: 0, booked: 0, blocked: 0, closed: 0 },
   );
 
   return (
@@ -51,11 +53,19 @@ async function WeekGrid({ searchParams }: Props) {
         <Link href={`/admin/week?w=${w + 1}`}>Later</Link>
       </nav>
       <p className="adm-muted">
-        {formatDateLabel(monday)} to {formatDateLabel(addDays(monday, 3))} · {counts.booked} booked · {counts.pending} asked for · {counts.open} open
+        {formatDateLabel(monday)} to {formatDateLabel(addDays(monday, 3))} · {counts.booked} booked · {counts.pending} asked for · {counts.open} open · {counts.closed} closed
       </p>
       {days.map((d) => (
         <section key={d.date} className={d.date < today ? "wk-past" : undefined}>
-          <h2 className="adm-sub">{d.date === today ? "Today" : formatDateLabel(d.date)}</h2>
+          <div className="wk-head">
+            <h2 className="adm-sub">{d.date === today ? "Today" : formatDateLabel(d.date)}</h2>
+            <form action={d.dayClosed ? openSlot : closeSlot}>
+              <input type="hidden" name="day" value={d.date} />
+              <input type="hidden" name="slot" value="all" />
+              <input type="hidden" name="w" value={w} />
+              <button className="adm-link" type="submit">{d.dayClosed ? "Reopen day" : "Close day"}</button>
+            </form>
+          </div>
           <div className="wk-row">
             {d.cells.map((c) => {
               const r = c.rows[0];
@@ -67,10 +77,24 @@ async function WeekGrid({ searchParams }: Props) {
                   {r && <span className="wk-what">{issueLabel(r.issue)}</span>}
                 </>
               );
+              const toggle = (c.state === "open" || c.state === "pending" || (c.state === "closed" && !d.dayClosed)) && (
+                <form action={c.state === "closed" ? openSlot : closeSlot}>
+                  <input type="hidden" name="day" value={d.date} />
+                  <input type="hidden" name="slot" value={c.time} />
+                  <input type="hidden" name="w" value={w} />
+                  <button className="adm-link" type="submit">{c.state === "closed" ? "Reopen" : "Close"}</button>
+                </form>
+              );
               return r ? (
-                <Link key={c.time} href={`/admin/${r.id}`} className={`wk-cell ${c.state}`}>{inner}</Link>
+                <div key={c.time} className="wk-wrap">
+                  <Link href={`/admin/${r.id}`} className={`wk-cell ${c.state}`}>{inner}</Link>
+                  {toggle}
+                </div>
               ) : (
-                <div key={c.time} className={`wk-cell ${c.state}`}>{inner}</div>
+                <div key={c.time} className="wk-wrap">
+                  <div className={`wk-cell ${c.state}`}>{inner}</div>
+                  {toggle}
+                </div>
               );
             })}
           </div>

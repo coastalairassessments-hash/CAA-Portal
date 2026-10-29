@@ -745,3 +745,7 @@ details.adm-group[open] > summary::after { content: "\2212"; }
 .wk-cell.booked { border-color: var(--acc); background: #eaf1f8; }
 .wk-cell.blocked { background: #eef1f2; color: #4a6168; }
 .wk-past { opacity: 0.5; }
+.wk-head { display: flex; justify-content: space-between; align-items: center; }
+.wk-wrap { display: flex; flex-direction: column; }
+.wk-wrap .wk-cell { flex: 1; }
+.wk-cell.closed { background: repeating-linear-gradient(45deg, #eef1f2, #eef1f2 6px, #f6f8f8 6px, #f6f8f8 12px); color: #4a6168; }

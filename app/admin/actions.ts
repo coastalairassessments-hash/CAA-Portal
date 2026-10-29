@@ -398,3 +398,24 @@ export async function sendFinalInvoice(form: FormData): Promise<void> {
   }
   redirect(`/admin/${id}?saved=${sent ? "invoice" : "invoice-unsent"}`);
 }
+
+// Time away: close a start time (or the whole day) so clients cannot pick it, or open it again.
+export async function closeSlot(form: FormData): Promise<void> {
+  const supabase = await adminClient();
+  const day = String(form.get("day") ?? "");
+  const slot = String(form.get("slot") ?? "");
+  const w = String(form.get("w") ?? "0").replace(/\D/g, "") || "0";
+  if (!supabase || !/^\d{4}-\d{2}-\d{2}$/.test(day) || !["10:00", "12:30", "all"].includes(slot)) redirect("/admin/week");
+  const { error } = await supabase.from("time_blocks").upsert({ day, slot }, { onConflict: "day,slot", ignoreDuplicates: true });
+  redirect(`/admin/week?w=${w}${error ? "&error=save" : ""}`);
+}
+
+export async function openSlot(form: FormData): Promise<void> {
+  const supabase = await adminClient();
+  const day = String(form.get("day") ?? "");
+  const slot = String(form.get("slot") ?? "");
+  const w = String(form.get("w") ?? "0").replace(/\D/g, "") || "0";
+  if (!supabase || !/^\d{4}-\d{2}-\d{2}$/.test(day) || !["10:00", "12:30", "all"].includes(slot)) redirect("/admin/week");
+  const { error } = await supabase.from("time_blocks").delete().eq("day", day).eq("slot", slot);
+  redirect(`/admin/week?w=${w}${error ? "&error=save" : ""}`);
+}

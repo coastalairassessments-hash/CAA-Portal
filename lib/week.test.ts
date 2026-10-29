@@ -26,4 +26,10 @@ describe("week", () => {
     const w = buildWeek([row({ confirmed_date: "2026-11-03", confirmed_time: "10:00", block_hours: 3 })], "2026-11-02");
     expect(w[1].cells.map((c) => c.state)).toEqual(["booked", "blocked"]);
   });
+  it("shows closed times", () => {
+    const w = buildWeek([], "2026-11-02", [{ day: "2026-11-03", slot: "12:30" }, { day: "2026-11-04", slot: "all" }]);
+    expect(w[1].cells.map((c) => c.state)).toEqual(["open", "closed"]);
+    expect(w[2].cells.map((c) => c.state)).toEqual(["closed", "closed"]);
+    expect(w[2].dayClosed).toBe(true);
+  });
 });

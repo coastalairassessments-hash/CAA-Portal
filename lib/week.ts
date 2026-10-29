@@ -17,17 +17,19 @@ export type WeekRow = {
 
 export type Cell = {
   time: string;
-  state: "open" | "pending" | "booked" | "blocked";
+  state: "open" | "pending" | "booked" | "blocked" | "closed";
   rows: WeekRow[];
 };
-export type Day = { date: string; cells: Cell[] };
+export type Day = { date: string; cells: Cell[]; dayClosed: boolean };
+export type Block = { day: string; slot: string };
 
 export const mondayOf = (date: string) => addDays(date, -((weekdayOf(date) + 6) % 7));
 const hhmm = (t: string | null) => (t ? t.slice(0, 5) : "");
 
-export function buildWeek(rows: WeekRow[], monday: string): Day[] {
+export function buildWeek(rows: WeekRow[], monday: string, blocks: Block[] = []): Day[] {
   return [0, 1, 2, 3].map((n) => {
     const date = addDays(monday, n);
+    const dayClosed = blocks.some((b) => b.day === date && b.slot === "all");
     const cells = SLOT_TIMES.map((time): Cell => {
       const booked = rows.filter(
         (r) =>
@@ -39,6 +41,7 @@ export function buildWeek(rows: WeekRow[], monday: string): Day[] {
         const own = booked.some((r) => hhmm(r.confirmed_time) === time);
         return { time, state: own ? "booked" : "blocked", rows: booked };
       }
+      if (dayClosed || blocks.some((b) => b.day === date && b.slot === time)) return { time, state: "closed", rows: [] };
       const asked = rows.filter((r) => {
         if (r.status !== "new" && r.status !== "offered") return false;
         const d = r.status === "offered" && r.confirmed_date ? r.confirmed_date : r.preferred_date;
@@ -47,6 +50,6 @@ export function buildWeek(rows: WeekRow[], monday: string): Day[] {
       });
       return { time, state: asked.length ? "pending" : "open", rows: asked };
     });
-    return { date, cells };
+    return { date, cells, dayClosed };
   });
 }
