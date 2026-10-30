@@ -39,7 +39,7 @@ async function WeekGrid({ searchParams }: Props) {
   if (error) return <p className="adm-err">Could not load the week. (Ref: week-{error.code ?? "unknown"})</p>;
 
   const { data: blockData } = await supabase.from("time_blocks").select("day, slot").gte("day", monday).lte("day", end);
-  const days = buildWeek((data ?? []) as WeekRow[], monday, blockData ?? []).filter((d) => d.date <= end);
+  const days = buildWeek((data ?? []) as WeekRow[], monday, blockData ?? []).filter((d) => d.date <= end && (w > 0 || d.date >= today));
   const counts = days.flatMap((d) => d.cells).reduce(
     (a, c) => ({ ...a, [c.state]: a[c.state] + 1 }),
     { open: 0, pending: 0, booked: 0, blocked: 0, closed: 0 },

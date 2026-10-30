@@ -17,7 +17,7 @@ import {
 } from "@/lib/admin";
 
 export const metadata: Metadata = {
-  title: "Your day | Coastal Air Assessments",
+  title: "Requests | Coastal Air Assessments",
   robots: { index: false, follow: false },
 };
 
@@ -135,7 +135,7 @@ export default function AdminPage(props: Props) {
               <TodayDate />
             </Suspense>
           </div>
-          <h1 className="adm-title">Your day</h1>
+          <h1 className="adm-title">Requests</h1>
         </div>
       </header>
       <Suspense fallback={<p className="adm-empty">Loading...</p>}>

@@ -876,3 +876,17 @@ details.adm-group[open] > summary::after { content: "\2212"; }
 .book-foot .btn { background: #12385a; border-color: #12385a; border-radius: 14px; font-size: 16px; font-weight: 700; }
 .cal-slot[aria-pressed="true"] { background: #12385a; border-color: #12385a; }
 .cal-slot:hover:not(:disabled) { border-color: #12385a; }
+
+/* Polish from the first phone check */
+.adm-needs { margin-bottom: 14px; }
+.adm-empty { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 28px 16px; margin-bottom: 14px; }
+.adm-field input[type="date"], .adm-field input[type="time"] { -webkit-appearance: none; appearance: none; display: block; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; text-align: left; }
+.adm-row > * { min-width: 0; }
+.adm-menu { gap: 0; padding: 0 16px; }
+.adm-menu .adm-btn, .adm-menu .adm-btn.wide { justify-content: space-between; width: 100%; min-height: 54px; margin: 0; padding: 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; font-size: 15px; font-weight: 500; color: var(--ink); }
+.adm-menu .adm-btn:last-child { border-bottom: 0; }
+.adm-menu .adm-btn::after { content: "\203A"; font-size: 22px; color: var(--mute); }
+.wk-wrap { position: relative; }
+.wk-wrap > form { position: absolute; top: 2px; right: 4px; }
+.wk-wrap > form .adm-link { min-height: 36px; padding: 0 8px; font-size: 12px; font-weight: 600; }
+.wk-past { opacity: 1; }

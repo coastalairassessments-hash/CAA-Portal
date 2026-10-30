@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
@@ -51,10 +50,6 @@ async function Schedule({ searchParams }: Props) {
       {q.added && <p className="adm-ok">Added to your schedule.</p>}
       {next && <JobCard r={next} today hero />}
 
-      <nav className="adm-seg two" aria-label="Range">
-        <Link href="/admin/today" aria-current={!week ? "page" : undefined}>Today</Link>
-        <Link href="/admin/today?range=week" aria-current={week ? "page" : undefined}>This week</Link>
-      </nav>
       {jobs.length === 0 && (
         <p className="adm-empty">{week ? "Nothing booked this week." : "Nothing booked today."}</p>
       )}
@@ -71,11 +66,6 @@ async function Schedule({ searchParams }: Props) {
 
       <MoneyCard m={money(all)} />
 
-      <div className="adm-actions" style={{ gridTemplateColumns: "1fr 1fr" }}>
-        <Link className="adm-btn" href="/admin/week">Week view</Link>
-        <Link className="adm-btn primary" href="/admin/add">Add job</Link>
-      </div>
-      <p style={{ marginTop: 12 }}><Link className="adm-link" href="/admin/texts">Quick texts</Link></p>
     </>
   );
 }
