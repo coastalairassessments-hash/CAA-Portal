@@ -7,10 +7,11 @@ import { needsYou, type DashRow } from "@/lib/dashboard";
 import { SITE_URL_FALLBACK, sendEmail } from "@/lib/notify";
 import { sendPush } from "@/lib/push";
 import { briefingPush } from "@/lib/pushText";
+import { dayBeforeEmail } from "@/lib/prep";
 
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
 const COLUMNS =
-  "id, status, source, issue, name, address, city, confirmed_date, confirmed_time, block_hours, deposit_cents, deposit_paid_at, arrived_at, left_at, lab_samples, extras_cents, final_paid_at, final_invoice_no, cancel_refund, refunded_at";
+  "id, status, source, issue, name, email, public_token, zip, phone, address, city, confirmed_date, confirmed_time, block_hours, deposit_cents, deposit_paid_at, arrived_at, left_at, lab_samples, extras_cents, final_paid_at, final_invoice_no, cancel_refund, refunded_at";
 
 export async function GET(req: Request) {
   await connection();
@@ -22,8 +23,8 @@ export async function GET(req: Request) {
   const hour = Number(
     new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, hour: "numeric", hourCycle: "h23" }).format(new Date()),
   );
-  const mode = url.searchParams.get("mode") ?? (hour === 7 ? "today" : hour === 19 ? "tomorrow" : "");
-  if (mode !== "today" && mode !== "tomorrow") return NextResponse.json({ ok: true, sent: false });
+  const mode = url.searchParams.get("mode") ?? (hour === 7 ? "today" : hour === 19 ? "tomorrow" : hour === 17 ? "remind" : "");
+  if (mode !== "today" && mode !== "tomorrow" && mode !== "remind") return NextResponse.json({ ok: true, sent: false });
 
   const sbUrl = clean(process.env.SUPABASE_URL);
   const key = clean(process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -39,10 +40,22 @@ export async function GET(req: Request) {
   if (error) return NextResponse.json({ ok: false }, { status: 500 });
 
   const rows = (data ?? []) as unknown as (DashRow & BriefJob & { address: string; city: string })[];
+  if (mode === "remind") {
+    // The evening before: tell each homeowner how to prepare.
+    const tomorrow = addDays(todayInNewYork(), 1);
+    const site = clean(process.env.SITE_URL) || SITE_URL_FALLBACK;
+    let count = 0;
+    for (const j of rows as unknown as { source: string; status: string; confirmed_date: string; confirmed_time: string; email: string; name: string; phone: string; address: string; city: string; zip: string; public_token: string | null }[]) {
+      if (j.source !== "client" || j.status !== "confirmed" || j.confirmed_date !== tomorrow || !j.email) continue;
+      const res = await sendEmail({ to: j.email, ...dayBeforeEmail(j, { date: tomorrow, time: String(j.confirmed_time).slice(0, 5) }, site) });
+      if (res.ok) count++;
+    }
+    return NextResponse.json({ ok: true, sent: count > 0, count });
+  }
   const date = mode === "today" ? todayInNewYork() : addDays(todayInNewYork(), 1);
   const jobs = rows.filter((r) => r.status === "confirmed" && r.confirmed_date === date && r.confirmed_time);
   const brief = buildBriefing(
-    mode,
+    mode as "today" | "tomorrow",
     date,
     jobs.map((j) => ({ ...j, confirmed_time: String(j.confirmed_time).slice(0, 5) })),
     needsYou(rows),

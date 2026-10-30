@@ -7,6 +7,7 @@ import Logo from "@/app/components/Logo";
 import { bookingByToken } from "@/lib/bookingServer";
 import { CLIENT_STEPS, bookingView } from "@/lib/booking";
 import { fullAddress, issueLabel } from "@/lib/labels";
+import { PREP_DO, PREP_DONT, PREP_INTRO } from "@/lib/prep";
 import { cancelMyBooking } from "../actions";
 
 export const metadata: Metadata = {
@@ -48,6 +49,15 @@ async function Booking({ params, searchParams }: Props) {
         <div><dt>When</dt><dd>{v.when}</dd></div>
         <div><dt>Where</dt><dd>{fullAddress(r as never)}</dd></div>
       </dl>
+
+      {v.canCancel && (
+        <section className="bk-prep">
+          <h2>Before your visit</h2>
+          <p>{PREP_INTRO}</p>
+          <ul>{PREP_DO.map((l) => <li key={l}>{l}</li>)}</ul>
+          <ul className="no">{PREP_DONT.map((l) => <li key={l}>{l}</li>)}</ul>
+        </section>
+      )}
 
       {v.canCancel && (
         <section className="bk-cancel">

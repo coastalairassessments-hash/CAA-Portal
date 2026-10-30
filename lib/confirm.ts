@@ -1,3 +1,4 @@
+import { prepLines } from "./prep";
 import { LATEST_START } from "./slots";
 import { z } from "zod";
 import { formatDateLabel, isRealDate, todayInNewYork } from "./dates";
@@ -52,6 +53,8 @@ export function confirmEmail(row: ConfirmRow, b: Booking, siteUrl = "https://caa
       "If you would like to limit our time on site, reply to this email. The assessment will then cover the areas we can complete in that time.",
       "",
       "A calendar invite is attached. Tap it to add the visit to your calendar.",
+      "",
+      ...prepLines(),
       "To cancel or reschedule, reply to this email. More than 24 hours before your visit is a full refund of your deposit.",
       "Reply to this email with any questions.",
       "",

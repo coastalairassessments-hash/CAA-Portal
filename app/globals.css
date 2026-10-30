@@ -912,3 +912,8 @@ details.adm-group[open] > summary::after { content: "\2212"; }
 .bk-cancel p, .bk-help p { margin: 0 0 0.75rem; line-height: 1.5; }
 .bk-help p { margin: 0; }
 .bk-foot { font-size: 0.9rem; }
+.bk-prep { background: #fff; border: 1px solid #dae2e8; border-radius: 16px; padding: 16px; margin-bottom: 1rem; }
+.bk-prep h2 { font-size: 1.05rem; margin: 0 0 0.35rem; }
+.bk-prep p { margin: 0 0 0.6rem; line-height: 1.5; }
+.bk-prep ul { margin: 0 0 0.6rem; padding-left: 1.1rem; display: grid; gap: 0.4rem; line-height: 1.45; }
+.bk-prep ul.no { color: #34495a; }
