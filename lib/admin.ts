@@ -22,6 +22,7 @@ export type AdminRow = {
   confirmed_time: string | null;
   block_hours: number | null;
   area: "core" | "outside";
+  booking_mode?: string | null;
   left_at?: string | null;
   final_paid_at?: string | null;
   final_invoice_no?: string | null;

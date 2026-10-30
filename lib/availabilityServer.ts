@@ -1,6 +1,7 @@
 // SERVER ONLY. Reads which times are held, using the service key. Returns no personal details.
 import { createClient } from "@supabase/supabase-js";
 import type { Slot } from "./slots";
+import { holdActive } from "./instant";
 
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
 
@@ -14,6 +15,16 @@ export async function heldSlots(fromDate: string): Promise<Slot[]> {
     .select("confirmed_date, confirmed_time, block_hours")
     .eq("status", "confirmed")
     .gte("confirmed_date", fromDate);
+  // Someone paying right now holds their time too, for a few minutes.
+  const { data: holds } = await db
+    .from("requests")
+    .select("confirmed_date, confirmed_time, block_hours, status, booking_mode, offered_at")
+    .eq("status", "offered")
+    .eq("booking_mode", "instant")
+    .gte("confirmed_date", fromDate);
+  const paying: Slot[] = (holds ?? [])
+    .filter((r) => holdActive(r) && r.confirmed_date && r.confirmed_time)
+    .map((r) => ({ date: r.confirmed_date as string, time: String(r.confirmed_time).slice(0, 5), hours: Number(r.block_hours ?? 1) }));
   const { data: blocks } = await db.from("time_blocks").select("day, slot").gte("day", fromDate);
   const closed: Slot[] = (blocks ?? []).map((b) =>
     b.slot === "all"
@@ -22,7 +33,7 @@ export async function heldSlots(fromDate: string): Promise<Slot[]> {
   );
   // If the lookup fails the calendar still works; the database rule still prevents a double booking.
   if (error || !data) return [];
-  return [...closed, ...data
+  return [...closed, ...paying, ...data
     .filter((r) => r.confirmed_date && r.confirmed_time)
     .map((r) => ({
       date: r.confirmed_date as string,

@@ -26,7 +26,6 @@ import { cancelEmail, confirmEmail, declineEmail, offerEmail, parseConfirm, take
 import { refundDue } from "@/lib/cancel";
 import { GOOGLE_REVIEW_URL, reviewEmail } from "@/lib/quicktexts";
 import { SITE_URL_FALLBACK, sendEmail } from "@/lib/notify";
-import { buildIcs } from "@/lib/ics";
 import { sendPush } from "@/lib/push";
 import { depositCents } from "@/lib/pricing";
 import { overlaps } from "@/lib/slots";
@@ -38,6 +37,7 @@ import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, qbConne
 import { addDays, todayInNewYork } from "@/lib/dates";
 import { jobLabel } from "@/lib/labels";
 import { enRouteEmail } from "@/lib/enroute";
+import { confirmationWithCalendar } from "@/lib/confirmMail";
 
 export type ConfirmState = { error: string | null };
 
@@ -160,20 +160,7 @@ export async function markDepositReceived(form: FormData): Promise<void> {
     if (!lost.ok) console.error(`[taken] client email not sent: ${lost.reason}`);
   }
 
-  const ics = buildIcs({
-    uid: id,
-    date: slot.date,
-    time: slot.time,
-    hours: slot.hours,
-    summary: "Coastal Air Assessments visit",
-    location: `${row.address}, ${row.city} ${row.zip}`,
-    description: "Questions? Call or text 561-400-0929.",
-  });
-  const sent = await sendEmail({
-    to: row.email,
-    ...confirmEmail(row, slot, siteUrl()),
-    attachments: [{ filename: "visit.ics", content: Buffer.from(ics).toString("base64") }],
-  });
+  const sent = await sendEmail({ to: row.email, ...confirmationWithCalendar(row, id, slot, siteUrl()) });
   if (!sent.ok) console.error(`[deposit] client email not sent: ${sent.reason}`);
   redirect(`/admin/${id}?email=${sent.ok ? "sent" : "failed"}`);
 }

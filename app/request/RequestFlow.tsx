@@ -131,7 +131,17 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
-        router.push("/request/done");
+        // Booked and waiting on the deposit: go straight to the payment page.
+        router.push(data.instant && data.token ? `/booking/${data.token}` : "/request/done");
+        return;
+      }
+      if (res.status === 409) {
+        // Someone took that time a moment ago. Back to the calendar to pick another.
+        setErrors(data.errors ?? {});
+        setPreferredDate("");
+        setPreferredTime("");
+        setStep(3);
+        setFormError(data.errors?.preferredDate ?? "That time was just taken. Please pick another.");
         return;
       }
       if (res.status === 400 && data.errors) {
@@ -155,6 +165,8 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
     }
   }
 
+  // Everyone except bigger buildings books and pays the deposit right away.
+  const instantFlow = !needsQuote(propertyType) && sizeBand !== "over_6000";
   const issueLabel = ISSUES.find((i) => i.value === issue)?.label;
   const sizeLabel = SIZES.find((s) => s.value === sizeBand)?.label;
   const timeLabel = TIMES.find((t) => t.value === preferredTime)?.label;
@@ -279,7 +291,11 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
                     : `${issueLabel} from ${formatMoney(firstHourCents(issue))} for the first hour. Deposit to hold your time: ${formatMoney(depositCents(issue))}.`}
                 </p>
               )}
-              <p>Nothing to pay today. We confirm and send a secure link. First deposit paid gets the time. Cancel more than 24 hours ahead for a full refund.</p>
+              <p>
+                {instantFlow
+                  ? "You pay the deposit on the next screen, and your time is held while you do. Cancel more than 24 hours ahead for a full refund."
+                  : "Nothing to pay today. We confirm the price and send a secure link. Cancel more than 24 hours ahead for a full refund."}
+              </p>
             </div>
           </div>
           <button type="button" className="btn" disabled={!preferredDate || !preferredTime} onClick={() => setStep(4)}>
@@ -293,11 +309,19 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
           <p className="summary">
             {issueLabel}, {sizeLabel}, {preferredDate && formatDateLabel(preferredDate)} at {timeLabel}
           </p>
-          <ol className="how">
-            <li><strong>You request</strong> this time. Nothing to pay today.</li>
-            <li><strong>We confirm</strong> and send a secure deposit link.</li>
-            <li><strong>Your deposit locks it.</strong> 75% of the first hour. First deposit paid gets the time.</li>
-          </ol>
+          {instantFlow ? (
+            <ol className="how">
+              <li><strong>Add your details</strong> below.</li>
+              <li><strong>Pay the deposit.</strong> 75% of the first hour, by card or bank. Your time is held while you pay.</li>
+              <li><strong>You are booked.</strong> We email your confirmation and calendar invite right away.</li>
+            </ol>
+          ) : (
+            <ol className="how">
+              <li><strong>You request</strong> this time. Nothing to pay today.</li>
+              <li><strong>We confirm</strong> the price and send a secure deposit link.</li>
+              <li><strong>Your deposit locks it.</strong> 75% of the first hour.</li>
+            </ol>
+          )}
 
           <div className="fields">
             <div className="field">
@@ -555,7 +579,7 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
               Back
             </button>
             <button type="submit" className="btn" disabled={busy}>
-              {busy ? "Sending..." : "Send request"}
+              {busy ? "One moment..." : instantFlow ? "Continue to deposit" : "Send request"}
             </button>
           </div>
         </form>

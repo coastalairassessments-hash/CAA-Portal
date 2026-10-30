@@ -11,7 +11,7 @@ import { dayBeforeEmail } from "@/lib/prep";
 
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
 const COLUMNS =
-  "id, status, source, issue, name, email, public_token, zip, phone, address, city, confirmed_date, confirmed_time, block_hours, deposit_cents, deposit_paid_at, reminded_for, arrived_at, left_at, lab_samples, extras_cents, final_paid_at, final_invoice_no, cancel_refund, refunded_at";
+  "id, status, source, booking_mode, issue, name, email, public_token, zip, phone, address, city, confirmed_date, confirmed_time, block_hours, deposit_cents, deposit_paid_at, reminded_for, arrived_at, left_at, lab_samples, extras_cents, final_paid_at, final_invoice_no, cancel_refund, refunded_at";
 
 type RemindRow = {
   id: string; source: string; status: string; confirmed_date: string | null; confirmed_time: string | null;

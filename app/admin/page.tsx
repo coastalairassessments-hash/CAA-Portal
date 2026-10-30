@@ -43,7 +43,7 @@ function Card({ r }: { r: AdminRow }) {
         )}
         {r.source === "contractor" && <span className="adm-chip">Contractor</span>}
         {r.status === "confirmed" && <span className="adm-chip solid">Booked</span>}
-        {r.status === "offered" && <span className="adm-chip warn">Deposit waiting</span>}
+        {r.status === "offered" && <span className="adm-chip warn">{r.booking_mode === "instant" ? "Client is paying" : "Deposit waiting"}</span>}
         {r.status === "declined" && <span className="adm-chip">Declined</span>}
         {r.status === "cancelled" && !r.cancel_refund && <span className="adm-chip">Cancelled</span>}
         {r.status === "cancelled" && r.cancel_refund && !r.refunded_at && <span className="adm-chip warn">Refund due</span>}
@@ -98,7 +98,7 @@ async function Dashboard({ searchParams }: Props) {
   const { data, error } = await supabase
     .from("requests")
     .select(
-      "id, created_at, status, issue, size_band, preferred_date, preferred_time, name, phone, email, address, city, zip, notes, text_consent, confirmed_date, confirmed_time, block_hours, area, source, cancel_refund, refunded_at, left_at, final_paid_at, final_invoice_no",
+      "id, created_at, status, issue, size_band, preferred_date, preferred_time, name, phone, email, address, city, zip, notes, text_consent, confirmed_date, confirmed_time, block_hours, area, source, booking_mode, cancel_refund, refunded_at, left_at, final_paid_at, final_invoice_no",
     )
     .order("created_at", { ascending: false })
     .limit(200);

@@ -7,6 +7,7 @@ export type DashRow = {
   id: string;
   status: string;
   source: string;
+  booking_mode?: string | null;
   issue: string;
   name: string;
   confirmed_date: string | null;
@@ -28,10 +29,13 @@ const easternDay = (iso: string) => todayInNewYork(new Date(iso));
 // A finished visit whose final invoice has not been paid.
 export const isOwed = (r: DashRow) => r.status === "confirmed" && !!r.left_at && !r.final_paid_at;
 
+// Offered and waiting on Cory to collect. A client paying on their own is handled by the app.
+const isWaitingOnDeposit = (r: DashRow) => r.status === "offered" && r.booking_mode !== "instant";
+
 export function needsYou(rows: DashRow[]) {
   return {
     approve: rows.filter((r) => r.status === "new").length,
-    deposits: rows.filter((r) => r.status === "offered").length,
+    deposits: rows.filter(isWaitingOnDeposit).length,
     toInvoice: rows.filter((r) => isOwed(r) && !r.final_invoice_no).length,
     refunds: rows.filter((r) => r.status === "cancelled" && r.cancel_refund && !r.refunded_at).length,
   };
@@ -54,7 +58,7 @@ export function money(rows: DashRow[], now: Date = new Date()) {
   const month = today.slice(0, 7);
 
   const depositsWaiting = rows
-    .filter((r) => r.status === "offered")
+    .filter(isWaitingOnDeposit)
     .reduce((sum, r) => sum + (r.deposit_cents ?? depositCents(r.issue)), 0);
 
   const owed = { total: 0, d0to7: 0, d8to14: 0, d15plus: 0 };

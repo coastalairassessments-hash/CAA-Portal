@@ -17,3 +17,13 @@ export function briefingPush(subject: string, text: string): PushMsg {
   const waiting = text.split("Waiting on you:")[1]?.split("\n\n")[0]?.split("\n").map((l) => l.replace(/^- /, "").trim()).filter(Boolean) ?? [];
   return { title: subject, body: waiting.length ? waiting.join(", ") : "Open the app for the details.", url: "/admin/today" };
 }
+
+// A client booked and paid on their own.
+export function bookedPush(r: { name: string; id: string }, when: string): PushMsg {
+  return { title: "Booked and paid", body: `${r.name}, ${when}.`, url: `/admin/${r.id}` };
+}
+
+// A client paid for a time that was already taken. Needs a refund.
+export function refundPush(r: { name: string; id: string }): PushMsg {
+  return { title: "Refund needed", body: `${r.name} paid for a time that was taken.`, url: `/admin/${r.id}` };
+}

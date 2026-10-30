@@ -933,3 +933,6 @@ details.adm-group[open] > summary::after { content: "\2212"; }
 .choices.compact .choice { min-height: 56px; }
 .detail-head { margin: 0.5rem 0 0.25rem; font-weight: 600; color: var(--ink, #0d2233); }
 .sub-q ~ .btn { margin-top: 1.25rem; }
+.bk-pay { background: #fff; border: 1px solid #dae2e8; border-radius: 16px; padding: 16px; margin-bottom: 1rem; display: grid; gap: 0.75rem; }
+.bk-pay .btn { width: 100%; justify-content: center; }
+.bk-pay-note { margin: 0; font-size: 0.9rem; color: #566b7a; }

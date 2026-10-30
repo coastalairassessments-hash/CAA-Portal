@@ -38,3 +38,19 @@ describe("final invoice payload", () => {
     expect(p.DueDate).toBe("2026-11-03");
   });
 });
+
+import { depositInvoicePayload, readInvoice } from "./qbInvoice";
+describe("deposit invoice", () => {
+  it("builds a payable one-line invoice", () => {
+    const p = depositInvoicePayload({ customerId: "7", itemId: "9", description: "Deposit to hold Tue, Nov 3 at 10:00 AM", cents: 51375, email: "a@b.co", txnDate: "2026-11-01" });
+    expect(p.Line).toHaveLength(1);
+    expect(p.Line[0].Amount).toBe(513.75);
+    expect(p.AllowOnlineCreditCardPayment).toBe(true);
+    expect(p.BillEmail).toEqual({ Address: "a@b.co" });
+  });
+  it("reads paid state and pay link", () => {
+    expect(readInvoice({ Invoice: { Balance: 0, SyncToken: "2" } })).toEqual({ balance: 0, link: null, syncToken: "2" });
+    expect(readInvoice({ Invoice: { Balance: 513.75, InvoiceLink: "https://pay" } })?.link).toBe("https://pay");
+    expect(readInvoice({})).toBeNull();
+  });
+});

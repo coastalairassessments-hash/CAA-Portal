@@ -126,6 +126,23 @@ export function offerText(row: ConfirmRow, b: Booking, deposit: number): string 
   return `Hi ${firstName(row.name)}, this is Coastal Air Assessments. We can see you ${whenOf(b)} at ${row.address}. A 75% deposit (${formatMoney(deposit)}) holds the date. The invoice is coming by email.`;
 }
 
+// A client paid for a time that someone else had already booked. Their deposit is refunded in full.
+export function takenPaidEmail(row: ConfirmRow, b: Booking) {
+  return {
+    subject: "Your deposit is being refunded",
+    text: [
+      `Hi ${firstName(row.name)},`,
+      "",
+      `Sorry. Another booking for ${whenOf(b)} was completed a moment before yours, so that time is no longer available.`,
+      "Your deposit is refunded in full. It can take a few business days to appear.",
+      "",
+      `To book another day, visit the booking page or call or text ${PHONE}.`,
+      "",
+      ...SIGNOFF,
+    ].join("\n"),
+  };
+}
+
 export function declineEmail(row: ConfirmRow) {
   return {
     subject: "About your assessment request",

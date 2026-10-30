@@ -1,6 +1,6 @@
 // SERVER ONLY. The few things we ask QuickBooks to do. QuickBooks keeps the clients and the money.
 import { qbFetch, getConnection } from "./qbStore";
-import { customerPayload, qbEscape, type ClientRow } from "./qbInvoice";
+import { customerPayload, qbEscape, readInvoice, type ClientRow } from "./qbInvoice";
 
 const q = (sql: string) => `/query?query=${encodeURIComponent(sql)}&minorversion=70`;
 const post = (path: string, body: unknown) =>
@@ -64,6 +64,24 @@ export async function emailInvoice(id: string, to?: string | null): Promise<bool
       method: "POST",
       headers: { "Content-Type": "application/octet-stream" },
     });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// One invoice: how much is still owed, the client's pay link, and the token needed to change it.
+export async function getInvoice(id: string) {
+  const reply = await qbFetch(`/invoice/${encodeURIComponent(id)}?include=invoiceLink&minorversion=70`);
+  return readInvoice(reply);
+}
+
+// Cancels an unpaid invoice so it does not sit open in the books.
+export async function voidInvoice(id: string): Promise<boolean> {
+  try {
+    const inv = await getInvoice(id);
+    if (!inv || inv.balance === 0) return false;
+    await post("/invoice?operation=void", { Id: id, SyncToken: inv.syncToken });
     return true;
   } catch {
     return false;

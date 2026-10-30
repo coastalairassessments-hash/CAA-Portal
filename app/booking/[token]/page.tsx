@@ -4,9 +4,11 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import Logo from "@/app/components/Logo";
-import { bookingByToken } from "@/lib/bookingServer";
+import { bookingByToken, serviceDb } from "@/lib/bookingServer";
+import { SETTLE_COLUMNS, settleDeposit } from "@/lib/settle";
 import { CLIENT_STEPS, bookingView } from "@/lib/booking";
 import { fullAddress, issueLabel } from "@/lib/labels";
+import { depositCents, formatMoney } from "@/lib/pricing";
 import { PREP_DO, PREP_DONT, PREP_INTRO } from "@/lib/prep";
 import { LIVE_STEPS, liveState } from "@/lib/live";
 import { todayInNewYork } from "@/lib/dates";
@@ -24,8 +26,16 @@ async function Booking({ params, searchParams }: Props) {
   await connection();
   const { token } = await params;
   const q = await searchParams;
-  const r = await bookingByToken(token);
+  let r = await bookingByToken(token);
   if (!r) notFound();
+  // Paid? Book it now, so the client sees the result without waiting for the next check.
+  if (r.status === "offered" && r.booking_mode === "instant" && r.qb_deposit_invoice_id) {
+    const db = serviceDb();
+    const { data: full } = db ? await db.from("requests").select(SETTLE_COLUMNS).eq("id", r.id).maybeSingle() : { data: null };
+    if (db && full && (await settleDeposit(db, full as never).catch(() => "waiting")) !== "waiting") {
+      r = (await bookingByToken(token)) ?? r;
+    }
+  }
   const base = bookingView(r as never);
   const live = liveState(r as never, todayInNewYork());
   const v = live ? { ...base, headline: live.headline, detail: live.detail, canCancel: false } : base;
@@ -37,7 +47,23 @@ async function Booking({ params, searchParams }: Props) {
       <p className="bk-lead">{v.detail}</p>
       {q.error && <p className="error">That did not go through. Please call or text us.</p>}
 
-      {live && <LiveRefresh />}
+      {(live || v.paying) && <LiveRefresh every={live ? 30000 : 8000} />}
+
+      {v.paying && (
+        <section className="bk-pay">
+          {r.pay_url ? (
+            <a className="btn" href={r.pay_url}>Pay {formatMoney(r.deposit_cents ?? depositCents(r.issue))} deposit</a>
+          ) : (
+            <p>We emailed you a secure link to pay the deposit. Open it and your booking confirms automatically.</p>
+          )}
+          <p className="bk-pay-note">Secure payment by card or bank through QuickBooks. This page updates by itself once you pay.</p>
+        </section>
+      )}
+      {v.expired && (
+        <section className="bk-pay">
+          <Link className="btn" href="/request">Pick a time again</Link>
+        </section>
+      )}
       {live && (
         <ol className="bk-steps" aria-label="Visit progress">
           {LIVE_STEPS.map((label, i) => (

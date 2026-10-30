@@ -5,6 +5,8 @@ import { refundDue } from "@/lib/cancel";
 import { cancelEmail } from "@/lib/confirm";
 import { sendEmail } from "@/lib/notify";
 import { sendPush } from "@/lib/push";
+import { SETTLE_COLUMNS, settleDeposit } from "@/lib/settle";
+import { voidInvoice } from "@/lib/qbSync";
 import { formatDateLabel } from "@/lib/dates";
 import { formatTime } from "@/lib/labels";
 
@@ -12,9 +14,15 @@ import { formatTime } from "@/lib/labels";
 export async function cancelMyBooking(form: FormData): Promise<void> {
   const token = String(form.get("token") ?? "");
   if (!validToken(token)) redirect("/");
-  const r = await bookingByToken(token);
+  let r = await bookingByToken(token);
   const db = serviceDb();
   if (!r || !db) redirect(`/booking/${token}`);
+  // They may have just paid. Book that first, so a paid deposit is never lost by a cancel.
+  if (r.status === "offered" && r.booking_mode === "instant" && r.qb_deposit_invoice_id) {
+    const { data: full } = await db.from("requests").select(SETTLE_COLUMNS).eq("id", r.id).maybeSingle();
+    if (full) await settleDeposit(db, full as never).catch(() => "waiting");
+    r = (await bookingByToken(token)) ?? r;
+  }
   if (!["new", "offered", "confirmed"].includes(r.status) || r.left_at) redirect(`/booking/${token}`);
 
   const date = (r.confirmed_date ?? r.preferred_date) as string;
@@ -28,6 +36,12 @@ export async function cancelMyBooking(form: FormData): Promise<void> {
     .eq("id", r.id)
     .in("status", ["new", "offered", "confirmed"]);
   if (error) redirect(`/booking/${token}?error=1`);
+
+  // Never paid: close the deposit invoice so it does not sit open in QuickBooks, and say nothing more.
+  if (r.booking_mode === "instant" && r.status === "offered" && r.qb_deposit_invoice_id) {
+    await voidInvoice(r.qb_deposit_invoice_id);
+    redirect(`/booking/${token}`);
+  }
 
   const slot = { date, time, hours: Number(r.block_hours ?? 1) };
   const sent = await sendEmail({ to: r.email, ...cancelEmail(r as never, slot, refund, paid) });

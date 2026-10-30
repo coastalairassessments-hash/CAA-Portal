@@ -12,14 +12,14 @@ async function Counts() {
   if (!ok) return null;
   const { data } = await supabase
     .from("requests")
-    .select("status, confirmed_date")
+    .select("status, confirmed_date, booking_mode")
     .in("status", ["new", "offered", "confirmed"])
     .limit(500);
   const today = todayInNewYork();
   const rows = data ?? [];
   const counts: NavCounts = {
     today: rows.filter((r) => r.status === "confirmed" && r.confirmed_date === today).length,
-    requests: rows.filter((r) => r.status === "new" || r.status === "offered").length,
+    requests: rows.filter((r) => r.status === "new" || (r.status === "offered" && r.booking_mode !== "instant")).length,
   };
   return <TabBar counts={counts} />;
 }

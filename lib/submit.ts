@@ -3,6 +3,9 @@ import { parseRequest } from "./request";
 import { classifyZip } from "./zones";
 import { TERMS_VERSION } from "./terms";
 import { POLICY_VERSION } from "./policy";
+import { canBookInstantly, hoursFor } from "./instant";
+import { depositCents } from "./pricing";
+import type { Slot } from "./slots";
 
 // Row shape matches the `requests` table (supabase/migrations/0001_requests.sql).
 export type NewRequestRow = {
@@ -30,6 +33,14 @@ export type NewRequestRow = {
   area: "core" | "outside";
   zone_id: string | null;
   ip_hash: string | null;
+  // Set only when the client books and pays right away.
+  status?: "offered";
+  booking_mode?: "instant";
+  confirmed_date?: string;
+  confirmed_time?: string;
+  block_hours?: number;
+  offered_at?: string;
+  deposit_cents?: number;
 };
 
 export type SubmitDeps = {
@@ -38,10 +49,15 @@ export type SubmitDeps = {
   notify: (row: NewRequestRow & { id: string; public_token?: string | null }) => Promise<void>;
   ipSalt: string;
   now?: () => Date;
+  // Instant booking. Left out, every request simply waits for Cory, as before.
+  slotHeld?: (slot: Slot) => Promise<boolean>;
+  startPayment?: (row: NewRequestRow & { id: string; public_token?: string | null }) => Promise<void>;
+  revertToRequest?: (id: string) => Promise<void>;
 };
 
 export type SubmitResult =
-  | { ok: true }
+  | { ok: true; instant?: boolean; token?: string | null }
+  | { ok: false; status: 409; errors: Record<string, string> }
   | { ok: false; status: 400; errors: Record<string, string> }
   | { ok: false; status: 429; error: string }
   | { ok: false; status: 500; error: string };
@@ -122,6 +138,19 @@ export async function submitRequest(
   // Internal only. Never returned to the client.
   const zone = classifyZip(data.zip);
 
+  // Can they book and pay right now? Bigger or outside jobs wait for Cory to confirm the price.
+  const instant =
+    !!deps.startPayment && !!deps.slotHeld &&
+    canBookInstantly({ area: zone.area, propertyType: data.propertyType, sizeBand: data.sizeBand });
+  const hours = hoursFor(data.issue, data.sizeBand);
+  if (instant && (await deps.slotHeld!({ date: data.preferredDate, time: data.preferredTime, hours }))) {
+    return {
+      ok: false,
+      status: 409,
+      errors: { preferredDate: "That time was just taken. Please pick another." },
+    };
+  }
+
   const row: NewRequestRow = {
     issue: data.issue,
     size_band: data.sizeBand,
@@ -148,6 +177,17 @@ export async function submitRequest(
     area: zone.area,
     zone_id: zone.zoneId,
     ip_hash: ipHash,
+    ...(instant
+      ? {
+          status: "offered" as const,
+          booking_mode: "instant" as const,
+          confirmed_date: data.preferredDate,
+          confirmed_time: data.preferredTime,
+          block_hours: hours,
+          offered_at: now.toISOString(),
+          deposit_cents: depositCents(data.issue),
+        }
+      : {}),
   };
 
   let id: string;
@@ -161,6 +201,22 @@ export async function submitRequest(
       status: 500,
       error: `Something went wrong on our end. Please call us and we'll take it from here. (Ref: ${errorRef("insert", err)})`,
     };
+  }
+
+  // Booking and paying: the payment page takes over, and Cory hears when the deposit lands.
+  if (instant) {
+    try {
+      await deps.startPayment!({ ...row, id, public_token: token });
+      return { ok: true, instant: true, token };
+    } catch (err) {
+      // Payments are down or not connected. Never lose the client: turn it into a normal request.
+      logFailure("start-payment", err);
+      try {
+        await deps.revertToRequest?.(id);
+      } catch (e) {
+        logFailure("revert", e);
+      }
+    }
   }
 
   // A failed alert must never lose or fail the request.

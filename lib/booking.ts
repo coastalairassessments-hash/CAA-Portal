@@ -4,6 +4,7 @@ import { formatTime } from "./labels";
 import { depositCents, formatMoney } from "./pricing";
 import { refundDue } from "./cancel";
 import { REPLY_PROMISE } from "./business";
+import { holdActive, holdEndsAt } from "./instant";
 
 export type BookingRow = {
   status: string;
@@ -13,6 +14,8 @@ export type BookingRow = {
   confirmed_date: string | null;
   confirmed_time: string | null;
   deposit_cents: number | null;
+  booking_mode?: string | null;
+  offered_at?: string | null;
   left_at: string | null;
   final_paid_at: string | null;
 };
@@ -40,6 +43,15 @@ export function bookingView(r: BookingRow, now: Date = new Date()) {
   if (r.status === "new") {
     headline = "We received your request";
     detail = `You asked for ${when}. ${REPLY_PROMISE} There is nothing to pay yet.`;
+  } else if (r.status === "offered" && r.booking_mode === "instant") {
+    if (holdActive(r, now)) {
+      const until = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" }).format(holdEndsAt(r.offered_at!));
+      headline = `Pay your deposit to hold ${when}`;
+      detail = `Your time is held until ${until}. The ${deposit} deposit locks it in, and you are booked the moment it is paid.`;
+    } else {
+      headline = "Your hold ended";
+      detail = `${when} was held for you while you paid. If you already paid, this page updates in a moment. Otherwise, request that time again.`;
+    }
   } else if (r.status === "offered") {
     headline = `Your time: ${when}`;
     detail = `A ${deposit} deposit holds it. We send a secure deposit link by email. If two people ask for the same time, the first deposit gets it.`;
@@ -67,5 +79,6 @@ export function bookingView(r: BookingRow, now: Date = new Date()) {
       cancelNote = "No deposit has been paid, so there is nothing to refund.";
     }
   }
-  return { when, headline, detail, canCancel: active, cancelNote, step: clientStep(r) };
+  const paying = r.status === "offered" && r.booking_mode === "instant" && holdActive(r, now);
+  return { when, headline, detail, canCancel: active, cancelNote, step: clientStep(r), paying, expired: r.status === "offered" && r.booking_mode === "instant" && !paying };
 }

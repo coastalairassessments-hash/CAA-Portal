@@ -6,6 +6,12 @@ import { receivedEmail } from "./ack";
 import { sendPush, pushConfigured } from "./push";
 import { newRequestPush } from "./pushText";
 import type { SubmitDeps } from "./submit";
+import { heldSlots } from "./availabilityServer";
+import { overlaps } from "./slots";
+import { depositInvoicePayload } from "./qbInvoice";
+import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, getInvoice, qbConnected } from "./qbSync";
+import { formatDateLabel, todayInNewYork } from "./dates";
+import { formatTime } from "./labels";
 
 export function productionDeps(
   env: Record<string, string | undefined> = process.env,
@@ -52,6 +58,41 @@ export function productionDeps(
         .single();
       if (error) throw error;
       return { id: data.id as string, public_token: data.public_token as string | null };
+    },
+    async slotHeld(slot) {
+      return (await heldSlots(slot.date)).some((h) => overlaps(h, slot));
+    },
+    // Puts the client in QuickBooks, makes the deposit invoice, and finds the link they pay from.
+    async startPayment(row) {
+      if (!(await qbConnected())) throw new Error("QuickBooks is not connected");
+      const customerId = await ensureCustomer(row);
+      const itemId = await ensureServiceItem();
+      const when = `${formatDateLabel(row.confirmed_date!)} at ${formatTime(row.confirmed_time!)}`;
+      const made = await createInvoice(
+        depositInvoicePayload({
+          customerId,
+          itemId,
+          description: `Deposit to hold ${when}`,
+          cents: row.deposit_cents!,
+          email: row.email,
+          txnDate: todayInNewYork(),
+        }),
+      );
+      const payUrl = (await getInvoice(made.id).catch(() => null))?.link ?? null;
+      // No hosted link? Have QuickBooks email the invoice with its pay button instead.
+      if (!payUrl) await emailInvoice(made.id, row.email);
+      const { error } = await db
+        .from("requests")
+        .update({ qb_customer_id: customerId, qb_deposit_invoice_id: made.id, pay_url: payUrl })
+        .eq("id", row.id);
+      if (error) throw error;
+    },
+    async revertToRequest(id) {
+      const { error } = await db
+        .from("requests")
+        .update({ status: "new", booking_mode: "request", confirmed_date: null, confirmed_time: null, block_hours: null, offered_at: null, deposit_cents: null })
+        .eq("id", id);
+      if (error) throw error;
     },
     async notify(row) {
       // Tell Cory, and tell the client their request landed. Neither may fail the request.
