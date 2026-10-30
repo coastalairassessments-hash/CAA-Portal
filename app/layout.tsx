@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Instrument_Sans } from "next/font/google";
+import { Manrope, Inter } from "next/font/google";
 import "./globals.css";
 
-const display = Bricolage_Grotesque({
+const display = Manrope({
   variable: "--font-display",
   subsets: ["latin"],
 });
 
-const body = Instrument_Sans({
+const body = Inter({
   variable: "--font-body",
   subsets: ["latin"],
 });

@@ -22,14 +22,20 @@ function Stamp({ id, which, done, label }: { id: string; which: "arrived_at" | "
   );
 }
 
-export function JobCard({ r, today }: { r: Job; today: boolean }) {
+export function JobCard({ r, today, hero = false }: { r: Job; today: boolean; hero?: boolean }) {
   const contractor = r.source === "contractor";
   const canText = !!r.phone && r.text_consent;
   const slot = { name: r.name };
   return (
-    <div className="adm-jobrow">
-    <div className="t">{formatTime(r.confirmed_time!)}</div>
-    <article className="adm-card">
+    <div className={hero ? undefined : "adm-jobrow"}>
+    {!hero && <div className="t">{formatTime(r.confirmed_time!)}</div>}
+    <article className={hero ? "adm-card hero" : "adm-card"}>
+      {hero && (
+        <div className="adm-herohead">
+          <span>Next up</span>
+          <b>{formatTime(r.confirmed_time!)}</b>
+        </div>
+      )}
       <div className="adm-chips">
         <span className={`adm-chip${contractor ? "" : " solid"}`}>{contractor ? "Contractor" : "Homeowner"}</span>
         {contractor ? <span className="adm-chip warn">Invoice after</span> : <span className="adm-chip">Deposit paid</span>}
@@ -60,22 +66,26 @@ export function JobCard({ r, today }: { r: Job; today: boolean }) {
 }
 
 export function Tiles({ n }: { n: ReturnType<typeof needsYou> }) {
-  const tiles = [
-    { n: n.approve, label: "To approve", href: "/admin", hot: true },
-    { n: n.deposits, label: "Deposits waiting", href: "/admin", hot: false },
-    { n: n.toInvoice, label: "Invoices to send", href: "/admin?tab=owed", hot: true },
-    { n: n.refunds, label: "Refunds due", href: "/admin?tab=declined", hot: true },
+  const rows = [
+    { n: n.approve, label: "New requests to approve", href: "/admin", tone: "dark" },
+    { n: n.deposits, label: "Deposits waiting", href: "/admin", tone: "amber" },
+    { n: n.toInvoice, label: "Final invoices to send", href: "/admin?tab=owed", tone: "teal" },
+    { n: n.refunds, label: "Refunds due", href: "/admin?tab=declined", tone: "amber" },
   ].filter((t) => t.n > 0);
-  if (tiles.length === 0) return <p className="adm-ok">You&rsquo;re caught up. Nothing needs you.</p>;
+  if (rows.length === 0) return <p className="adm-ok">You&rsquo;re caught up. Nothing needs you.</p>;
   return (
-    <div className="adm-tiles">
-      {tiles.map((t) => (
-        <Link key={t.label} href={t.href} className={`adm-tile${t.hot ? " hot" : ""}`}>
-          <b>{t.n}</b>
-          <span>{t.label}</span>
-        </Link>
-      ))}
-    </div>
+    <section>
+      <h2 className="adm-sub">Needs you</h2>
+      <div className="adm-needs">
+        {rows.map((t) => (
+          <Link key={t.label} href={t.href} className="adm-need">
+            <span className={`n ${t.tone}`}>{t.n}</span>
+            <span className="l">{t.label}</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
 

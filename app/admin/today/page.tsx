@@ -49,14 +49,7 @@ async function Schedule({ searchParams }: Props) {
   return (
     <>
       {q.added && <p className="adm-ok">Added to your schedule.</p>}
-      <Tiles n={needsYou(all)} />
-
-      {next && (
-        <section>
-          <h2 className="adm-sub">Next up</h2>
-          <JobCard r={next} today />
-        </section>
-      )}
+      {next && <JobCard r={next} today hero />}
 
       <nav className="adm-seg two" aria-label="Range">
         <Link href="/admin/today" aria-current={!week ? "page" : undefined}>Today</Link>
@@ -73,6 +66,8 @@ async function Schedule({ searchParams }: Props) {
           ))}
         </section>
       ))}
+
+      <Tiles n={needsYou(all)} />
 
       <MoneyCard m={money(all)} />
 

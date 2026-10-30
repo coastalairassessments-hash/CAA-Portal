@@ -8,6 +8,7 @@ import { depositCents, firstHourCents, formatMoney } from "@/lib/pricing";
 import { googleCalendarLink } from "@/lib/calendar";
 import { cancelBooking, cancelJob, declineRequest, markDepositReceived, markRefunded } from "../actions";
 import { hoursUntil, refundDue } from "@/lib/cancel";
+import { STAGES, stageDone } from "@/lib/stage";
 import ConfirmForm from "./ConfirmForm";
 import Drawers from "./Drawers";
 
@@ -121,6 +122,17 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
         )}
         <a className="adm-btn" href={mapsLink(r)}>Navigate</a>
       </div>
+
+      {stageDone(r as never) > 0 && (
+        <ol className="adm-progress" aria-label="Job progress">
+          {STAGES.map((label, i) => (
+            <li key={label} className={i < stageDone(r as never) ? "is-done" : undefined}>
+              <span>{i < stageDone(r as never) ? "\u2713" : i + 1}</span>
+              {label}
+            </li>
+          ))}
+        </ol>
+      )}
 
       {r.status === "new" && approve}
 

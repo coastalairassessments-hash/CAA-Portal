@@ -56,7 +56,7 @@ async function WeekGrid({ searchParams }: Props) {
         {formatDateLabel(monday)} to {formatDateLabel(addDays(monday, 3))} · {counts.booked} booked · {counts.pending} asked for · {counts.open} open · {counts.closed} closed
       </p>
       {days.map((d) => (
-        <section key={d.date} className={d.date < today ? "wk-past" : undefined}>
+        <section key={d.date} className={`wk-day${d.date < today ? " wk-past" : ""}`}>
           <div className="wk-head">
             <h2 className="adm-sub">{d.date === today ? "Today" : formatDateLabel(d.date)}</h2>
             <form action={d.dayClosed ? openSlot : closeSlot}>

@@ -749,3 +749,81 @@ details.adm-group[open] > summary::after { content: "\2212"; }
 .wk-wrap { display: flex; flex-direction: column; }
 .wk-wrap .wk-cell { flex: 1; }
 .wk-cell.closed { background: repeating-linear-gradient(45deg, #eef1f2, #eef1f2 6px, #f6f8f8 6px, #f6f8f8 12px); color: #4a6168; }
+
+/* ===== App redesign: one calm, professional look (overrides the rules above) ===== */
+.adm {
+  --bg: #f2f5f8; --card: #fff; --ink: #0d2233; --mute: #566b7a; --line: #dae2e8;
+  --acc: #12385a; --accfg: #fff; --chip: #e4eef8; --warn-bg: #fff1d6; --warn-fg: #7a4b00; --err: #b3261e;
+}
+.adm h1, .adm h2, .adm-title, .adm-sub, .adm-big { font-family: var(--font-display), system-ui, sans-serif; }
+.adm-title { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+.adm-title.sm { font-size: 28px; margin-top: 4px; }
+.adm-date { font-size: 13px; font-weight: 500; }
+.adm-sub { font-size: 15px; font-weight: 700; margin: 18px 4px 8px; }
+.adm-card { border-left: 1px solid var(--line); border-radius: 16px; padding: 16px; gap: 8px; }
+.adm-card.outside { border-color: #c8861a; }
+.adm-card h2 { font-family: var(--font-display), system-ui, sans-serif; font-size: 18px; font-weight: 700; }
+.adm-chip { border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 700; }
+.adm-chip.solid { background: var(--acc); }
+.adm-pill { border-radius: 999px; padding: 5px 12px; font-weight: 700; }
+.adm-btn { border-radius: 12px; border-color: var(--line); background: #fff; }
+.adm-btn.primary { background: var(--acc); border-color: var(--acc); }
+.adm-btn.wide { border-radius: 14px; }
+.adm-group, .adm-panel { border-radius: 16px; }
+.adm-panel.tint { background: var(--chip); }
+.adm-note, .adm-ok { border-radius: 14px; }
+.adm-field input, .adm-field select { border-radius: 12px; }
+
+/* Next up card on Today */
+.adm-card.hero { background: var(--acc); border-color: var(--acc); color: #fff; box-shadow: 0 6px 18px rgba(18, 56, 90, 0.22); }
+.adm-card.hero .adm-muted, .adm-card.hero .adm-line { color: #d5e4f2; }
+.adm-card.hero .adm-chip { background: rgba(255, 255, 255, 0.16); color: #fff; }
+.adm-card.hero .adm-chip.solid { background: #fff; color: var(--acc); }
+.adm-card.hero .adm-btn { background: transparent; border: 1.5px solid rgba(255, 255, 255, 0.55); color: #fff; }
+.adm-card.hero .adm-btn.primary { background: #fff; border-color: #fff; color: var(--acc); }
+.adm-card.hero .adm-btn.wide:not(.primary) { background: rgba(255, 255, 255, 0.14); border-color: transparent; color: #bfd6ea; }
+.adm-card.hero .adm-btn.wide.primary { background: #2e6a9e; border-color: #2e6a9e; color: #fff; }
+.adm-herohead { display: flex; justify-content: space-between; align-items: center; }
+.adm-herohead span { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #bfd6ea; }
+.adm-herohead b { font-family: var(--font-display), system-ui, sans-serif; font-size: 20px; font-weight: 800; }
+.adm-jobrow .t { font-family: var(--font-display), system-ui, sans-serif; font-weight: 800; }
+
+/* Needs you list */
+.adm-needs { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.adm-need { display: flex; align-items: center; gap: 12px; padding: 12px 16px; min-height: 44px; color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line); }
+.adm-need:last-child { border-bottom: 0; }
+.adm-need .l { flex: 1; font-size: 15px; font-weight: 500; }
+.adm-need svg { color: var(--mute); }
+.adm-need .n { min-width: 28px; height: 28px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; padding: 0 6px; box-sizing: border-box; }
+.adm-need .n.dark { background: var(--acc); color: #fff; }
+.adm-need .n.amber { background: #fff1d6; color: #7a4b00; }
+.adm-need .n.teal { background: #e0f3f1; color: #0b5e5a; }
+
+/* Bottom bar: five slots, raised Add button */
+.adm-bar { grid-template-columns: repeat(5, 1fr); padding-top: 8px; align-items: end; }
+.adm-bar a { border-radius: 12px; }
+.adm-bar-badge { background: #b3261e; color: #fff; }
+.adm-bar-add .adm-bar-icon { width: 54px; height: 54px; border-radius: 27px; margin-top: -22px; box-shadow: 0 6px 14px rgba(18, 56, 90, 0.3); }
+.adm-bar-add { color: var(--acc) !important; }
+
+/* Week */
+.wk-day { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px; margin-bottom: 12px; }
+.wk-day .adm-sub { margin: 0; font-size: 14px; }
+.wk-day .wk-row { margin-bottom: 0; gap: 8px; }
+.wk-cell { border-radius: 12px; min-height: 72px; }
+.wk-cell.booked { border-color: #9dbad6; background: #e4eef8; }
+.wk-cell.booked .wk-state { color: var(--acc); }
+.wk-cell.pending { border-color: #e5c374; background: #fff1d6; }
+.wk-cell.pending .wk-state { color: #7a4b00; }
+.wk-cell.open { background: #e0f3f1; border: 1.5px dashed #6bb8b2; }
+.wk-cell.open .wk-state { color: #0b5e5a; }
+
+/* Job progress strip */
+.adm-progress { list-style: none; display: flex; margin: 0 0 14px; padding: 16px 8px 14px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; }
+.adm-progress li { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--mute); }
+.adm-progress li span { width: 22px; height: 22px; border-radius: 999px; background: var(--line); color: #34495a; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+.adm-progress li.is-done { color: var(--ink); }
+.adm-progress li.is-done span { background: var(--acc); color: #fff; }
+
+/* Client booking: calmer cards and a clear deposit note */
+.how { background: #f2f5f8; border: 1px solid #dae2e8; border-radius: 14px; padding: 14px 14px 14px 32px; }
