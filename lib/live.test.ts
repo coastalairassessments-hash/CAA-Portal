@@ -20,3 +20,13 @@ describe("liveState", () => {
     expect(m.text).toContain("/booking/abc");
   });
 });
+
+import { bookingLine, bookingUrl } from "./links";
+describe("links", () => {
+  it("builds the private booking link, or nothing without a token", () => {
+    expect(bookingUrl({ public_token: "abc" }, "https://x.test/")).toBe("https://x.test/booking/abc");
+    expect(bookingUrl({}, "https://x.test")).toBeNull();
+    expect(bookingLine({ public_token: null }, "https://x.test")).toEqual([]);
+    expect(bookingLine({ public_token: "abc" }, "https://x.test", "Follow along")[0]).toBe("Follow along: https://x.test/booking/abc");
+  });
+});

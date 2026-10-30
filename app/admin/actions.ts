@@ -219,9 +219,10 @@ export async function stampTime(form: FormData): Promise<void> {
   const which = form.get("which");
   if (!supabase || !/^[0-9a-f-]{36}$/i.test(id) || (which !== "en_route_at" && which !== "arrived_at" && which !== "left_at")) redirect("/admin");
   const value = form.get("clear") ? null : new Date().toISOString();
+  const { data: before } = await supabase.from("requests").select("en_route_at").eq("id", id).maybeSingle();
   const { error } = await supabase.from("requests").update({ [which]: value }).eq("id", id);
-  // "On my way": tell the client, with their live link. No extra work for Cory.
-  if (!error && value && which === "en_route_at") {
+  // "On my way": tell the client once, with their live link. No extra work for Cory.
+  if (!error && value && which === "en_route_at" && !before?.en_route_at) {
     const { data: row } = await supabase.from("requests").select("name, email, source, public_token").eq("id", id).single();
     if (row && row.source === "client" && row.email) {
       await sendEmail({ to: row.email, ...enRouteEmail(row, siteUrl()) });

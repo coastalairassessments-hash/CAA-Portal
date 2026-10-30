@@ -1,5 +1,5 @@
 // Called every hour by a Netlify scheduled function. Sends the morning (7 AM) and evening (7 PM) briefing.
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse, connection } from "next/server";
 import { addDays, todayInNewYork, TIME_ZONE } from "@/lib/dates";
 import { buildBriefing, type BriefJob } from "@/lib/briefing";
@@ -11,7 +11,30 @@ import { dayBeforeEmail } from "@/lib/prep";
 
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
 const COLUMNS =
-  "id, status, source, issue, name, email, public_token, zip, phone, address, city, confirmed_date, confirmed_time, block_hours, deposit_cents, deposit_paid_at, arrived_at, left_at, lab_samples, extras_cents, final_paid_at, final_invoice_no, cancel_refund, refunded_at";
+  "id, status, source, issue, name, email, public_token, zip, phone, address, city, confirmed_date, confirmed_time, block_hours, deposit_cents, deposit_paid_at, reminded_for, arrived_at, left_at, lab_samples, extras_cents, final_paid_at, final_invoice_no, cancel_refund, refunded_at";
+
+type RemindRow = {
+  id: string; source: string; status: string; confirmed_date: string | null; confirmed_time: string | null;
+  email: string | null; name: string; phone: string; address: string; city: string; zip: string;
+  public_token: string | null; reminded_for: string | null;
+};
+
+// The evening before: tell each homeowner how to prepare. reminded_for makes a retry harmless,
+// and a job moved to another day gets a fresh reminder.
+async function remindTomorrow(db: SupabaseClient, data: unknown[]) {
+  const tomorrow = addDays(todayInNewYork(), 1);
+  const site = clean(process.env.SITE_URL) || SITE_URL_FALLBACK;
+  let count = 0;
+  for (const j of data as RemindRow[]) {
+    if (j.source !== "client" || j.status !== "confirmed" || j.confirmed_date !== tomorrow || !j.email || !j.confirmed_time) continue;
+    if (j.reminded_for === tomorrow) continue;
+    const res = await sendEmail({ to: j.email, ...dayBeforeEmail(j, { date: tomorrow, time: j.confirmed_time.slice(0, 5) }, site) });
+    if (!res.ok) continue;
+    await db.from("requests").update({ reminded_for: tomorrow }).eq("id", j.id);
+    count++;
+  }
+  return { sent: count > 0, count };
+}
 
 export async function GET(req: Request) {
   await connection();
@@ -40,18 +63,7 @@ export async function GET(req: Request) {
   if (error) return NextResponse.json({ ok: false }, { status: 500 });
 
   const rows = (data ?? []) as unknown as (DashRow & BriefJob & { address: string; city: string })[];
-  if (mode === "remind") {
-    // The evening before: tell each homeowner how to prepare.
-    const tomorrow = addDays(todayInNewYork(), 1);
-    const site = clean(process.env.SITE_URL) || SITE_URL_FALLBACK;
-    let count = 0;
-    for (const j of rows as unknown as { source: string; status: string; confirmed_date: string; confirmed_time: string; email: string; name: string; phone: string; address: string; city: string; zip: string; public_token: string | null }[]) {
-      if (j.source !== "client" || j.status !== "confirmed" || j.confirmed_date !== tomorrow || !j.email) continue;
-      const res = await sendEmail({ to: j.email, ...dayBeforeEmail(j, { date: tomorrow, time: String(j.confirmed_time).slice(0, 5) }, site) });
-      if (res.ok) count++;
-    }
-    return NextResponse.json({ ok: true, sent: count > 0, count });
-  }
+  if (mode === "remind") return NextResponse.json({ ok: true, ...(await remindTomorrow(db, data ?? [])) });
   const date = mode === "today" ? todayInNewYork() : addDays(todayInNewYork(), 1);
   const jobs = rows.filter((r) => r.status === "confirmed" && r.confirmed_date === date && r.confirmed_time);
   const brief = buildBriefing(

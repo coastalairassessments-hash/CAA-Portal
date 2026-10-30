@@ -3,7 +3,7 @@ import { formatDateLabel } from "./dates";
 import { formatTime, issueLabel } from "./labels";
 import { PHONE, REPLY_PROMISE, SIGNOFF } from "./business";
 import { SITE_URL_FALLBACK } from "./notify";
-import { bookingLine } from "./confirm";
+import { bookingLine } from "./links";
 
 export function receivedEmail(
   r: { name: string; issue: string; preferred_date: string; preferred_time: string; public_token?: string | null },

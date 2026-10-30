@@ -1,7 +1,8 @@
 // What clients should and should not do before the visit, so the air readings are fair.
 import { formatDateLabel } from "./dates";
 import { formatTime } from "./labels";
-import { bookingLine, type ConfirmRow } from "./confirm";
+import type { ConfirmRow } from "./confirm";
+import { bookingLine } from "./links";
 import { SITE_URL_FALLBACK } from "./notify";
 import { PHONE, SIGNOFF } from "./business";
 

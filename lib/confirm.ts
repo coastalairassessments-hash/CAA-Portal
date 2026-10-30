@@ -2,6 +2,7 @@ import { prepLines } from "./prep";
 import { LATEST_START } from "./slots";
 import { z } from "zod";
 import { PHONE, SIGNOFF } from "./business";
+import { bookingLine } from "./links";
 import { formatDateLabel, isRealDate, todayInNewYork } from "./dates";
 import { formatTime } from "./labels";
 import { formatMoney } from "./pricing";
@@ -32,9 +33,6 @@ export type ConfirmRow = {
 };
 export type Booking = { date: string; time: string; hours: number };
 
-// "Your booking" link for the client, when the job has a private token.
-export const bookingLine = (row: { public_token?: string | null }, siteUrl: string) =>
-  row.public_token ? [`Your booking, any time: ${siteUrl.replace(/\/+$/, "")}/booking/${row.public_token}`, ""] : [];
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] || "there";
 const hoursWord = (h: number) => (h === 1 ? "1 hour" : `${h} hours`);
