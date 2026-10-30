@@ -28,7 +28,7 @@ export function buildAlert(
 
 // Email alert via Resend. Optional: if the keys are not set, it quietly skips.
 export async function sendEmailAlert(
-  row: NewRequestRow & { id: string },
+  row: NewRequestRow & { id: string; public_token?: string | null },
   env: Record<string, string | undefined> = process.env,
   fetchImpl: typeof fetch = fetch,
 ): Promise<void> {

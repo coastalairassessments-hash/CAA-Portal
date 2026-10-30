@@ -48,10 +48,10 @@ export function productionDeps(
       const { data, error } = await db
         .from("requests")
         .insert(row)
-        .select("id")
+        .select("id, public_token")
         .single();
       if (error) throw error;
-      return { id: data.id as string };
+      return { id: data.id as string, public_token: data.public_token as string | null };
     },
     async notify(row) {
       // Tell Cory, and tell the client their request landed. Neither may fail the request.
@@ -59,7 +59,7 @@ export function productionDeps(
       const phones = pushConfigured() ? await sendPush(newRequestPush(row)) : 0;
       await Promise.allSettled([
         phones ? Promise.resolve() : sendEmailAlert(row, env),
-        sendEmail({ to: row.email, ...receivedEmail(row) }, env),
+        sendEmail({ to: row.email, ...receivedEmail(row, clean(env.SITE_URL) || undefined) }, env),
       ]);
     },
   };

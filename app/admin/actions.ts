@@ -49,7 +49,7 @@ async function adminClient() {
 }
 
 const siteUrl = () => process.env.SITE_URL?.trim() || SITE_URL_FALLBACK;
-const CLIENT_COLUMNS = "name, phone, email, address, city, zip";
+const CLIENT_COLUMNS = "name, phone, email, address, city, zip, public_token";
 const EXCLUSION_VIOLATION = "23P01";
 
 // Approve a request and send the offer. The date is not held until the deposit is received.

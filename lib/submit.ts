@@ -30,8 +30,8 @@ export type NewRequestRow = {
 
 export type SubmitDeps = {
   countRecentByIp: (ipHash: string, sinceIso: string) => Promise<number>;
-  insert: (row: NewRequestRow) => Promise<{ id: string }>;
-  notify: (row: NewRequestRow & { id: string }) => Promise<void>;
+  insert: (row: NewRequestRow) => Promise<{ id: string; public_token?: string | null }>;
+  notify: (row: NewRequestRow & { id: string; public_token?: string | null }) => Promise<void>;
   ipSalt: string;
   now?: () => Date;
 };
@@ -142,8 +142,9 @@ export async function submitRequest(
   };
 
   let id: string;
+  let token: string | null | undefined;
   try {
-    ({ id } = await deps.insert(row));
+    ({ id, public_token: token } = await deps.insert(row));
   } catch (err) {
     logFailure("insert", err);
     return {
@@ -155,7 +156,7 @@ export async function submitRequest(
 
   // A failed alert must never lose or fail the request.
   try {
-    await deps.notify({ ...row, id });
+    await deps.notify({ ...row, id, public_token: token });
   } catch {
     // swallow: the request is saved and visible in the list
   }

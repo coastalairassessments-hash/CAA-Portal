@@ -26,8 +26,13 @@ export type ConfirmRow = {
   address: string;
   city: string;
   zip: string;
+  public_token?: string | null;
 };
 export type Booking = { date: string; time: string; hours: number };
+
+// "Your booking" link for the client, when the job has a private token.
+export const bookingLine = (row: { public_token?: string | null }, siteUrl: string) =>
+  row.public_token ? [`Your booking, any time: ${siteUrl.replace(/\/+$/, "")}/booking/${row.public_token}`, ""] : [];
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] || "there";
 const hoursWord = (h: number) => (h === 1 ? "1 hour" : `${h} hours`);
@@ -50,6 +55,7 @@ export function confirmEmail(row: ConfirmRow, b: Booking, siteUrl = "https://caa
       "To cancel or reschedule, reply to this email. More than 24 hours before your visit is a full refund of your deposit.",
       "Reply to this email with any questions.",
       "",
+      ...bookingLine(row, siteUrl),
       `Terms you agreed to: ${siteUrl.replace(/\/+$/, "")}/terms`,
       `Booking and payment policy: ${siteUrl.replace(/\/+$/, "")}/policy`,
       "",
@@ -79,6 +85,7 @@ export function offerEmail(row: ConfirmRow, b: Booking, deposit: number, siteUrl
       "",
       "Reply to this email with any questions.",
       "",
+      ...bookingLine(row, siteUrl),
       `Terms you agreed to: ${siteUrl.replace(/\/+$/, "")}/terms`,
       `Booking and payment policy: ${siteUrl.replace(/\/+$/, "")}/policy`,
       "",
