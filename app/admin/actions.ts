@@ -27,6 +27,7 @@ import { refundDue } from "@/lib/cancel";
 import { GOOGLE_REVIEW_URL, reviewEmail } from "@/lib/quicktexts";
 import { SITE_URL_FALLBACK, sendEmail } from "@/lib/notify";
 import { buildIcs } from "@/lib/ics";
+import { sendPush } from "@/lib/push";
 import { depositCents } from "@/lib/pricing";
 import { overlaps } from "@/lib/slots";
 import { isSection, parseSection } from "@/lib/job";
@@ -440,4 +441,11 @@ export async function savePhone(sub: { endpoint: string; p256dh: string; auth: s
   if (!supabase || !/^https:\/\//.test(sub.endpoint) || !sub.p256dh || !sub.auth) return { ok: false };
   const { error } = await supabase.from("push_subscriptions").upsert(sub, { onConflict: "endpoint" });
   return { ok: !error };
+}
+
+// A test alert so Cory can see his phone works.
+export async function sendTestAlert(): Promise<{ sent: number }> {
+  const supabase = await adminClient();
+  if (!supabase) return { sent: 0 };
+  return { sent: await sendPush({ title: "Alerts are working", body: "You will get new requests and your daily briefing here.", url: "/admin/today" }) };
 }

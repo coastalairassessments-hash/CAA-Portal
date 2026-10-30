@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { savePhone } from "../actions";
+import { savePhone, sendTestAlert } from "../actions";
 
 const toKey = (b64: string) => {
   const pad = "=".repeat((4 - (b64.length % 4)) % 4);
@@ -38,6 +38,13 @@ export default function PushToggle({ publicKey }: { publicKey: string }) {
     }
   }
 
+  const [test, setTest] = useState("");
+  async function sendTest() {
+    setTest("Sending...");
+    const r = await sendTestAlert();
+    setTest(r.sent ? "Sent. Check your phone." : "Nothing sent. Turn alerts off and on again.");
+  }
+
   const note: Record<typeof state, string> = {
     checking: "",
     unsupported: "To get alerts, add this app to your Home Screen (Share, then Add to Home Screen), open it from there, and come back here.",
@@ -53,6 +60,12 @@ export default function PushToggle({ publicKey }: { publicKey: string }) {
       <p className="adm-muted">{note[state]}</p>
       {(state === "off" || state === "failed") && (
         <button className="adm-btn wide primary" type="button" onClick={turnOn}>Turn on alerts</button>
+      )}
+      {state === "on" && (
+        <>
+          <button className="adm-btn wide" type="button" onClick={sendTest}>Send a test alert</button>
+          {test && <p className="adm-muted">{test}</p>}
+        </>
       )}
     </section>
   );
