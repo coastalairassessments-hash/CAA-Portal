@@ -152,16 +152,17 @@ export default function Home() {
           <p>
             Every visit comes with a written report you can share with your insurer or contractor.
           </p>
-          <h3 className="typ-head">Typical totals, mold and air quality</h3>
+          <h3 className="typ-head">Estimated totals, mold and air quality</h3>
           <ul className="typ">
-            <li><span>Small home, about 1 hour</span><strong>$685</strong></li>
-            <li><span>About 2 hours</span><strong>$880</strong></li>
-            <li><span>About 3 hours</span><strong>$1,075</strong></li>
-            <li><span>About 4 hours</span><strong>$1,270</strong></li>
+            <li><span>Small home, about 1 hour</span><strong>about $685</strong></li>
+            <li><span>About 2 hours</span><strong>about $880</strong></li>
+            <li><span>About 3 hours</span><strong>about $1,075</strong></li>
+            <li><span>About 4 hours</span><strong>about $1,270</strong></li>
           </ul>
           <p className="fine-print">
-            Lab samples are extra, $85 each, only when needed. No surprise fees. We tell you the
-            expected time before you pay anything.
+            These are estimates. Every building is different, so your time and total may vary. Lab
+            samples are extra, $85 each, only when needed. We tell you the expected time before you
+            pay anything.
           </p>
         </section>
 
