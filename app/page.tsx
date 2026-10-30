@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import Logo from "@/app/components/Logo";
+import { LICENSE_LINE, REPLY_PROMISE } from "@/lib/business";
 
 const sizes: { label: string; time: string; h: string; open?: boolean }[] = [
   { label: "Under 2,000 sq ft", time: "About 1 hour", h: "36px" },
@@ -35,6 +36,9 @@ export default function Home() {
               Request a date
             </Link>
           </div>
+          <p className="trust">
+            <strong>{LICENSE_LINE}</strong> · {REPLY_PROMISE}
+          </p>
         </section>
 
         <section className="wrap section" aria-labelledby="time-heading">
@@ -229,6 +233,7 @@ export default function Home() {
 
       <footer className="wrap site-footer">
         <p>Coastal Air Assessments. Serving Martin, St. Lucie and Palm Beach counties, Florida.</p>
+        <p>{LICENSE_LINE}.</p>
         <p>Questions? Call or text <a href="tel:+15614000929">561-400-0929</a>.</p>
         <p>
           <Link href="/terms">Mold assessment and sampling terms</Link> ·{" "}

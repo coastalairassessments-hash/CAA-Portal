@@ -1,6 +1,7 @@
 // Sent the moment a client submits a request, so they know it landed and what happens next.
 import { formatDateLabel } from "./dates";
 import { formatTime, issueLabel } from "./labels";
+import { LICENSE_LINE, REPLY_PROMISE } from "./business";
 
 export function receivedEmail(r: { name: string; issue: string; preferred_date: string; preferred_time: string }) {
   const first = r.name.trim().split(/\s+/)[0] || "there";
@@ -10,7 +11,7 @@ export function receivedEmail(r: { name: string; issue: string; preferred_date: 
     text: [
       `Hi ${first},`,
       "",
-      `We received your request for ${issueLabel(r.issue)} on ${when}. There is nothing to pay today.`,
+      `We received your request for ${issueLabel(r.issue)} on ${when}. There is nothing to pay today. ${REPLY_PROMISE}`,
       "",
       "What happens next:",
       "1. We confirm your time and send a secure deposit link.",
@@ -20,6 +21,7 @@ export function receivedEmail(r: { name: string; issue: string; preferred_date: 
       "Questions? Reply to this email, or call or text 561-400-0929.",
       "",
       "Coastal Air Assessments",
+      LICENSE_LINE,
     ].join("\n"),
   };
 }
