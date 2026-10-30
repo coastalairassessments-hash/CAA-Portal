@@ -3,6 +3,7 @@ import { formatDateLabel } from "./dates";
 import { formatTime } from "./labels";
 import { bookingLine, type ConfirmRow } from "./confirm";
 import { SITE_URL_FALLBACK } from "./notify";
+import { PHONE, SIGNOFF } from "./business";
 
 export const PREP_INTRO = "Your assessment is only as fair as the air we measure. Before we arrive:";
 
@@ -42,9 +43,9 @@ export function dayBeforeEmail(
       "",
       ...prepLines(),
       ...bookingLine(row, siteUrl),
-      "Need to change something? Call or text 561-400-0929.",
+      `Need to change something? Call or text ${PHONE}.`,
       "",
-      "Coastal Air Assessments",
+      ...SIGNOFF,
     ].join("\n"),
   };
 }

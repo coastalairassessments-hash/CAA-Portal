@@ -1,6 +1,7 @@
 import { prepLines } from "./prep";
 import { LATEST_START } from "./slots";
 import { z } from "zod";
+import { PHONE, SIGNOFF } from "./business";
 import { formatDateLabel, isRealDate, todayInNewYork } from "./dates";
 import { formatTime } from "./labels";
 import { formatMoney } from "./pricing";
@@ -54,15 +55,20 @@ export function confirmEmail(row: ConfirmRow, b: Booking, siteUrl = "https://caa
       "",
       "A calendar invite is attached. Tap it to add the visit to your calendar.",
       "",
+      "What to expect:",
+      "- We text or call when we are on our way.",
+      "- We walk the building room by room, take instrument readings, and check for hidden moisture.",
+      "- We tell you what we are seeing as we go, and take samples only if they help answer your question.",
+      "- Your written report follows within days. You pay the balance after the visit.",
+      "",
       ...prepLines(),
-      "To cancel or reschedule, reply to this email. More than 24 hours before your visit is a full refund of your deposit.",
-      "Reply to this email with any questions.",
+      "To cancel or reschedule, use your booking page below, or call or text " + PHONE + ". More than 24 hours before your visit, your deposit is refunded in full and rescheduling is free.",
       "",
       ...bookingLine(row, siteUrl),
       `Terms you agreed to: ${siteUrl.replace(/\/+$/, "")}/terms`,
       `Booking and payment policy: ${siteUrl.replace(/\/+$/, "")}/policy`,
       "",
-      "Coastal Air Assessments",
+      ...SIGNOFF,
     ].join("\n"),
   };
 }
@@ -83,16 +89,19 @@ export function offerEmail(row: ConfirmRow, b: Booking, deposit: number, siteUrl
       `We have planned about ${hoursWord(b.hours)} on site. Every visit has a one-hour minimum.`,
       "If you would like to limit our time on site, reply to this email. The assessment will then cover the areas we can complete in that time.",
       "",
-      `A 75% deposit of ${formatMoney(deposit)} holds the date. Your deposit invoice follows in a separate message.`,
-      "The date is held when the deposit is received. If two people ask for the same time, the first deposit holds it.",
+      "How to lock it in:",
+      `1. Pay the 75% deposit of ${formatMoney(deposit)}. Your secure deposit invoice follows in a separate message.`,
+      "2. The date is held when the deposit is received. If two people ask for the same time, the first deposit holds it.",
+      "3. You pay the balance after the visit. Your written report follows within days.",
       "",
-      "Reply to this email with any questions.",
+      "Cancel more than 24 hours ahead and your deposit is refunded in full. Rescheduling is free.",
+      `Need a different time? Reply to this email, or call or text ${PHONE}.`,
       "",
       ...bookingLine(row, siteUrl),
       `Terms you agreed to: ${siteUrl.replace(/\/+$/, "")}/terms`,
       `Booking and payment policy: ${siteUrl.replace(/\/+$/, "")}/policy`,
       "",
-      "Coastal Air Assessments",
+      ...SIGNOFF,
     ].join("\n"),
   };
 }
@@ -106,9 +115,11 @@ export function takenEmail(row: ConfirmRow, b: Booking) {
       "",
       `Another client's deposit arrived first for ${whenOf(b)}, so that time is no longer available.`,
       "",
-      "Reply to this email with another day that works and we'll set it up.",
+      "Nothing is lost on your side. If you paid a deposit, it is refunded in full.",
       "",
-      "Coastal Air Assessments",
+      `Reply to this email with another day that works, or call or text ${PHONE}, and we'll set it up.`,
+      "",
+      ...SIGNOFF,
     ].join("\n"),
   };
 }
@@ -125,9 +136,9 @@ export function declineEmail(row: ConfirmRow) {
       "",
       "Thank you for reaching out to Coastal Air Assessments. We can't take this request as submitted.",
       "",
-      "Reply to this email and we'll find a time or a better fit for you.",
+      "Nothing was charged. Reply to this email, or call or text " + PHONE + ", and we'll find a time or a better fit for you.",
       "",
-      "Coastal Air Assessments",
+      ...SIGNOFF,
     ].join("\n"),
   };
 }
@@ -164,9 +175,9 @@ export function cancelEmail(row: ConfirmRow, b: Booking, refund: boolean, paid: 
       `Your Coastal Air Assessments visit on ${whenOf(b)} is cancelled.`,
       money,
       "",
-      "If you would like to book another day, reply to this email.",
+      `If you would like to book another day, reply to this email, or call or text ${PHONE}.`,
       "",
-      "Coastal Air Assessments",
+      ...SIGNOFF,
     ]
       .filter((l, i, a) => l !== "" || a[i - 1] !== "")
       .join("\n"),
