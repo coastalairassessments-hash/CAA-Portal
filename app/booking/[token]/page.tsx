@@ -8,7 +8,10 @@ import { bookingByToken } from "@/lib/bookingServer";
 import { CLIENT_STEPS, bookingView } from "@/lib/booking";
 import { fullAddress, issueLabel } from "@/lib/labels";
 import { PREP_DO, PREP_DONT, PREP_INTRO } from "@/lib/prep";
+import { LIVE_STEPS, liveState } from "@/lib/live";
+import { todayInNewYork } from "@/lib/dates";
 import { cancelMyBooking } from "../actions";
+import LiveRefresh from "./LiveRefresh";
 
 export const metadata: Metadata = {
   title: "Your booking | Coastal Air Assessments",
@@ -23,7 +26,9 @@ async function Booking({ params, searchParams }: Props) {
   const q = await searchParams;
   const r = await bookingByToken(token);
   if (!r) notFound();
-  const v = bookingView(r as never);
+  const base = bookingView(r as never);
+  const live = liveState(r as never, todayInNewYork());
+  const v = live ? { ...base, headline: live.headline, detail: live.detail, canCancel: false } : base;
   const first = String(r.name).trim().split(/\s+/)[0];
 
   return (
@@ -32,7 +37,19 @@ async function Booking({ params, searchParams }: Props) {
       <p className="bk-lead">{v.detail}</p>
       {q.error && <p className="error">That did not go through. Please call or text us.</p>}
 
-      {v.step > 0 && (
+      {live && <LiveRefresh />}
+      {live && (
+        <ol className="bk-steps" aria-label="Visit progress">
+          {LIVE_STEPS.map((label, i) => (
+            <li key={label} className={i < live.step ? "is-done" : undefined}>
+              <span>{i < live.step ? "✓" : i + 1}</span>
+              {label}
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {!live && v.step > 0 && (
         <ol className="bk-steps" aria-label="Progress">
           {CLIENT_STEPS.map((label, i) => (
             <li key={label} className={i < v.step ? "is-done" : undefined}>

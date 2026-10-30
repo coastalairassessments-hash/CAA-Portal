@@ -37,6 +37,7 @@ import { finalInvoicePayload } from "@/lib/qbInvoice";
 import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, qbConnected } from "@/lib/qbSync";
 import { addDays, todayInNewYork } from "@/lib/dates";
 import { jobLabel } from "@/lib/labels";
+import { enRouteEmail } from "@/lib/enroute";
 
 export type ConfirmState = { error: string | null };
 
@@ -216,9 +217,16 @@ export async function stampTime(form: FormData): Promise<void> {
   const supabase = await adminClient();
   const id = String(form.get("id") ?? "");
   const which = form.get("which");
-  if (!supabase || !/^[0-9a-f-]{36}$/i.test(id) || (which !== "arrived_at" && which !== "left_at")) redirect("/admin");
+  if (!supabase || !/^[0-9a-f-]{36}$/i.test(id) || (which !== "en_route_at" && which !== "arrived_at" && which !== "left_at")) redirect("/admin");
   const value = form.get("clear") ? null : new Date().toISOString();
   const { error } = await supabase.from("requests").update({ [which]: value }).eq("id", id);
+  // "On my way": tell the client, with their live link. No extra work for Cory.
+  if (!error && value && which === "en_route_at") {
+    const { data: row } = await supabase.from("requests").select("name, email, source, public_token").eq("id", id).single();
+    if (row && row.source === "client" && row.email) {
+      await sendEmail({ to: row.email, ...enRouteEmail(row, siteUrl()) });
+    }
+  }
   if (form.get("back") === "today") redirect("/admin/today");
   redirect(`/admin/${id}${error ? "?error=save" : ""}`);
 }

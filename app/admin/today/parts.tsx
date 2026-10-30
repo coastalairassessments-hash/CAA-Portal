@@ -6,9 +6,9 @@ import { type DashRow, type money, type needsYou } from "@/lib/dashboard";
 import { formatMoney } from "@/lib/pricing";
 import { stampTime } from "../actions";
 
-export type Job = AdminRow & DashRow & { arrived_at: string | null; left_at: string | null };
+export type Job = AdminRow & DashRow & { en_route_at?: string | null; arrived_at: string | null; left_at: string | null };
 
-function Stamp({ id, which, done, label }: { id: string; which: "arrived_at" | "left_at"; done: boolean; label: string }) {
+function Stamp({ id, which, done, label }: { id: string; which: "en_route_at" | "arrived_at" | "left_at"; done: boolean; label: string }) {
   return (
     <form action={stampTime}>
       <input type="hidden" name="id" value={id} />
@@ -63,6 +63,7 @@ export function JobCard({ r, today, hero = false }: { r: Job; today: boolean; he
       </div>
       {today && (
         <div className="adm-row" style={{ marginTop: 8 }}>
+          <Stamp id={r.id} which="en_route_at" done={!!r.en_route_at} label="On my way" />
           <Stamp id={r.id} which="arrived_at" done={!!r.arrived_at} label="Arrived" />
           <Stamp id={r.id} which="left_at" done={!!r.left_at} label="Left" />
         </div>

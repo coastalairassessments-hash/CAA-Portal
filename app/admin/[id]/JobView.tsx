@@ -254,8 +254,8 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
           {r.status === "confirmed" && !r.left_at && (
             <form action={stampTime}>
               <input type="hidden" name="id" value={r.id} />
-              <input type="hidden" name="which" value={r.arrived_at ? "left_at" : "arrived_at"} />
-              <button className="adm-btn primary" type="submit">{r.arrived_at ? "Left" : "Arrived"}</button>
+              <input type="hidden" name="which" value={r.arrived_at ? "left_at" : r.en_route_at ? "arrived_at" : "en_route_at"} />
+              <button className="adm-btn primary" type="submit">{r.arrived_at ? "Left" : r.en_route_at ? "Arrived" : "On my way"}</button>
             </form>
           )}
           {r.status === "confirmed" && r.left_at && <a className="adm-btn primary" href="#money">Invoice</a>}

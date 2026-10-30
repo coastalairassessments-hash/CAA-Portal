@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 const COLUMNS =
-  "id, created_at, status, issue, size_band, preferred_date, preferred_time, name, phone, email, address, city, zip, notes, text_consent, confirmed_date, confirmed_time, block_hours, area, source, arrived_at, left_at, deposit_cents, deposit_paid_at, lab_samples, extras_cents, final_paid_at, final_invoice_no, cancel_refund, refunded_at";
+  "id, created_at, status, issue, size_band, preferred_date, preferred_time, name, phone, email, address, city, zip, notes, text_consent, confirmed_date, confirmed_time, block_hours, area, source, en_route_at, arrived_at, left_at, deposit_cents, deposit_paid_at, lab_samples, extras_cents, final_paid_at, final_invoice_no, cancel_refund, refunded_at";
 
 async function Schedule({ searchParams }: Props) {
   const q = await searchParams;

@@ -17,7 +17,7 @@ export async function bookingByToken(token: string) {
   const { data } = await db
     .from("requests")
     .select(
-      "id, status, issue, name, email, phone, address, city, zip, preferred_date, preferred_time, confirmed_date, confirmed_time, block_hours, deposit_cents, deposit_paid_at, left_at, final_paid_at, source",
+      "id, status, issue, name, email, phone, address, city, zip, preferred_date, preferred_time, confirmed_date, confirmed_time, block_hours, deposit_cents, deposit_paid_at, en_route_at, arrived_at, left_at, final_paid_at, source",
     )
     .eq("public_token", token)
     .eq("source", "client")
