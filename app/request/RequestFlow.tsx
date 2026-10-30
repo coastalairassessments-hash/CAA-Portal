@@ -6,6 +6,7 @@ import { formatDateLabel } from "@/lib/dates";
 import SlotCalendar from "./SlotCalendar";
 import type { Slot } from "@/lib/slots";
 import { HOW_HEARD, isLongVisit } from "@/lib/request";
+import { CLIENT_TYPES, PROPERTY_TYPES, WATER_WHEN, YES_NO, asksCompany, isMultiUnit, isOrg, needsQuote } from "@/lib/intake";
 import { depositCents, firstHourCents, formatMoney } from "@/lib/pricing";
 
 const ISSUES = [
@@ -30,11 +31,13 @@ const TIMES = [
 ];
 
 const STEP_TITLES = [
+  "Who are you?",
   "What are you dealing with?",
-  "About how big is the property?",
+  "Tell us about the property",
   "Pick a day and start time",
   "Where should we contact you?",
 ];
+const TOTAL = STEP_TITLES.length;
 
 type FieldErrors = Record<string, string>;
 
@@ -43,6 +46,17 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   const [step, setStep] = useState(0);
+  const [clientType, setClientType] = useState("");
+  const [propertyType, setPropertyType] = useState("");
+  const [company, setCompany] = useState("");
+  const [role, setRole] = useState("");
+  const [canApprove, setCanApprove] = useState("");
+  const [billTo, setBillTo] = useState("");
+  const [units, setUnits] = useState("");
+  const [waterWhen, setWaterWhen] = useState("");
+  const [leakFixed, setLeakFixed] = useState("");
+  const [insuranceClaim, setInsuranceClaim] = useState("");
+  const [closingDate, setClosingDate] = useState("");
   const [issue, setIssue] = useState("");
   const [sizeBand, setSizeBand] = useState("");
   const [preferredDate, setPreferredDate] = useState("");
@@ -84,6 +98,20 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          clientType,
+          propertyType,
+          company: asksCompany(clientType) ? company : "",
+          // Only the answers for questions this person was actually shown.
+          details: {
+            role: asksCompany(clientType) ? role : "",
+            canApprove: isOrg(clientType) ? canApprove : "",
+            billTo: isOrg(clientType) ? billTo : "",
+            units: isMultiUnit(propertyType) ? units : "",
+            waterWhen: issue === "water_damage" ? waterWhen : "",
+            leakFixed: issue === "water_damage" ? leakFixed : "",
+            insuranceClaim: issue === "water_damage" ? insuranceClaim : "",
+            closingDate: clientType === "real_estate" ? closingDate : "",
+          },
           issue,
           sizeBand,
           preferredDate,
@@ -110,9 +138,10 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
         const fieldErrors = data.errors as FieldErrors;
         setErrors(fieldErrors);
         // A problem in an earlier step sends the person back to fix it.
-        if (fieldErrors.issue) setStep(0);
-        else if (fieldErrors.sizeBand) setStep(1);
-        else if (fieldErrors.preferredDate || fieldErrors.preferredTime) setStep(2);
+        if (fieldErrors.clientType) setStep(0);
+        else if (fieldErrors.issue) setStep(1);
+        else if (fieldErrors.sizeBand || fieldErrors.propertyType) setStep(2);
+        else if (fieldErrors.preferredDate || fieldErrors.preferredTime) setStep(3);
         else setFormError("Please check the highlighted fields.");
       } else {
         setFormError(
@@ -136,19 +165,36 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
         className="progress"
         role="progressbar"
         aria-valuemin={1}
-        aria-valuemax={4}
+        aria-valuemax={TOTAL}
         aria-valuenow={step + 1}
         aria-label="Request progress"
       >
-        <span style={{ width: `${((step + 1) / 4) * 100}%` }} />
+        <span style={{ width: `${((step + 1) / TOTAL) * 100}%` }} />
       </div>
-      <p className="step-count">Step {step + 1} of 4</p>
+      <p className="step-count">Step {step + 1} of {TOTAL}</p>
 
       <h1 ref={headingRef} tabIndex={-1}>
         {STEP_TITLES[step]}
       </h1>
 
       {step === 0 && (
+        <div className="choices">
+          {CLIENT_TYPES.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              className="choice"
+              aria-pressed={clientType === o.value}
+              onClick={() => pick(setClientType, o.value)}
+            >
+              <span className="label">{o.label}</span>
+              <span className="hint">{o.hint}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {step === 1 && (
         <div className="choices">
           {ISSUES.map((o) => (
             <button
@@ -165,8 +211,24 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
         </div>
       )}
 
-      {step === 1 && (
+      {step === 2 && (
         <>
+          <h2 className="sub-q">What kind of property?</h2>
+          <div className="choices compact">
+            {PROPERTY_TYPES.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                className="choice"
+                aria-pressed={propertyType === o.value}
+                onClick={() => setPropertyType(o.value)}
+              >
+                <span className="label">{o.label}</span>
+              </button>
+            ))}
+          </div>
+          {errors.propertyType && <p className="error">{errors.propertyType}</p>}
+          <h2 className="sub-q">About how big is it?</h2>
           <p className="help">
             These are typical visit times. We confirm the actual time for your property.
           </p>
@@ -177,17 +239,20 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
                 type="button"
                 className="choice"
                 aria-pressed={sizeBand === o.value}
-                onClick={() => { setPreferredDate(""); setPreferredTime(""); pick(setSizeBand, o.value); }}
+                onClick={() => { setPreferredDate(""); setPreferredTime(""); setSizeBand(o.value); }}
               >
                 <span className="label">{o.label}</span>
                 <span className="hint">{o.hint}</span>
               </button>
             ))}
           </div>
+          <button type="button" className="btn" disabled={!propertyType || !sizeBand} onClick={() => setStep(3)}>
+            Continue
+          </button>
         </>
       )}
 
-      {step === 2 && (
+      {step === 3 && (
         <SlotCalendar
           dates={dates}
           date={preferredDate}
@@ -201,7 +266,7 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
         />
       )}
 
-      {step === 2 && (
+      {step === 3 && (
         <div className="book-foot">
           <div className="note">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 018 0v3" /></svg>
@@ -209,19 +274,21 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
               <strong>Your deposit holds the time</strong>
               {issue && (
                 <p className="price-line">
-                  {issueLabel} from {formatMoney(firstHourCents(issue))} for the first hour. Deposit to hold your time: {formatMoney(depositCents(issue))}.
+                  {needsQuote(propertyType)
+                    ? `${issueLabel}: we confirm the price for this kind of property. The deposit is 75% of the first hour.`
+                    : `${issueLabel} from ${formatMoney(firstHourCents(issue))} for the first hour. Deposit to hold your time: ${formatMoney(depositCents(issue))}.`}
                 </p>
               )}
               <p>Nothing to pay today. We confirm and send a secure link. First deposit paid gets the time. Cancel more than 24 hours ahead for a full refund.</p>
             </div>
           </div>
-          <button type="button" className="btn" disabled={!preferredDate || !preferredTime} onClick={() => setStep(3)}>
+          <button type="button" className="btn" disabled={!preferredDate || !preferredTime} onClick={() => setStep(4)}>
             Continue
           </button>
         </div>
       )}
 
-      {step === 3 && (
+      {step === 4 && (
         <form onSubmit={submit} noValidate>
           <p className="summary">
             {issueLabel}, {sizeLabel}, {preferredDate && formatDateLabel(preferredDate)} at {timeLabel}
@@ -320,6 +387,84 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
               </div>
             </div>
 
+            {(asksCompany(clientType) || isMultiUnit(propertyType) || issue === "water_damage" || clientType === "real_estate") && (
+              <p className="help detail-head">A few details so we arrive prepared</p>
+            )}
+
+            {asksCompany(clientType) && (
+              <>
+                <div className="field">
+                  <label htmlFor="company">
+                    {clientType === "manager" ? "Company or association" : "Company"}
+                    {!isOrg(clientType) && <span className="optional"> (optional)</span>}
+                  </label>
+                  <input id="company" type="text" autoComplete="organization" value={company} onChange={(e) => setCompany(e.target.value)} aria-invalid={!!errors.company} />
+                  {errors.company && <p className="error">{errors.company}</p>}
+                </div>
+                <div className="field">
+                  <label htmlFor="role">Your role <span className="optional">(optional)</span></label>
+                  <input id="role" type="text" autoComplete="organization-title" value={role} onChange={(e) => setRole(e.target.value)} />
+                </div>
+              </>
+            )}
+
+            {isOrg(clientType) && (
+              <>
+                <div className="field">
+                  <label htmlFor="canApprove">Can you approve the work and pay for it?</label>
+                  <select id="canApprove" value={canApprove} onChange={(e) => setCanApprove(e.target.value)}>
+                    <option value="">Choose one</option>
+                    {YES_NO.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="billTo">Who should get the invoice? <span className="optional">(optional)</span></label>
+                  <input id="billTo" type="text" placeholder="Name or email" value={billTo} onChange={(e) => setBillTo(e.target.value)} />
+                </div>
+              </>
+            )}
+
+            {isMultiUnit(propertyType) && (
+              <div className="field">
+                <label htmlFor="units">How many units or areas are affected? <span className="optional">(optional)</span></label>
+                <input id="units" type="text" value={units} onChange={(e) => setUnits(e.target.value)} />
+              </div>
+            )}
+
+            {issue === "water_damage" && (
+              <>
+                <div className="field">
+                  <label htmlFor="waterWhen">When did the water event happen?</label>
+                  <select id="waterWhen" value={waterWhen} onChange={(e) => setWaterWhen(e.target.value)}>
+                    <option value="">Choose one</option>
+                    {WATER_WHEN.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="leakFixed">Has the source been fixed?</label>
+                  <select id="leakFixed" value={leakFixed} onChange={(e) => setLeakFixed(e.target.value)}>
+                    <option value="">Choose one</option>
+                    {YES_NO.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="insuranceClaim">Is this part of an insurance claim?</label>
+                  <select id="insuranceClaim" value={insuranceClaim} onChange={(e) => setInsuranceClaim(e.target.value)}>
+                    <option value="">Choose one</option>
+                    {YES_NO.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+              </>
+            )}
+
+            {clientType === "real_estate" && (
+              <div className="field">
+                <label htmlFor="closingDate">Closing date <span className="optional">(optional)</span></label>
+                <input id="closingDate" type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)} aria-invalid={!!errors.details} />
+                {errors.details && <p className="error">{errors.details}</p>}
+              </div>
+            )}
+
             <div className="field">
               <label htmlFor="notes">
                 Anything we should know? <span className="optional">(optional)</span>
@@ -406,7 +551,7 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
           )}
 
           <div className="nav-row">
-            <button type="button" className="btn btn-quiet" onClick={() => setStep(2)}>
+            <button type="button" className="btn btn-quiet" onClick={() => setStep(3)}>
               Back
             </button>
             <button type="submit" className="btn" disabled={busy}>
@@ -416,7 +561,7 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
         </form>
       )}
 
-      {step > 0 && step < 3 && (
+      {step > 0 && step < 4 && (
         <div className="nav-row">
           <button type="button" className="btn btn-quiet" onClick={() => setStep(step - 1)}>
             Back

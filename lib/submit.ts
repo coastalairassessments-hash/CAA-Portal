@@ -18,6 +18,10 @@ export type NewRequestRow = {
   zip: string;
   notes: string;
   how_heard: string | null;
+  client_type: string;
+  property_type: string | null;
+  company: string | null;
+  intake: Record<string, string>;
   text_consent: boolean;
   terms_version: string;
   terms_accepted_at: string;
@@ -131,6 +135,11 @@ export async function submitRequest(
     zip: data.zip,
     notes: data.notes,
     how_heard: data.howHeard ?? null,
+    client_type: data.clientType,
+    property_type: data.propertyType ?? null,
+    company: data.company || null,
+    // Keep only the answers that were filled in.
+    intake: Object.fromEntries(Object.entries(data.details).filter(([, v]) => typeof v === "string" && v !== "")) as Record<string, string>,
     text_consent: data.textConsent,
     terms_version: TERMS_VERSION,
     terms_accepted_at: now.toISOString(),

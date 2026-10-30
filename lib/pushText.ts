@@ -1,11 +1,12 @@
 // Short wording for phone alerts. Pure, so it is easy to test.
 import { formatDateLabel } from "./dates";
 import { formatTime, issueLabel } from "./labels";
+import { clientTypeLabel } from "./intake";
 import type { PushMsg } from "./push";
 
-export function newRequestPush(r: { issue: string; city: string; preferred_date: string; preferred_time: string; id: string }): PushMsg {
+export function newRequestPush(r: { client_type?: string; issue: string; city: string; preferred_date: string; preferred_time: string; id: string }): PushMsg {
   return {
-    title: "New request",
+    title: r.client_type && r.client_type !== "homeowner" ? `New request: ${clientTypeLabel(r.client_type)}` : "New request",
     body: `${issueLabel(r.issue)}, ${r.city}. Wants ${formatDateLabel(r.preferred_date)} at ${formatTime(r.preferred_time)}.`,
     url: `/admin/${r.id}`,
   };

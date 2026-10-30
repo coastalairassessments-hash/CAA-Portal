@@ -9,6 +9,7 @@ import { googleCalendarLink } from "@/lib/calendar";
 import { cancelBooking, cancelJob, declineRequest, markDepositReceived, markRefunded, stampTime } from "../actions";
 import { hoursUntil, refundDue } from "@/lib/cancel";
 import { STAGES, stageDone } from "@/lib/stage";
+import { clientTypeLabel, intakeLines } from "@/lib/intake";
 import ConfirmForm from "./ConfirmForm";
 import Drawers from "./Drawers";
 
@@ -61,7 +62,7 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
         Back to Today
       </Link>
       <div className="adm-chips" style={{ margin: "4px 0 8px" }}>
-        <span className={`adm-chip${contractor ? "" : " solid"}`}>{contractor ? "Contractor" : "Homeowner"}</span>
+        <span className={`adm-chip${contractor ? "" : " solid"}`}>{contractor ? "Contractor" : clientTypeLabel(r.client_type ?? "homeowner")}</span>
         <span className={`adm-pill${r.status === "confirmed" ? " solid" : ""}`}>{r.status === "confirmed" && !contractor && r.deposit_paid_at ? "Booked · deposit paid" : statusLabel(r.status)}</span>
         {r.area === "outside" && <span className="adm-chip warn">Outside area</span>}
       </div>
@@ -211,6 +212,9 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
                 {r.email ? <> · <a href={`mailto:${r.email}`}>{r.email}</a></> : null}
               </div>
             )}
+            {!contractor && intakeLines({ client_type: r.client_type, property_type: r.property_type, company: r.company, intake: r.intake }).map(([k, v]) => (
+              <div key={k}><span className="adm-muted">{k}:</span> {v}</div>
+            ))}
             {r.notes && <div>Notes: {r.notes}</div>}
             {!contractor && (
               <div className="m">

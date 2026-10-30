@@ -1,3 +1,4 @@
+import { intakeLines } from "./intake";
 import type { NewRequestRow } from "./submit";
 
 import { formatDateLabel } from "./dates";
@@ -18,6 +19,7 @@ export function buildAlert(
     `Phone: ${formatPhone(row.phone)}${row.text_consent ? " (OK to text)" : " (no texting)"}`,
     `Email: ${row.email}`,
     `Property: ${row.address}, ${row.city} ${row.zip}${outside}`,
+    ...intakeLines(row).map(([k, v]) => `${k}: ${v}`),
     `Issue: ${issueLabel(row.issue)}`,
     `Size: ${sizeLabel(row.size_band)}`,
     `Wants: ${formatDateLabel(row.preferred_date)} at ${formatTime(row.preferred_time)}`,

@@ -928,3 +928,8 @@ details.adm-group[open] > summary::after { content: "\2212"; }
 .protect li { padding-left: 1.6rem; position: relative; line-height: 1.45; }
 .protect li::before { content: "\2713"; position: absolute; left: 0; color: #0b5e5a; font-weight: 700; }
 .adm-row > :only-child { grid-column: 1 / -1; }
+.sub-q { font-size: 1.1rem; margin: 1.25rem 0 0.5rem; }
+.choices.compact { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.choices.compact .choice { min-height: 56px; }
+.detail-head { margin: 0.5rem 0 0.25rem; font-weight: 600; color: var(--ink, #0d2233); }
+.sub-q ~ .btn { margin-top: 1.25rem; }
