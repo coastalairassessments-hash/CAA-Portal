@@ -917,3 +917,13 @@ details.adm-group[open] > summary::after { content: "\2212"; }
 .bk-prep p { margin: 0 0 0.6rem; line-height: 1.5; }
 .bk-prep ul { margin: 0 0 0.6rem; padding-left: 1.1rem; display: grid; gap: 0.4rem; line-height: 1.45; }
 .bk-prep ul.no { color: #34495a; }
+.typ-head { margin: 1.5rem 0 0.5rem; font-size: 1rem; }
+.typ { list-style: none; margin: 0; padding: 0; background: #fff; border: 1px solid #dae2e8; border-radius: 14px; }
+.typ li { display: flex; justify-content: space-between; gap: 1rem; padding: 12px 16px; border-top: 1px solid #dae2e8; }
+.typ li:first-child { border-top: 0; }
+.fine-print { margin-top: 0.75rem; font-size: 0.92rem; color: var(--muted); }
+.protect { background: #f2f5f8; border: 1px solid #dae2e8; border-radius: 16px; padding: 20px 18px; }
+.protect h2 { margin-top: 0; }
+.protect ul { margin: 0.5rem 0 0; padding: 0; list-style: none; display: grid; gap: 0.6rem; }
+.protect li { padding-left: 1.6rem; position: relative; line-height: 1.45; }
+.protect li::before { content: "\2713"; position: absolute; left: 0; color: #0b5e5a; font-weight: 700; }

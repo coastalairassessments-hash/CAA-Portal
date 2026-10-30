@@ -152,6 +152,30 @@ export default function Home() {
           <p>
             Every visit comes with a written report you can share with your insurer or contractor.
           </p>
+          <h3 className="typ-head">Typical totals, mold and air quality</h3>
+          <ul className="typ">
+            <li><span>Small home, about 1 hour</span><strong>$685</strong></li>
+            <li><span>About 2 hours</span><strong>$880</strong></li>
+            <li><span>About 3 hours</span><strong>$1,075</strong></li>
+            <li><span>About 4 hours</span><strong>$1,270</strong></li>
+          </ul>
+          <p className="fine-print">
+            Lab samples are extra, $85 each, only when needed. No surprise fees. We tell you the
+            expected time before you pay anything.
+          </p>
+        </section>
+
+        <section className="wrap section" aria-labelledby="protect-heading">
+          <div className="protect">
+            <h2 id="protect-heading">Your protection</h2>
+            <ul>
+              <li>Licensed Florida mold assessor, MRSA2944.</li>
+              <li>Cancel more than 24 hours ahead and your deposit is refunded in full.</li>
+              <li>Rescheduling is free.</li>
+              <li>Payments are processed securely through QuickBooks. We never see your card.</li>
+              <li>Samples go to an independent accredited lab.</li>
+            </ul>
+          </div>
         </section>
 
         <section className="wrap section" aria-labelledby="how-heading">
@@ -208,6 +232,28 @@ export default function Home() {
                 Cancel more than 24 hours before your visit and your deposit is refunded in full.
                 You can also reschedule at no charge. Within 24 hours the deposit is not refunded. The details are in our{" "}
                 <Link href="/policy">booking policy</Link>.
+              </p>
+            </details>
+            <details>
+              <summary>Will you find mold?</summary>
+              <p>
+                We find out what is going on and why. Sometimes that is mold, sometimes it is
+                moisture or airflow that could lead to it. You get a plain written answer either
+                way.
+              </p>
+            </details>
+            <details>
+              <summary>Do I need lab samples?</summary>
+              <p>
+                Not always. We use them only when they help answer your question, and we tell you
+                before we take any. Each is $85.
+              </p>
+            </details>
+            <details>
+              <summary>Is my home unsafe?</summary>
+              <p>
+                We explain what we see and what, if anything, to do next. Our job is to give you a
+                clear answer, not a scare.
               </p>
             </details>
             <details>
