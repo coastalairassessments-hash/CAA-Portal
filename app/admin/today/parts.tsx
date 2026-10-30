@@ -49,13 +49,15 @@ export function JobCard({ r, today, hero = false }: { r: Job; today: boolean; he
           <b>{formatTime(r.confirmed_time!)}</b>
         </div>
       )}
-      <div className="adm-chips">
-        <span className={`adm-chip${contractor ? "" : " solid"}`}>{contractor ? "Contractor" : "Homeowner"}</span>
-        {contractor ? <span className="adm-chip warn">Invoice after</span> : <span className="adm-chip">Deposit paid</span>}
-      </div>
+      {!hero && (
+        <div className="adm-chips">
+          <span className={`adm-chip${contractor ? "" : " solid"}`}>{contractor ? "Contractor" : "Homeowner"}</span>
+          {contractor ? <span className="adm-chip warn">Invoice after</span> : <span className="adm-chip">Deposit paid</span>}
+        </div>
+      )}
       <h2>{r.name}</h2>
       <p className="adm-line">{jobLabel(r)} · about {r.block_hours} {r.block_hours === 1 ? "hour" : "hours"}</p>
-      <p className="adm-muted">{fullAddress(r)}</p>
+      <p className="adm-muted">{hero ? `${r.address}, ${r.city}` : fullAddress(r)}</p>
       <div className="adm-actions three">
         <a className="adm-btn primary" href={mapsLink(r)}>Navigate</a>
         {r.phone ? <a className="adm-btn" href={`tel:${r.phone}`}>Call</a> : <span className="adm-btn" aria-disabled="true" style={{ opacity: 0.45 }}>Call</span>}
@@ -63,12 +65,18 @@ export function JobCard({ r, today, hero = false }: { r: Job; today: boolean; he
       </div>
       {today && (
         <div className="adm-row" style={{ marginTop: 8 }}>
-          <Stamp id={r.id} which="en_route_at" done={!!r.en_route_at} label="On my way" />
-          <Stamp id={r.id} which="arrived_at" done={!!r.arrived_at} label="Arrived" />
-          <Stamp id={r.id} which="left_at" done={!!r.left_at} label="Left" />
+          {r.left_at ? (
+            <Stamp id={r.id} which="left_at" done label="Left" />
+          ) : r.arrived_at ? (
+            <Stamp id={r.id} which="left_at" done={false} label="Left" />
+          ) : r.en_route_at ? (
+            <Stamp id={r.id} which="arrived_at" done={false} label="Arrived" />
+          ) : (
+            <Stamp id={r.id} which="en_route_at" done={false} label="On my way" />
+          )}
         </div>
       )}
-      {today && canText && (
+      {today && canText && !hero && (
         <div className="adm-row" style={{ marginTop: 8 }}>
           <a className="adm-btn" href={smsLink(r.phone!, onMyWayText(slot))}>Text: on my way</a>
           <a className="adm-btn" href={smsLink(r.phone!, runningLateText(slot))}>Text: running late</a>

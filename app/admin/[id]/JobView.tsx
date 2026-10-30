@@ -62,7 +62,7 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
       </Link>
       <div className="adm-chips" style={{ margin: "4px 0 8px" }}>
         <span className={`adm-chip${contractor ? "" : " solid"}`}>{contractor ? "Contractor" : "Homeowner"}</span>
-        <span className={`adm-pill${r.status === "confirmed" ? " solid" : ""}`}>{statusLabel(r.status)}</span>
+        <span className={`adm-pill${r.status === "confirmed" ? " solid" : ""}`}>{r.status === "confirmed" && !contractor && r.deposit_paid_at ? "Booked · deposit paid" : statusLabel(r.status)}</span>
         {r.area === "outside" && <span className="adm-chip warn">Outside area</span>}
       </div>
 
@@ -95,25 +95,13 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
 
       <h1 className="adm-title sm" style={{ marginTop: 0 }}>{r.name}</h1>
       <div className="adm-info">
-        <div>{jobLabel(r)}{r.size_band ? ` · ${sizeLabel(r.size_band)}` : ""}</div>
+        <div>
+          {jobLabel(r)}
+          {r.size_band ? ` · ${sizeLabel(r.size_band)}` : ""}
+          {booking ? ` · ${formatDateLabel(booking.date)} at ${formatTime(booking.time)} · about ${booking.hours} ${booking.hours === 1 ? "hr" : "hrs"}` : ""}
+        </div>
         <div>{fullAddress(r)}</div>
-        {!contractor && (
-          <>
-            {!slot && <div className="m">Asked for {formatDateLabel(r.preferred_date)} at {formatTime(r.preferred_time)}</div>}
-            <div className="m">
-              {formatPhone(cr.phone)}{r.text_consent ? " · ok to text" : " · no texting"}
-              {r.email ? <> · <a href={`mailto:${r.email}`}>{r.email}</a></> : null}
-            </div>
-          </>
-        )}
-        {r.notes && <div>Notes: {r.notes}</div>}
-        {!contractor && (
-          <div className="m">
-            {r.terms_accepted_at
-              ? `Terms agreed (${r.terms_version}) on ${formatStamp(r.terms_accepted_at)}`
-              : "No terms agreement on file (earlier request)"}
-          </div>
-        )}
+        {!slot && !contractor && <div className="m">Asked for {formatDateLabel(r.preferred_date)} at {formatTime(r.preferred_time)}</div>}
       </div>
 
       <div className="adm-actions three lg">
@@ -169,27 +157,6 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
         </>
       )}
 
-      {booking && (
-        <>
-          <section className="adm-panel tint">
-            <div className="adm-muted">Booked</div>
-            <div className="adm-big">{formatDateLabel(booking.date)} at {formatTime(booking.time)}</div>
-            <div>About {booking.hours} {booking.hours === 1 ? "hour" : "hours"} · {fullAddress(r)}</div>
-            <div className="adm-muted">
-              {contractor ? "No deposit. Invoice after the job." : `Deposit received${r.deposit_paid_at ? ` ${formatStamp(r.deposit_paid_at)}` : ""}.`}
-            </div>
-          </section>
-          <a className="adm-btn outline wide" href={googleCalendarLink({ ...r, notes: r.notes ?? "" }, booking)} target="_blank" rel="noreferrer">
-            Add to Google Calendar
-          </a>
-          {contractor ? null : r.text_consent ? (
-            <a className="adm-btn wide" href={smsLink(cr.phone, confirmText(cr, booking))}>Text client the confirmation</a>
-          ) : (
-            <p className="adm-muted">This client did not opt in to texts. Email or call instead.</p>
-          )}
-        </>
-      )}
-
       {r.status === "cancelled" && r.cancel_refund && (
         <section className="adm-panel line">
           <h2>{r.refunded_at ? "Deposit refunded" : "Refund due"}</h2>
@@ -213,6 +180,47 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
 
       <h2 className="adm-sub">Details</h2>
       <div className="adm-details">
+        {booking && (
+          <details className="adm-group">
+            <summary>Schedule <span className="v">Calendar, confirmation</span></summary>
+
+          <section className="adm-panel tint">
+            <div className="adm-muted">Booked</div>
+            <div className="adm-big">{formatDateLabel(booking.date)} at {formatTime(booking.time)}</div>
+            <div>About {booking.hours} {booking.hours === 1 ? "hour" : "hours"} · {fullAddress(r)}</div>
+            <div className="adm-muted">
+              {contractor ? "No deposit. Invoice after the job." : `Deposit received${r.deposit_paid_at ? ` ${formatStamp(r.deposit_paid_at)}` : ""}.`}
+            </div>
+          </section>
+          <a className="adm-btn outline wide" href={googleCalendarLink({ ...r, notes: r.notes ?? "" }, booking)} target="_blank" rel="noreferrer">
+            Add to Google Calendar
+          </a>
+          {contractor ? null : r.text_consent ? (
+            <a className="adm-btn wide" href={smsLink(cr.phone, confirmText(cr, booking))}>Text client the confirmation</a>
+          ) : (
+            <p className="adm-muted">This client did not opt in to texts. Email or call instead.</p>
+          )}
+          </details>
+        )}
+        <details className="adm-group">
+          <summary>Contact <span className="v">Phone, email, terms</span></summary>
+          <div className="adm-info">
+            {!contractor && (
+              <div>
+                {formatPhone(cr.phone)}{r.text_consent ? " · ok to text" : " · no texting"}
+                {r.email ? <> · <a href={`mailto:${r.email}`}>{r.email}</a></> : null}
+              </div>
+            )}
+            {r.notes && <div>Notes: {r.notes}</div>}
+            {!contractor && (
+              <div className="m">
+                {r.terms_accepted_at
+                  ? `Terms agreed (${r.terms_version}) on ${formatStamp(r.terms_accepted_at)}`
+                  : "No terms agreement on file (earlier request)"}
+              </div>
+            )}
+          </div>
+        </details>
         <Drawers r={r} saved={typeof query.saved === "string" ? query.saved : undefined} />
       </div>
 

@@ -927,3 +927,4 @@ details.adm-group[open] > summary::after { content: "\2212"; }
 .protect ul { margin: 0.5rem 0 0; padding: 0; list-style: none; display: grid; gap: 0.6rem; }
 .protect li { padding-left: 1.6rem; position: relative; line-height: 1.45; }
 .protect li::before { content: "\2713"; position: absolute; left: 0; color: #0b5e5a; font-weight: 700; }
+.adm-row > :only-child { grid-column: 1 / -1; }
