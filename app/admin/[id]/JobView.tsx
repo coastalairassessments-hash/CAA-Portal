@@ -6,7 +6,7 @@ import { confirmText, offerText, smsLink } from "@/lib/confirm";
 import { GOOGLE_REVIEW_URL, depositReminderText, reviewText } from "@/lib/quicktexts";
 import { depositCents, firstHourCents, formatMoney } from "@/lib/pricing";
 import { googleCalendarLink } from "@/lib/calendar";
-import { cancelBooking, cancelJob, declineRequest, markDepositReceived, markRefunded } from "../actions";
+import { cancelBooking, cancelJob, declineRequest, markDepositReceived, markRefunded, stampTime } from "../actions";
 import { hoursUntil, refundDue } from "@/lib/cancel";
 import { STAGES, stageDone } from "@/lib/stage";
 import ConfirmForm from "./ConfirmForm";
@@ -37,7 +37,7 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
   const cr = { ...r, phone: r.phone ?? "", city: r.city ?? "", zip: r.zip ?? "" }; // client rows always have a phone; contractor rows never reach the text buttons
 
   const approve = !contractor && open && (
-    <section className="adm-panel tint">
+    <section className="adm-panel tint" id="approve">
       <h2>{booking ? "Change the booking" : offer ? "Change the offer" : "Approve"}</h2>
       <ConfirmForm
         id={r.id}
@@ -56,11 +56,13 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
 
   return (
     <>
-      <Link className="adm-link" href="/admin">Back to your day</Link>
-      <h1 className="adm-title sm">{r.name}</h1>
-      <div className="adm-chips" style={{ margin: "6px 0 14px" }}>
+      <Link className="adm-back" href="/admin/today">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+        Back to Today
+      </Link>
+      <div className="adm-chips" style={{ margin: "4px 0 8px" }}>
+        <span className={`adm-chip${contractor ? "" : " solid"}`}>{contractor ? "Contractor" : "Homeowner"}</span>
         <span className={`adm-pill${r.status === "confirmed" ? " solid" : ""}`}>{statusLabel(r.status)}</span>
-        {contractor && <span className="adm-chip">Contractor</span>}
         {r.area === "outside" && <span className="adm-chip warn">Outside area</span>}
       </div>
 
@@ -91,6 +93,7 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
         <p className="adm-err" style={{ marginBottom: 14 }}>Something did not save. Try again.</p>
       )}
 
+      <h1 className="adm-title sm" style={{ marginTop: 0 }}>{r.name}</h1>
       <div className="adm-info">
         <div>{jobLabel(r)}{r.size_band ? ` · ${sizeLabel(r.size_band)}` : ""}</div>
         <div>{fullAddress(r)}</div>
@@ -114,13 +117,13 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
       </div>
 
       <div className="adm-actions three lg">
+        <a className="adm-btn primary" href={mapsLink(r)}>Navigate</a>
         {r.phone ? <a className="adm-btn" href={`tel:${r.phone}`}>Call</a> : <span className="adm-btn off" aria-disabled="true">Call</span>}
         {r.phone && r.text_consent ? (
           <a className="adm-btn" href={`sms:${r.phone}`}>Text</a>
         ) : (
           <span className="adm-btn off" aria-disabled="true">Text</span>
         )}
-        <a className="adm-btn" href={mapsLink(r)}>Navigate</a>
       </div>
 
       {stageDone(r as never) > 0 && (
@@ -208,12 +211,15 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
         <a className="adm-btn wide" href={smsLink(cr.phone, reviewText(cr, GOOGLE_REVIEW_URL))}>Text a review request</a>
       )}
 
-      <Drawers r={r} saved={typeof query.saved === "string" ? query.saved : undefined} />
+      <h2 className="adm-sub">Details</h2>
+      <div className="adm-details">
+        <Drawers r={r} saved={typeof query.saved === "string" ? query.saved : undefined} />
+      </div>
 
       {booking && approve}
 
       {!contractor && slot && (r.status === "offered" || r.status === "confirmed") && (
-        <section className="adm-panel line">
+        <section className="adm-panel line" id="cancel">
           <h2>Cancel booking</h2>
           <p className="adm-muted">
             {r.status === "offered"
@@ -230,10 +236,31 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
       )}
 
       {contractor && r.status === "confirmed" && (
-        <form action={cancelJob}>
+        <form action={cancelJob} id="cancel">
           <input type="hidden" name="id" value={r.id} />
           <button className="adm-quiet" type="submit">Cancel this job</button>
         </form>
+      )}
+
+      {open && (
+        <div className="adm-pinbar">
+          {r.status === "new" && <a className="adm-btn primary" href="#approve">Approve</a>}
+          {r.status === "offered" && (
+            <form action={markDepositReceived}>
+              <input type="hidden" name="id" value={r.id} />
+              <button className="adm-btn primary" type="submit">Deposit received</button>
+            </form>
+          )}
+          {r.status === "confirmed" && !r.left_at && (
+            <form action={stampTime}>
+              <input type="hidden" name="id" value={r.id} />
+              <input type="hidden" name="which" value={r.arrived_at ? "left_at" : "arrived_at"} />
+              <button className="adm-btn primary" type="submit">{r.arrived_at ? "Left" : "Arrived"}</button>
+            </form>
+          )}
+          {r.status === "confirmed" && r.left_at && <a className="adm-btn primary" href="#money">Invoice</a>}
+          {(r.status === "offered" || r.status === "confirmed") && <a className="adm-btn danger" href="#cancel">Cancel</a>}
+        </div>
       )}
 
       {r.status === "new" && <p className="adm-foot">The client gets an email with the day, time and deposit the moment you tap Approve.</p>}

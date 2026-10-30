@@ -80,6 +80,14 @@ async function Schedule({ searchParams }: Props) {
   );
 }
 
+async function CountPill() {
+  await connection();
+  const supabase = await supabaseForUser();
+  const { data } = await supabase.from("requests").select("id").eq("status", "confirmed").eq("confirmed_date", todayInNewYork());
+  const n = data?.length ?? 0;
+  return <span className="adm-countpill">{n} {n === 1 ? "inspection" : "inspections"}</span>;
+}
+
 async function TodayDate() {
   await connection();
   return <>{todayLabel()}</>;
@@ -97,6 +105,9 @@ export default function TodayPage(props: Props) {
           </div>
           <h1 className="adm-title">Today</h1>
         </div>
+        <Suspense fallback={null}>
+          <CountPill />
+        </Suspense>
       </header>
       <Suspense fallback={<p className="adm-empty">Loading...</p>}>
         <Schedule {...props} />

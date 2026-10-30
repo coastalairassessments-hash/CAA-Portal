@@ -196,9 +196,23 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
           onPick={(d, t) => {
             setPreferredDate(d);
             setPreferredTime(t);
-            setStep(3);
           }}
         />
+      )}
+
+      {step === 2 && (
+        <div className="book-foot">
+          <div className="note">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 018 0v3" /></svg>
+            <div>
+              <strong>Your deposit holds the time</strong>
+              <p>Nothing to pay today. We confirm and send a secure link. First deposit paid gets the time. Cancel more than 24 hours ahead for a full refund.</p>
+            </div>
+          </div>
+          <button type="button" className="btn" disabled={!preferredDate || !preferredTime} onClick={() => setStep(3)}>
+            Continue
+          </button>
+        </div>
       )}
 
       {step === 3 && (

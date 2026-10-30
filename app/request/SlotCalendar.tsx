@@ -92,7 +92,9 @@ export default function SlotCalendar({
           ? "Larger properties take more time, so we start at 10:00 AM and keep the rest of the day open."
           : "10:00 AM or 12:30 PM, Monday through Thursday."}
       </p>
-      <p className="help">Crossed-out times are booked. A time is held once the deposit is paid.</p>
+      <div className="cal-legend" aria-hidden="true">
+        <span><i className="o" />Open</span><span><i className="p" />Your pick</span><span><i className="b" />Booked</span>
+      </div>
     </div>
   );
 }

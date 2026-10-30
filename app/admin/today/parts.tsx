@@ -26,6 +26,19 @@ export function JobCard({ r, today, hero = false }: { r: Job; today: boolean; he
   const contractor = r.source === "contractor";
   const canText = !!r.phone && r.text_consent;
   const slot = { name: r.name };
+  if (!hero) {
+    const [clock, ampm] = formatTime(r.confirmed_time!).split(" ");
+    return (
+      <Link href={`/admin/${r.id}`} className="adm-later">
+        <div className="t"><b>{clock}</b><span>{ampm}</span></div>
+        <div className="m">
+          <div className="n">{r.name}</div>
+          <div className="s">{jobLabel(r)} · {r.block_hours} {r.block_hours === 1 ? "hr" : "hrs"}</div>
+        </div>
+        <span className={`adm-chip${contractor ? " warn" : ""}`}>{contractor ? "Invoice after" : "Deposit paid"}</span>
+      </Link>
+    );
+  }
   return (
     <div className={hero ? undefined : "adm-jobrow"}>
     {!hero && <div className="t">{formatTime(r.confirmed_time!)}</div>}

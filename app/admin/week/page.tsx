@@ -6,7 +6,7 @@ import { connection } from "next/server";
 import { supabaseForUser } from "@/lib/supabase/server";
 import { addDays, formatDateLabel, todayInNewYork } from "@/lib/dates";
 import { buildWeek, mondayOf, type WeekRow } from "@/lib/week";
-import { formatTime, issueLabel } from "@/lib/labels";
+import { formatTime } from "@/lib/labels";
 import { closeSlot, openSlot } from "../actions";
 
 export const metadata: Metadata = {
@@ -47,13 +47,13 @@ async function WeekGrid({ searchParams }: Props) {
 
   return (
     <>
-      <nav className="adm-seg" aria-label="Week">
-        {w > 0 ? <Link href={`/admin/week?w=${w - 1}`}>Earlier</Link> : <span />}
+      <nav className="adm-seg eq" aria-label="Week">
+        {w > 0 ? <Link href={`/admin/week?w=${w - 1}`}>Earlier</Link> : <span className="dis">Earlier</span>}
         <Link href="/admin/week" aria-current={w === 0 ? "page" : undefined}>This week</Link>
         <Link href={`/admin/week?w=${w + 1}`}>Later</Link>
       </nav>
-      <p className="adm-muted">
-        {formatDateLabel(monday)} to {formatDateLabel(addDays(monday, 3))} · {counts.booked} booked · {counts.pending} asked for · {counts.open} open · {counts.closed} closed
+      <p className="adm-counts">
+        <span>{counts.booked} booked</span><span>{counts.pending} asked for</span><span>{counts.open} open</span><span>{counts.closed} closed</span>
       </p>
       {days.map((d) => (
         <section key={d.date} className={`wk-day${d.date < today ? " wk-past" : ""}`}>
@@ -74,7 +74,6 @@ async function WeekGrid({ searchParams }: Props) {
                   <span className="wk-time">{formatTime(c.time)}</span>
                   <span className="wk-state">{STATE_LABEL[c.state]}</span>
                   {r && <span className="wk-who">{r.name}{c.rows.length > 1 ? ` +${c.rows.length - 1}` : ""}</span>}
-                  {r && <span className="wk-what">{issueLabel(r.issue)}</span>}
                 </>
               );
               const toggle = (c.state === "open" || c.state === "pending" || (c.state === "closed" && !d.dayClosed)) && (
@@ -104,6 +103,14 @@ async function WeekGrid({ searchParams }: Props) {
   );
 }
 
+async function Range({ searchParams }: { searchParams: Props["searchParams"] }) {
+  await connection();
+  const q = await searchParams;
+  const w = Math.min(12, Math.max(0, Number(q.w) || 0));
+  const monday = addDays(mondayOf(todayInNewYork()), w * 7);
+  return <>{formatDateLabel(monday)} to {formatDateLabel(addDays(monday, 3))}</>;
+}
+
 async function Title() {
   await connection();
   return null;
@@ -114,6 +121,7 @@ export default function WeekPage(props: Props) {
     <main className="adm-wrap">
       <header className="adm-top">
         <div>
+          <div className="adm-date"><Suspense fallback={null}><Range searchParams={props.searchParams} /></Suspense></div>
           <h1 className="adm-title">Week</h1>
         </div>
         <Suspense fallback={null}><Title /></Suspense>

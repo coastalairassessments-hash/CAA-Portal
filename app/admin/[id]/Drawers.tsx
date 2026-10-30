@@ -97,8 +97,8 @@ export default function Drawers({ r, saved }: { r: Job; saved?: string }) {
       )}
 
       {booked && (
-        <details className="adm-group">
-          <summary>Money</summary>
+        <details className="adm-group" id="money">
+          <summary>Money{depositPaid !== null && <span className="v">{formatMoney(depositPaid)} deposit paid</span>}</summary>
           {note("money")}
           <div className="adm-table">
             <span>First hour</span><span className="amt">{formatMoney(inv.firstHour)}</span>
