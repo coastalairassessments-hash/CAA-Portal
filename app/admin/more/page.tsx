@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { getConnection } from "@/lib/qbStore";
 import { logout } from "../actions";
+import PushToggle from "./PushToggle";
 
 export const metadata: Metadata = {
   title: "More | Coastal Air Assessments",
@@ -39,12 +40,22 @@ async function QuickBooks({ searchParams }: { searchParams: Promise<Record<strin
   );
 }
 
+async function Alerts() {
+  await connection();
+  const key = process.env.VAPID_PUBLIC_KEY?.trim().replace(/^["']+|["']+$/g, "");
+  if (!key) return null;
+  return <PushToggle publicKey={key} />;
+}
+
 export default function MorePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   return (
     <main className="adm-wrap">
       <header className="adm-top">
         <h1 className="adm-title">More</h1>
       </header>
+      <Suspense fallback={null}>
+        <Alerts />
+      </Suspense>
       <Suspense fallback={null}>
         <QuickBooks searchParams={searchParams} />
       </Suspense>

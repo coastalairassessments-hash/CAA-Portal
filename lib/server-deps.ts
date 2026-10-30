@@ -3,6 +3,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { sendEmail, sendEmailAlert } from "./notify";
 import { receivedEmail } from "./ack";
+import { sendPush, pushConfigured } from "./push";
+import { newRequestPush } from "./pushText";
 import type { SubmitDeps } from "./submit";
 
 export function productionDeps(
@@ -53,8 +55,10 @@ export function productionDeps(
     },
     async notify(row) {
       // Tell Cory, and tell the client their request landed. Neither may fail the request.
+      // A phone alert replaces the email to Cory once his phone is set up.
+      const phones = pushConfigured() ? await sendPush(newRequestPush(row)) : 0;
       await Promise.allSettled([
-        sendEmailAlert(row, env),
+        phones ? Promise.resolve() : sendEmailAlert(row, env),
         sendEmail({ to: row.email, ...receivedEmail(row) }, env),
       ]);
     },

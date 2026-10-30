@@ -433,3 +433,11 @@ export async function openSlot(form: FormData): Promise<void> {
   const { error } = await supabase.from("time_blocks").delete().eq("day", day).eq("slot", slot);
   redirect(`/admin/week?w=${w}${error ? "&error=save" : ""}`);
 }
+
+// Save this phone so it gets alerts.
+export async function savePhone(sub: { endpoint: string; p256dh: string; auth: string }): Promise<{ ok: boolean }> {
+  const supabase = await adminClient();
+  if (!supabase || !/^https:\/\//.test(sub.endpoint) || !sub.p256dh || !sub.auth) return { ok: false };
+  const { error } = await supabase.from("push_subscriptions").upsert(sub, { onConflict: "endpoint" });
+  return { ok: !error };
+}

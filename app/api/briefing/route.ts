@@ -5,6 +5,8 @@ import { addDays, todayInNewYork, TIME_ZONE } from "@/lib/dates";
 import { buildBriefing, type BriefJob } from "@/lib/briefing";
 import { needsYou, type DashRow } from "@/lib/dashboard";
 import { SITE_URL_FALLBACK, sendEmail } from "@/lib/notify";
+import { sendPush } from "@/lib/push";
+import { briefingPush } from "@/lib/pushText";
 
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
 const COLUMNS =
@@ -48,6 +50,8 @@ export async function GET(req: Request) {
   );
   // Evening note only when tomorrow has something; the morning one also covers what is waiting.
   if (brief.empty || (mode === "tomorrow" && jobs.length === 0)) return NextResponse.json({ ok: true, sent: false });
+  // Phone alert first; email only if no phone is set up.
+  if ((await sendPush(briefingPush(brief.subject, brief.text))) > 0) return NextResponse.json({ ok: true, sent: true });
   const sent = await sendEmail({ to, subject: brief.subject, text: brief.text });
   return NextResponse.json({ ok: sent.ok, sent: sent.ok });
 }
