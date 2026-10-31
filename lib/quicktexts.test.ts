@@ -1,15 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { depositReminderText, linkText, missedCallText, reviewEmail, reviewText } from "./quicktexts";
+import { afterHoursText, depositReminderText, linkText, missedCallText, reviewEmail, reviewText } from "./quicktexts";
 
 describe("quick texts", () => {
-  it("the link text sends the request page, with or without a trailing slash", () => {
-    expect(linkText("https://book.example.com/")).toContain("https://book.example.com/request");
-    expect(linkText("https://book.example.com")).toContain("nothing to pay to request");
+  it("the link texts send people to the site, not straight into a booking", () => {
+    for (const make of [linkText, missedCallText, afterHoursText]) {
+      const t = make("https://book.example.com/");
+      expect(t.endsWith("https://book.example.com")).toBe(true);
+      expect(t).not.toContain("/request");
+      expect(t).toMatch(/pricing and open days/);
+    }
   });
-  it("the missed-call text points to the home page and invites a text back", () => {
-    const t = missedCallText("https://book.example.com");
-    expect(t).toContain("missed your call");
-    expect(t).toContain("https://book.example.com.");
+  it("makes no promise about price, refunds or timing", () => {
+    for (const make of [linkText, missedCallText, afterHoursText]) {
+      expect(make("https://x.com")).not.toMatch(/refund|nothing to pay|minutes|next business day|guarantee/i);
+    }
+  });
+  it("each text says what moment it is for", () => {
+    expect(linkText("https://x.com")).toContain("Good talking with you");
+    expect(missedCallText("https://x.com")).toContain("missed your call");
+    expect(afterHoursText("https://x.com")).toContain("away from the phone");
   });
   it("the deposit reminder names the deposit and the date", () => {
     const t = depositReminderText({ name: "Pat Client" }, "Tue, Oct 27 at 10:00 AM", "$513.75");

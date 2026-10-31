@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { SITE_URL_FALLBACK } from "@/lib/notify";
-import { linkText, missedCallText } from "@/lib/quicktexts";
+import { afterHoursText, linkText, missedCallText } from "@/lib/quicktexts";
 import { smsLink } from "@/lib/confirm";
 
 export const metadata: Metadata = {
@@ -15,8 +15,9 @@ async function Texts() {
   await connection();
   const site = process.env.SITE_URL?.trim() || SITE_URL_FALLBACK;
   const items = [
-    { title: "Send the link", note: "You're on the phone and they're ready to book.", body: linkText(site) },
-    { title: "Missed call", note: "You couldn't pick up.", body: missedCallText(site) },
+    { title: "We spoke", note: "You just talked with them. Send the link.", body: linkText(site) },
+    { title: "Missed call", note: "You couldn't pick up during the day.", body: missedCallText(site) },
+    { title: "After hours", note: "They called when you were closed.", body: afterHoursText(site) },
   ];
   return (
     <>

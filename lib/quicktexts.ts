@@ -7,14 +7,23 @@ export const GOOGLE_REVIEW_URL = "https://g.page/r/CR_el8247giREBM/review";
 const base = (siteUrl: string) => siteUrl.replace(/\/+$/, "");
 const firstName = (name: string) => name.trim().split(/\s+/)[0] || "there";
 
-// While on the phone: "let me send you a link".
+// The three link texts. They send people to the site, where they see pricing and open days and choose to enroll.
+// Each says only what is true: no promise about price, time or callbacks beyond "we'll get back to you".
+const SEE = "You can see our pricing and open days, and enroll if you'd like, here:";
+
+// After you spoke with them.
 export function linkText(siteUrl: string): string {
-  return `Hi, this is Coastal Air Assessments. Here is the link we talked about: ${base(siteUrl)}/request. It takes about two minutes to pick a day and add your information. There is nothing to pay to request.`;
+  return `Hi, it's Cory with Coastal Air Assessments. Good talking with you. Text me with any questions. ${SEE} ${base(siteUrl)}`;
 }
 
-// After a call you could not take.
+// A call you could not take, during the day.
 export function missedCallText(siteUrl: string): string {
-  return `Hi, this is Coastal Air Assessments. Sorry I missed your call, I'm with a client. You can see pricing and request a date here: ${base(siteUrl)}. Or text me what's going on and I'll call you back.`;
+  return `Hi, this is Coastal Air Assessments. Sorry we missed your call. Reply with what's going on and we'll get back to you. ${SEE} ${base(siteUrl)}`;
+}
+
+// A call when the office is closed.
+export function afterHoursText(siteUrl: string): string {
+  return `Hi, this is Coastal Air Assessments. We're away from the phone right now. Reply with what's going on and we'll get back to you. ${SEE.replace("if you'd like", "anytime")} ${base(siteUrl)}`;
 }
 
 export function depositReminderText(
