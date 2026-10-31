@@ -18,12 +18,12 @@ export function linkText(siteUrl: string): string {
 
 // A call you could not take, during the day.
 export function missedCallText(siteUrl: string): string {
-  return `Hi, this is Coastal Air Assessments. Sorry we missed your call. Reply with what's going on and we'll get back to you. ${SEE} ${base(siteUrl)}`;
+  return `Hi, this is Coastal Air Assessments. Sorry we missed your call. You can text us your questions, or wait for a call back, usually by the end of the day. ${SEE} ${base(siteUrl)}`;
 }
 
 // A call when the office is closed.
 export function afterHoursText(siteUrl: string): string {
-  return `Hi, this is Coastal Air Assessments. We're away from the phone right now. Reply with what's going on and we'll get back to you. ${SEE.replace("if you'd like", "anytime")} ${base(siteUrl)}`;
+  return `Hi, this is Coastal Air Assessments. We're away from the phone right now. You can text us your questions, or wait for a call back, usually by the end of the next business day. ${SEE.replace("if you'd like", "anytime")} ${base(siteUrl)}`;
 }
 
 export function depositReminderText(

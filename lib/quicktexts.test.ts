@@ -12,8 +12,12 @@ describe("quick texts", () => {
   });
   it("makes no promise about price, refunds or timing", () => {
     for (const make of [linkText, missedCallText, afterHoursText]) {
-      expect(make("https://x.com")).not.toMatch(/refund|nothing to pay|minutes|next business day|guarantee/i);
+      expect(make("https://x.com")).not.toMatch(/refund|nothing to pay|minutes|guarantee/i);
     }
+  });
+  it("the callback promise is soft and matches the moment", () => {
+    expect(missedCallText("https://x.com")).toContain("text us your questions, or wait for a call back, usually by the end of the day");
+    expect(afterHoursText("https://x.com")).toContain("usually by the end of the next business day");
   });
   it("each text says what moment it is for", () => {
     expect(linkText("https://x.com")).toContain("Good talking with you");
