@@ -7,6 +7,7 @@ import { nextBookableDates, todayInNewYork } from "@/lib/dates";
 import { heldSlots } from "@/lib/availabilityServer";
 import { prefillByToken } from "@/lib/bookingServer";
 import RequestFlow from "./RequestFlow";
+import { LICENSE_LINE, PHONE } from "@/lib/business";
 
 export const metadata: Metadata = {
   title: "Request a date | Coastal Air Assessments",
@@ -33,6 +34,7 @@ export default function RequestPage({ searchParams }: { searchParams: Promise<Re
         <Logo />
       </header>
       <main className="wrap">
+        <p className="trust-line">{LICENSE_LINE} · Questions? Call or text <a href="tel:+15614000929">{PHONE}</a></p>
         <Suspense fallback={<p className="step-count">Loading...</p>}>
           <FlowFromQuery searchParams={searchParams} />
         </Suspense>
