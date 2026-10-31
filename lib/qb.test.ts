@@ -7,7 +7,7 @@ describe("quickbooks config", () => {
   it("reads env and defaults to sandbox and the live site", () => {
     const c = qbConfig(env);
     expect(c.env).toBe("sandbox");
-    expect(c.redirectUri).toBe("https://caaportal.netlify.app/api/qb/callback");
+    expect(c.redirectUri).toBe("https://book.coastalairassessments.com/api/qb/callback");
   });
   it("uses SITE_URL for the redirect and cleans pasted quotes", () => {
     const c = qbConfig({ ...env, QB_CLIENT_ID: ' "id1" ', SITE_URL: "https://book.coastalairassessments.com/" });
@@ -29,7 +29,7 @@ describe("quickbooks urls", () => {
     expect(u.origin + u.pathname).toBe("https://appcenter.intuit.com/connect/oauth2");
     expect(u.searchParams.get("state")).toBe("abc");
     expect(u.searchParams.get("scope")).toBe("com.intuit.quickbooks.accounting");
-    expect(u.searchParams.get("redirect_uri")).toBe("https://caaportal.netlify.app/api/qb/callback");
+    expect(u.searchParams.get("redirect_uri")).toBe("https://book.coastalairassessments.com/api/qb/callback");
   });
   it("picks the sandbox or live api", () => {
     expect(apiBase({ env: "sandbox" })).toContain("sandbox-");

@@ -1,6 +1,6 @@
 # CAA Portal: where we left off (2026-10-29)
 
-Live: https://caaportal.netlify.app (admin at /admin). Main site repo: coastal-air-assessments-site (booking buttons point to the portal).
+Live: https://book.coastalairassessments.com (admin at /admin). Main site repo: coastal-air-assessments-site (booking buttons point to the portal).
 
 ## Done and live
 - Client request flow with a Mon-Thu calendar, two buttons a day (10:00, 12:30). 2,000 sq ft and up: 10:00 only.
@@ -16,7 +16,7 @@ Live: https://caaportal.netlify.app (admin at /admin). Main site repo: coastal-a
 
 ## Next
 1. Resend: add domain mail.coastalairassessments.com (Domains > Add), screenshot the DNS table, add records (Netlify DNS or registrar), then set CLIENT_FROM and ALERT_FROM in Netlify. Until then client emails reach only the account owner.
-2. Intuit production keys: finish the app questionnaire (privacy /privacy, EULA /eula, host caaportal.netlify.app, redirect https://caaportal.netlify.app/api/qb/callback), then set QB_ENV=production with the production Client ID/Secret and reconnect on More.
+2. Intuit production keys: finish the app questionnaire (privacy /privacy, EULA /eula, host book.coastalairassessments.com, redirect https://book.coastalairassessments.com/api/qb/callback), then set QB_ENV=production with the production Client ID/Secret and reconnect on More.
 3. Optional: grey out held slots on the client calendar (asked, not yet answered).
 4. Subdomain book.coastalairassessments.com, then swap the buttons on the main site and set SITE_URL.
 5. Before real clients: Supabase Pro backups, two-factor on logins, clear test data, Jonathan security review, attorney glance at policy/privacy/EULA.

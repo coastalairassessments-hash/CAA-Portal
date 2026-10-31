@@ -38,7 +38,7 @@ export type Booking = { date: string; time: string; hours: number };
 const firstName = (name: string) => name.trim().split(/\s+/)[0] || "there";
 const hoursWord = (h: number) => (h === 1 ? "1 hour" : `${h} hours`);
 
-export function confirmEmail(row: ConfirmRow, b: Booking, siteUrl = "https://caaportal.netlify.app") {
+export function confirmEmail(row: ConfirmRow, b: Booking, siteUrl = "https://book.coastalairassessments.com") {
   const when = `${formatDateLabel(b.date)} at ${formatTime(b.time)}`;
   return {
     subject: `Your visit is confirmed: ${when}`,
@@ -76,7 +76,7 @@ export function confirmEmail(row: ConfirmRow, b: Booking, siteUrl = "https://caa
 const whenOf = (b: Booking) => `${formatDateLabel(b.date)} at ${formatTime(b.time)}`;
 
 // Sent when Cory approves a request. The date is NOT held until the deposit arrives.
-export function offerEmail(row: ConfirmRow, b: Booking, deposit: number, siteUrl = "https://caaportal.netlify.app") {
+export function offerEmail(row: ConfirmRow, b: Booking, deposit: number, siteUrl = "https://book.coastalairassessments.com") {
   return {
     subject: `Your proposed visit: ${whenOf(b)}`,
     text: [

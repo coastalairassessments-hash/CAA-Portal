@@ -17,7 +17,7 @@ export function qbConfig(env: Record<string, string | undefined> = process.env):
   const clientId = clean(env.QB_CLIENT_ID);
   const clientSecret = clean(env.QB_CLIENT_SECRET);
   if (!clientId || !clientSecret) throw new Error("Missing QB_CLIENT_ID or QB_CLIENT_SECRET");
-  const site = clean(env.SITE_URL) || "https://caaportal.netlify.app";
+  const site = clean(env.SITE_URL) || "https://book.coastalairassessments.com";
   return {
     clientId,
     clientSecret,

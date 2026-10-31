@@ -4,7 +4,7 @@ import type { NewRequestRow } from "./submit";
 import { formatDateLabel } from "./dates";
 import { formatPhone, formatTime, issueLabel, sizeLabel } from "./labels";
 
-export const SITE_URL_FALLBACK = "https://caaportal.netlify.app";
+export const SITE_URL_FALLBACK = "https://book.coastalairassessments.com";
 
 export function buildAlert(
   row: NewRequestRow & { id: string },
