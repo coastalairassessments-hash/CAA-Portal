@@ -1,3 +1,4 @@
+import { INSTASCOPE_EMAIL_LINE } from "./instascope";
 import { prepLines } from "./prep";
 import { LATEST_START } from "./slots";
 import { z } from "zod";
@@ -56,6 +57,7 @@ export function confirmEmail(row: ConfirmRow, b: Booking, siteUrl = "https://caa
       "What to expect:",
       "- We text or call when we are on our way.",
       "- We walk the building room by room, take instrument readings, and check for hidden moisture.",
+      INSTASCOPE_EMAIL_LINE,
       "- We tell you what we are seeing as we go, and take samples only if they help answer your question.",
       "- Your written report follows within days. You pay the balance after the visit.",
       "",

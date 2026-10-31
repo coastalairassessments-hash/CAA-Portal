@@ -100,7 +100,7 @@ export default function Home() {
                   <li>Room-by-room visual inspection of accessible interior areas and exterior interfaces, for visible mold, water damage and construction issues.</li>
                   <li>Instrument readings: temperature, humidity, carbon dioxide, carbon monoxide, formaldehyde, and a particle counter that measures airborne particles room by room.</li>
                   <li>Thermal imaging and moisture mapping to find hidden moisture, thermal bridging and humidity traps.</li>
-                  <li>Real-time InstaScope screening where it helps guide the investigation.</li>
+                  <li>Real-time InstaScope screening to guide where we look and sample, included in your hourly fee with no per-area charge.</li>
                   <li>A written report with photos, your results, a Condition 1, 2 or 3 rating, and recommendations.</li>
                 </ul>
                 <p>

@@ -1,3 +1,4 @@
+import { INSTASCOPE_BODY, INSTASCOPE_PRICE, INSTASCOPE_TITLE } from "@/lib/instascope";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -92,6 +93,13 @@ async function Booking({ params, searchParams }: Props) {
         <div><dt>When</dt><dd>{v.when}</dd></div>
         <div><dt>Where</dt><dd>{fullAddress(r as never)}</dd></div>
       </dl>
+
+      {v.canCancel && (
+        <section className="bk-prep">
+          <h2>{INSTASCOPE_TITLE}</h2>
+          <p>{INSTASCOPE_BODY} {INSTASCOPE_PRICE}</p>
+        </section>
+      )}
 
       {v.canCancel && (
         <section className="bk-prep">
