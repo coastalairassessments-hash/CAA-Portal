@@ -10,6 +10,7 @@ import { confirmationWithCalendar } from "./confirmMail";
 import { formatDateLabel } from "./dates";
 import { formatTime } from "./labels";
 import { holdAbandoned } from "./instant";
+import { releasedEmail } from "./released";
 
 const EXCLUSION_VIOLATION = "23P01";
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
@@ -39,6 +40,8 @@ export async function settleDeposit(db: SupabaseClient, r: Row, now: Date = new 
       if (data?.length) {
         await voidInvoice(r.qb_deposit_invoice_id);
         await sendPush(abandonedPush(r, `${formatDateLabel(r.confirmed_date)} at ${formatTime(String(r.confirmed_time).slice(0, 5))}`));
+        const site = clean(process.env.SITE_URL) || SITE_URL_FALLBACK;
+        await sendLogged(db, r.id, { to: r.email, ...releasedEmail(r, { date: r.confirmed_date, time: String(r.confirmed_time).slice(0, 5) }, site) });
       }
       return "abandoned";
     }
