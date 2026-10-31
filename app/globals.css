@@ -936,3 +936,11 @@ details.adm-group[open] > summary::after { content: "\2212"; }
 .bk-pay { background: #fff; border: 1px solid #dae2e8; border-radius: 16px; padding: 16px; margin-bottom: 1rem; display: grid; gap: 0.75rem; }
 .bk-pay .btn { width: 100%; justify-content: center; }
 .bk-pay-note { margin: 0; font-size: 0.9rem; color: #566b7a; }
+
+/* Clients tab chips */
+.adm-tabs { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px 14px; padding: 0 16px 2px; scrollbar-width: none; }
+.adm-tabs::-webkit-scrollbar { display: none; }
+.adm-tabs a { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 999px; background: var(--chip); color: var(--ink); font-size: 14px; font-weight: 600; text-decoration: none; }
+.adm-tabs a b { font-size: 12px; opacity: 0.65; }
+.adm-tabs a[aria-current="page"] { background: var(--ink); color: #fff; }
+.adm-tabs a[aria-current="page"] b { opacity: 0.8; }

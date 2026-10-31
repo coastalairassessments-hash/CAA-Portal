@@ -6,7 +6,7 @@ import { supabaseForUser } from "@/lib/supabase/server";
 import { addDays, formatDateLabel, todayInNewYork } from "@/lib/dates";
 import { money, needsYou, nextUp } from "@/lib/dashboard";
 import { todayLabel } from "@/lib/admin";
-import { JobCard, MoneyCard, Tiles, type Job } from "./parts";
+import { JobCard, MoneyCard, Motion, Tiles, type Job } from "./parts";
 
 export const metadata: Metadata = {
   title: "Today | Coastal Air Assessments",
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 const COLUMNS =
-  "id, created_at, status, issue, size_band, preferred_date, preferred_time, name, phone, email, address, city, zip, notes, text_consent, confirmed_date, confirmed_time, block_hours, area, source, booking_mode, en_route_at, arrived_at, left_at, deposit_cents, deposit_paid_at, lab_samples, extras_cents, final_paid_at, final_invoice_no, cancel_refund, refunded_at";
+  "id, created_at, status, issue, size_band, preferred_date, preferred_time, name, phone, email, address, city, zip, notes, text_consent, confirmed_date, confirmed_time, block_hours, area, source, booking_mode, en_route_at, arrived_at, left_at, deposit_cents, deposit_paid_at, lab_samples, extras_cents, final_paid_at, final_invoice_no, cancel_refund, refunded_at, email_failed_at";
 
 async function Schedule({ searchParams }: Props) {
   const q = await searchParams;
@@ -63,6 +63,8 @@ async function Schedule({ searchParams }: Props) {
       ))}
 
       <Tiles n={needsYou(all)} />
+
+      <Motion rows={all} today={today} />
 
       <MoneyCard m={money(all)} />
 

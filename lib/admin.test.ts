@@ -19,9 +19,9 @@ const rows: AdminRow[] = [
 
 describe("admin helpers", () => {
   it("defaults to the Requests tab for anything unknown", () => {
-    expect(parseTab(undefined)).toBe("requests");
-    expect(parseTab("nope")).toBe("requests");
-    expect(parseTab("new")).toBe("requests");
+    expect(parseTab(undefined)).toBe("motion");
+    expect(parseTab("nope")).toBe("motion");
+    expect(parseTab("new")).toBe("motion");
     expect(parseTab("booked")).toBe("booked");
     expect(parseTab(["declined"])).toBe("declined");
   });
@@ -30,6 +30,11 @@ describe("admin helpers", () => {
     expect(filterRows(rows, "booked").map((r) => r.id)).toEqual(["old", "b1", "b2"]);
     expect(filterRows(rows, "declined").map((r) => r.id)).toEqual(["d1"]);
     expect(filterRows(rows, "all")).toHaveLength(7);
+  });
+  it("In motion puts what needs Cory first, then soonest job, and hides closed and paid", () => {
+    const more = [...rows, { ...base, id: "paid", status: "confirmed", left_at: "2026-10-10T16:00:00Z", final_paid_at: "2026-10-11T00:00:00Z" }];
+    expect(filterRows(more, "motion").map((r) => r.id)).toEqual(["n1", "n2", "w1", "old", "b1", "b2"]);
+    expect(filterRows(more, "done").map((r) => r.id)).toEqual(["paid"]);
   });
   it("lists finished, unpaid visits oldest first", () => {
     const owed = [

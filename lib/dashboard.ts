@@ -22,6 +22,7 @@ export type DashRow = {
   final_invoice_no: string | null;
   cancel_refund: boolean | null;
   refunded_at: string | null;
+  email_failed_at?: string | null;
 };
 
 const easternDay = (iso: string) => todayInNewYork(new Date(iso));
@@ -38,6 +39,7 @@ export function needsYou(rows: DashRow[]) {
     deposits: rows.filter(isWaitingOnDeposit).length,
     toInvoice: rows.filter((r) => isOwed(r) && !r.final_invoice_no).length,
     refunds: rows.filter((r) => r.status === "cancelled" && r.cancel_refund && !r.refunded_at).length,
+    emails: rows.filter((r) => !!r.email_failed_at && r.status !== "declined").length,
   };
 }
 

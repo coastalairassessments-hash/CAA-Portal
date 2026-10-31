@@ -346,6 +346,14 @@ export async function cancelBooking(form: FormData): Promise<void> {
   redirect(`/admin/${id}?email=${sent.ok ? "sent" : "failed"}`);
 }
 
+export async function clearEmailFailed(form: FormData): Promise<void> {
+  const supabase = await adminClient();
+  const id = String(form.get("id") ?? "");
+  if (!supabase || !/^[0-9a-f-]{36}$/i.test(id)) redirect("/admin");
+  await supabase.from("requests").update({ email_failed_at: null, email_failed_reason: null }).eq("id", id);
+  redirect(`/admin/${id}`);
+}
+
 export async function markRefunded(form: FormData): Promise<void> {
   const supabase = await adminClient();
   const id = String(form.get("id") ?? "");

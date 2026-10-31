@@ -5,6 +5,7 @@ import { addDays, todayInNewYork, TIME_ZONE } from "@/lib/dates";
 import { buildBriefing, type BriefJob } from "@/lib/briefing";
 import { needsYou, type DashRow } from "@/lib/dashboard";
 import { SITE_URL_FALLBACK, sendEmail } from "@/lib/notify";
+import { sendLogged } from "@/lib/mailLog";
 import { sendPush } from "@/lib/push";
 import { briefingPush } from "@/lib/pushText";
 import { dayBeforeEmail } from "@/lib/prep";
@@ -28,7 +29,7 @@ async function remindTomorrow(db: SupabaseClient, data: unknown[]) {
   for (const j of data as RemindRow[]) {
     if (j.source !== "client" || j.status !== "confirmed" || j.confirmed_date !== tomorrow || !j.email || !j.confirmed_time) continue;
     if (j.reminded_for === tomorrow) continue;
-    const res = await sendEmail({ to: j.email, ...dayBeforeEmail(j, { date: tomorrow, time: j.confirmed_time.slice(0, 5) }, site) });
+    const res = await sendLogged(db, j.id, { to: j.email, ...dayBeforeEmail(j, { date: tomorrow, time: j.confirmed_time.slice(0, 5) }, site) });
     if (!res.ok) continue;
     await db.from("requests").update({ reminded_for: tomorrow }).eq("id", j.id);
     count++;

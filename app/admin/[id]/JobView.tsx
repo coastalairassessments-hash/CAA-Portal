@@ -6,7 +6,7 @@ import { confirmText, offerText, smsLink } from "@/lib/confirm";
 import { GOOGLE_REVIEW_URL, depositReminderText, reviewText } from "@/lib/quicktexts";
 import { depositCents, firstHourCents, formatMoney } from "@/lib/pricing";
 import { googleCalendarLink } from "@/lib/calendar";
-import { cancelBooking, cancelJob, declineRequest, markDepositReceived, markRefunded, stampTime } from "../actions";
+import { cancelBooking, cancelJob, clearEmailFailed, declineRequest, markDepositReceived, markRefunded, stampTime } from "../actions";
 import { hoursUntil, refundDue } from "@/lib/cancel";
 import { STAGES, stageDone } from "@/lib/stage";
 import { clientTypeLabel, intakeLines } from "@/lib/intake";
@@ -72,6 +72,13 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
         <p className="adm-err" style={{ marginBottom: 14 }}>
           The email to the client could not be sent. Use the text button, or contact them yourself.
         </p>
+      )}
+      {r.email_failed_at && emailNote !== "failed" && (
+        <form action={clearEmailFailed} className="adm-err" style={{ marginBottom: 14 }}>
+          <input type="hidden" name="id" value={r.id} />
+          <p>An email to this client did not go out. Call or text them to make sure they have their details.</p>
+          <button className="adm-btn" type="submit">I handled it</button>
+        </form>
       )}
       {query.error === "taken" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>

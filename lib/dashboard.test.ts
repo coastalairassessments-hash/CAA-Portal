@@ -23,7 +23,7 @@ describe("needsYou", () => {
       { ...base, id: "6", status: "cancelled", cancel_refund: true },
       { ...base, id: "7", status: "cancelled", cancel_refund: true, refunded_at: "2026-10-25T00:00:00Z" },
     ];
-    expect(needsYou(rows)).toEqual({ approve: 1, deposits: 2, toInvoice: 1 + 0, refunds: 1 });
+    expect(needsYou(rows)).toEqual({ approve: 1, deposits: 2, toInvoice: 1 + 0, refunds: 1, emails: 0 });
   });
 });
 
@@ -63,5 +63,12 @@ describe("nextUp", () => {
     ];
     expect(nextUp(rows, NOW)?.id).toBe("early");
     expect(nextUp([], NOW)).toBeNull();
+  });
+});
+
+describe("needsYou emails", () => {
+  it("counts jobs with a client email that did not go out", () => {
+    const row = { id: "x", status: "confirmed", source: "client", issue: "mold_inspection", name: "A", confirmed_date: null, confirmed_time: null, deposit_cents: null, deposit_paid_at: null, arrived_at: null, left_at: null, lab_samples: null, extras_cents: null, final_paid_at: null, final_invoice_no: null, cancel_refund: null, refunded_at: null };
+    expect(needsYou([{ ...row, email_failed_at: "2026-11-01T00:00:00Z" }, row]).emails).toBe(1);
   });
 });

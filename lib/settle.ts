@@ -1,7 +1,8 @@
 // SERVER ONLY. Notices that a client paid their deposit, and books the time. Safe to run again and again.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getInvoice, voidInvoice } from "./qbSync";
-import { sendEmail, SITE_URL_FALLBACK } from "./notify";
+import { SITE_URL_FALLBACK } from "./notify";
+import { sendLogged } from "./mailLog";
 import { sendPush } from "./push";
 import { bookedPush, refundPush } from "./pushText";
 import { takenPaidEmail } from "./confirm";
@@ -57,7 +58,7 @@ export async function settleDeposit(db: SupabaseClient, r: Row, now: Date = new 
       .update({ status: "cancelled", cancel_refund: true, deposit_paid_at: paidAt })
       .eq("id", r.id).eq("status", "offered").select("id");
     if (moved?.length) {
-      await sendEmail({ to: r.email, ...takenPaidEmail(r, slot) });
+      await sendLogged(db, r.id, { to: r.email, ...takenPaidEmail(r, slot) });
       await sendPush(refundPush(r));
     }
     return "taken";
@@ -69,7 +70,7 @@ export async function settleDeposit(db: SupabaseClient, r: Row, now: Date = new 
   if (!data?.length) return "skip"; // someone else already settled it
 
   const site = clean(process.env.SITE_URL) || SITE_URL_FALLBACK;
-  const sent = await sendEmail({ to: r.email, ...confirmationWithCalendar(r, r.id, slot, site) });
+  const sent = await sendLogged(db, r.id, { to: r.email, ...confirmationWithCalendar(r, r.id, slot, site) });
   if (!sent.ok) console.error(`[settle] confirmation not sent: ${sent.reason}`);
   await sendPush(bookedPush(r, `${formatDateLabel(slot.date)} at ${formatTime(slot.time)}`));
   return "paid";

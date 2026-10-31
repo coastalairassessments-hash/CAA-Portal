@@ -4,6 +4,7 @@ import { formatTime, fullAddress, jobLabel } from "@/lib/labels";
 import { onMyWayText, runningLateText, smsLink } from "@/lib/confirm";
 import { type DashRow, type money, type needsYou } from "@/lib/dashboard";
 import { formatMoney } from "@/lib/pricing";
+import { progress } from "@/lib/stage";
 import { stampTime } from "../actions";
 
 export type Job = AdminRow & DashRow & { en_route_at?: string | null; arrived_at: string | null; left_at: string | null };
@@ -89,10 +90,11 @@ export function JobCard({ r, today, hero = false }: { r: Job; today: boolean; he
 
 export function Tiles({ n }: { n: ReturnType<typeof needsYou> }) {
   const rows = [
-    { n: n.approve, label: "New requests to approve", href: "/admin", tone: "dark" },
-    { n: n.deposits, label: "Deposits waiting", href: "/admin", tone: "amber" },
+    { n: n.approve, label: "New requests to approve", href: "/admin?tab=requests", tone: "dark" },
+    { n: n.deposits, label: "Deposits waiting", href: "/admin?tab=requests", tone: "amber" },
     { n: n.toInvoice, label: "Final invoices to send", href: "/admin?tab=owed", tone: "teal" },
     { n: n.refunds, label: "Refunds due", href: "/admin?tab=declined", tone: "amber" },
+    { n: n.emails, label: "Client emails that did not send", href: "/admin?tab=all", tone: "amber" },
   ].filter((t) => t.n > 0);
   if (rows.length === 0) return <p className="adm-ok">You&rsquo;re caught up. Nothing needs you.</p>;
   return (
@@ -132,3 +134,32 @@ export function MoneyCard({ m }: { m: ReturnType<typeof money> }) {
   );
 }
 
+
+// Everyone still in play, what needs you first. Today's visits are already shown above.
+export function Motion({ rows, today }: { rows: Job[]; today: string }) {
+  const now = new Date();
+  const list = rows
+    .map((r) => ({ r, p: progress(r, today, now) }))
+    .filter(({ r, p }) => p.alive && !(r.status === "confirmed" && r.confirmed_date === today && !r.left_at))
+    .sort((a, b) => Number(b.p.warn) - Number(a.p.warn));
+  if (list.length === 0) return null;
+  const shown = list.slice(0, 6);
+  return (
+    <section>
+      <h2 className="adm-sub">Clients in motion</h2>
+      <div className="adm-needs">
+        {shown.map(({ r, p }) => (
+          <Link key={r.id} href={`/admin/${r.id}`} className="adm-need">
+            <span className="l">
+              <strong>{r.name}</strong>
+              <span className="adm-muted" style={{ display: "block" }}>{p.label}{p.note ? ` · ${p.note}` : ""}</span>
+            </span>
+            {p.warn && <span className="adm-chip warn">Needs you</span>}
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+          </Link>
+        ))}
+      </div>
+      {list.length > shown.length && <Link className="adm-link" href="/admin">See all {list.length}</Link>}
+    </section>
+  );
+}

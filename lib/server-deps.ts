@@ -1,7 +1,8 @@
 // SERVER ONLY. Uses the Supabase service key, which must never reach a browser.
 // Import this file only from route handlers / server code.
 import { createClient } from "@supabase/supabase-js";
-import { sendEmail, sendEmailAlert } from "./notify";
+import { sendEmailAlert } from "./notify";
+import { sendLogged } from "./mailLog";
 import { receivedEmail } from "./ack";
 import { sendPush, pushConfigured } from "./push";
 import { newRequestPush } from "./pushText";
@@ -100,7 +101,7 @@ export function productionDeps(
       const phones = pushConfigured() ? await sendPush(newRequestPush(row)) : 0;
       await Promise.allSettled([
         phones ? Promise.resolve() : sendEmailAlert(row, env),
-        sendEmail({ to: row.email, ...receivedEmail(row, clean(env.SITE_URL) || undefined) }, env),
+        sendLogged(db, row.id, { to: row.email, ...receivedEmail(row, clean(env.SITE_URL) || undefined) }),
       ]);
     },
   };

@@ -5,9 +5,10 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { supabaseForUser } from "@/lib/supabase/server";
 import { formatDateLabel, todayInNewYork } from "@/lib/dates";
+import { progress } from "@/lib/stage";
+import { clientTypeLabel } from "@/lib/intake";
 import { formatTime, fullAddress, jobLabel, sizeLabel } from "@/lib/labels";
 import {
-  counts,
   filterRows,
   mapsLink,
   parseTab,
@@ -17,39 +18,37 @@ import {
 } from "@/lib/admin";
 
 export const metadata: Metadata = {
-  title: "Requests | Coastal Air Assessments",
+  title: "Clients | Coastal Air Assessments",
   robots: { index: false, follow: false },
 };
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-const TAB_LABELS: Record<Tab, string> = { requests: "Requests", booked: "Booked jobs", owed: "Finished, not paid", declined: "Declined and cancelled", all: "All" };
+const TAB_LABELS: Record<Tab, string> = { motion: "In motion", requests: "Needs approval", booked: "Booked", owed: "Owed", done: "Done", declined: "Cancelled", all: "All" };
+const CHIPS: Tab[] = ["motion", "booked", "owed", "done", "declined", "all"];
 const EMPTY: Record<Tab, string> = {
+  motion: "Nobody in motion. You're caught up.",
   requests: "Nothing waiting. You're caught up.",
   owed: "Nothing owed. Every finished job is paid.",
   booked: "No booked jobs yet.",
+  done: "No paid jobs yet.",
   declined: "Nothing here.",
   all: "No requests yet.",
 };
 
-function Card({ r }: { r: AdminRow }) {
+function Card({ r, today }: { r: AdminRow; today: string }) {
+  const p = progress(r, today);
   const booked = (r.status === "confirmed" || r.status === "offered") && r.confirmed_date && r.confirmed_time;
   return (
     <article className={`adm-card${r.area === "outside" ? " outside" : ""}`}>
       <h2>{r.name}</h2>
       <div className="adm-chips">
-        {r.status === "confirmed" && r.left_at && !r.final_paid_at && (
-          <span className="adm-chip warn">{r.final_invoice_no ? "Invoiced, unpaid" : "Send invoice"}</span>
-        )}
+        <span className={`adm-chip${p.warn ? " warn" : p.alive ? " solid" : ""}`}>{p.label}</span>
+        {r.client_type && r.client_type !== "homeowner" && <span className="adm-chip">{clientTypeLabel(r.client_type)}</span>}
         {r.source === "contractor" && <span className="adm-chip">Contractor</span>}
-        {r.status === "confirmed" && <span className="adm-chip solid">Booked</span>}
-        {r.status === "offered" && <span className="adm-chip warn">{r.booking_mode === "instant" ? "Client is paying" : "Deposit waiting"}</span>}
-        {r.status === "declined" && <span className="adm-chip">Declined</span>}
-        {r.status === "cancelled" && !r.cancel_refund && <span className="adm-chip">Cancelled</span>}
-        {r.status === "cancelled" && r.cancel_refund && !r.refunded_at && <span className="adm-chip warn">Refund due</span>}
-        {r.status === "cancelled" && r.cancel_refund && r.refunded_at && <span className="adm-chip">Cancelled, refunded</span>}
         {r.area === "outside" && <span className="adm-chip warn">Outside area</span>}
       </div>
+      {p.note && <p className="adm-muted">{p.note}</p>}
       <p className="adm-line">
         {jobLabel(r)}
         {r.size_band ? ` · ${sizeLabel(r.size_band)}` : ""}
@@ -98,28 +97,31 @@ async function Dashboard({ searchParams }: Props) {
   const { data, error } = await supabase
     .from("requests")
     .select(
-      "id, created_at, status, issue, size_band, preferred_date, preferred_time, name, phone, email, address, city, zip, notes, text_consent, confirmed_date, confirmed_time, block_hours, area, source, booking_mode, cancel_refund, refunded_at, left_at, final_paid_at, final_invoice_no",
+      "id, created_at, status, issue, size_band, preferred_date, preferred_time, name, phone, email, address, city, zip, notes, text_consent, confirmed_date, confirmed_time, block_hours, area, source, booking_mode, client_type, en_route_at, arrived_at, cancel_refund, refunded_at, left_at, final_paid_at, final_invoice_no",
     )
     .order("created_at", { ascending: false })
     .limit(200);
   if (error) return <p className="adm-err">Could not load requests. (Ref: list-{error.code ?? "unknown"})</p>;
 
   const all = (data ?? []) as AdminRow[];
-  const c = counts(all, todayInNewYork());
+  const today = todayInNewYork();
   const rows = filterRows(all, tab);
 
   return (
     <>
-      <div className="adm-stats">
-        <div className={`adm-stat${c.new > 0 ? " hot" : ""}`}><b>{c.new}</b><span>New requests</span></div>
-        <div className={`adm-stat${c.waiting > 0 ? " hot" : ""}`}><b>{c.waiting}</b><span>Deposit waiting</span></div>
-        <div className="adm-stat"><b>{c.upcoming}</b><span>Upcoming jobs</span></div>
-      </div>
-      <h2 className="adm-sub">{TAB_LABELS[tab]}</h2>
+      <nav className="adm-tabs" aria-label="Clients">
+        {CHIPS.map((k) => (
+          <Link key={k} href={k === "motion" ? "/admin" : `/admin?tab=${k}`} aria-current={tab === k ? "page" : undefined}>
+            {TAB_LABELS[k]}
+            <b>{filterRows(all, k).length}</b>
+          </Link>
+        ))}
+      </nav>
+      {tab === "requests" && <h2 className="adm-sub">{TAB_LABELS[tab]}</h2>}
       {rows.length === 0 ? (
         <p className="adm-empty">{EMPTY[tab]}</p>
       ) : (
-        rows.map((r) => <Card key={r.id} r={r} />)
+        rows.map((r) => <Card key={r.id} r={r} today={today} />)
       )}
     </>
   );
@@ -135,7 +137,7 @@ export default function AdminPage(props: Props) {
               <TodayDate />
             </Suspense>
           </div>
-          <h1 className="adm-title">Requests</h1>
+          <h1 className="adm-title">Clients</h1>
         </div>
       </header>
       <Suspense fallback={<p className="adm-empty">Loading...</p>}>
