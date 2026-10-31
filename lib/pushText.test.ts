@@ -15,3 +15,13 @@ describe("pushText", () => {
     expect(p.body).toBe("1 new request to approve, 1 final invoice to send");
   });
 });
+
+import { abandonedPush } from "./pushText";
+describe("abandonedPush", () => {
+  it("names the client and the time and opens the job", () => {
+    const m = abandonedPush({ name: "Pat Lee", id: "abc" }, "Tue, Nov 3 at 10:00 AM");
+    expect(m.title).toBe("Left without paying");
+    expect(m.body).toContain("Pat Lee");
+    expect(m.url).toBe("/admin/abc");
+  });
+});

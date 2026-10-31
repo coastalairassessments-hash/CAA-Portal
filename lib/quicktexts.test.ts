@@ -22,3 +22,11 @@ describe("quick texts", () => {
     expect(reviewEmail({ name: "Pat" }, "https://g.page/r/abc").text).toContain("https://g.page/r/abc");
   });
 });
+
+describe("reviewEmail book again", () => {
+  it("adds the prefilled link only when it can", () => {
+    const withLink = reviewEmail({ name: "Pat", public_token: "a".repeat(32) }, "https://g.page/r/abc", "https://caaportal.netlify.app/");
+    expect(withLink.text).toContain(`https://caaportal.netlify.app/request?again=${"a".repeat(32)}`);
+    expect(reviewEmail({ name: "Pat" }, "https://g.page/r/abc", "https://x.com").text).not.toContain("again");
+  });
+});

@@ -236,7 +236,7 @@ export async function markFinalPaid(form: FormData): Promise<void> {
 
   // First time paid, and a review link is set: thank the client and ask for a review.
   if (!clearing && row && !row.final_paid_at && row.source === "client" && row.email && GOOGLE_REVIEW_URL) {
-    const sent = await sendEmail({ to: row.email, ...reviewEmail(row, GOOGLE_REVIEW_URL) });
+    const sent = await sendEmail({ to: row.email, ...reviewEmail(row, GOOGLE_REVIEW_URL, siteUrl()) });
     if (!sent.ok) console.error(`[review] email not sent: ${sent.reason}`);
     redirect(`/admin/${id}?email=${sent.ok ? "sent" : "failed"}`);
   }

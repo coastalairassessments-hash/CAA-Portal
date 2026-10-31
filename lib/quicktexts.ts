@@ -1,4 +1,5 @@
 import { SIGNOFF } from "./business";
+import { rebookUrl } from "./links";
 // Ready-to-send texts. Cory taps one, Messages opens with it written, he picks who gets it.
 // Paste your Google review link between the quotes to turn on review texts and emails.
 export const GOOGLE_REVIEW_URL = "https://g.page/r/CR_el8247giREBM/review";
@@ -28,7 +29,8 @@ export function reviewText(row: { name: string }, reviewUrl: string): string {
   return `Thank you, ${firstName(row.name)}. If we were helpful, a Google review means a lot to a small business: ${reviewUrl}`;
 }
 
-export function reviewEmail(row: { name: string }, reviewUrl: string) {
+export function reviewEmail(row: { name: string; public_token?: string | null }, reviewUrl: string, siteUrl?: string) {
+  const again = siteUrl ? rebookUrl(row, siteUrl) : null;
   return {
     subject: "Thank you from Coastal Air Assessments",
     text: [
@@ -39,6 +41,7 @@ export function reviewEmail(row: { name: string }, reviewUrl: string) {
       "If we were helpful, a short Google review helps other homeowners find us:",
       reviewUrl,
       "",
+      ...(again ? ["Need another property assessed? We already have your details, so you only add the address:", again, ""] : []),
       ...SIGNOFF,
     ].join("\n"),
   };

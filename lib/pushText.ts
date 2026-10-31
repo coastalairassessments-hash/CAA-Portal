@@ -27,3 +27,8 @@ export function bookedPush(r: { name: string; id: string }, when: string): PushM
 export function refundPush(r: { name: string; id: string }): PushMsg {
   return { title: "Refund needed", body: `${r.name} paid for a time that was taken.`, url: `/admin/${r.id}` };
 }
+
+// A client started booking, never paid, and the hold ran out. Worth a call.
+export function abandonedPush(r: { name: string; id: string }, when: string): PushMsg {
+  return { title: "Left without paying", body: `${r.name} did not finish paying for ${when}. Worth a call.`, url: `/admin/${r.id}` };
+}

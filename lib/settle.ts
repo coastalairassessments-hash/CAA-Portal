@@ -4,7 +4,7 @@ import { getInvoice, voidInvoice } from "./qbSync";
 import { SITE_URL_FALLBACK } from "./notify";
 import { sendLogged } from "./mailLog";
 import { sendPush } from "./push";
-import { bookedPush, refundPush } from "./pushText";
+import { abandonedPush, bookedPush, refundPush } from "./pushText";
 import { takenPaidEmail } from "./confirm";
 import { confirmationWithCalendar } from "./confirmMail";
 import { formatDateLabel } from "./dates";
@@ -36,7 +36,10 @@ export async function settleDeposit(db: SupabaseClient, r: Row, now: Date = new 
     // Never paid and well past the hold: free the time and close the invoice.
     if (holdAbandoned(r, now)) {
       const { data } = await db.from("requests").update({ status: "cancelled", cancel_refund: false }).eq("id", r.id).eq("status", "offered").select("id");
-      if (data?.length) await voidInvoice(r.qb_deposit_invoice_id);
+      if (data?.length) {
+        await voidInvoice(r.qb_deposit_invoice_id);
+        await sendPush(abandonedPush(r, `${formatDateLabel(r.confirmed_date)} at ${formatTime(String(r.confirmed_time).slice(0, 5))}`));
+      }
       return "abandoned";
     }
     return "waiting";

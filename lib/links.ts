@@ -7,3 +7,7 @@ export const bookingLine = (row: { public_token?: string | null }, siteUrl: stri
   const url = bookingUrl(row, siteUrl);
   return url ? [`${label}: ${url}`, ""] : [];
 };
+
+// "Book again": the request form with who they are already filled in. Only the property is new.
+export const rebookUrl = (row: { public_token?: string | null }, siteUrl: string) =>
+  row.public_token ? `${siteUrl.replace(/\/+$/, "")}/request?again=${row.public_token}` : null;

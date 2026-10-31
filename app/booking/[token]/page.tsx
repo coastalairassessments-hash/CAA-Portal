@@ -114,6 +114,11 @@ async function Booking({ params, searchParams }: Props) {
       )}
 
       <section className="bk-help">
+        <h2>Another property?</h2>
+        <p><Link href={`/request?again=${token}`}>Book again</Link>. We already have your details, so you only add the address.</p>
+      </section>
+
+      <section className="bk-help">
         <h2>Need a different time?</h2>
         <p>Call or text <a href="tel:+15614000929">561-400-0929</a>. Moving a visit more than 24 hours ahead is free.</p>
       </section>

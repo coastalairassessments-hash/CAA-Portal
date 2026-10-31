@@ -944,3 +944,15 @@ details.adm-group[open] > summary::after { content: "\2212"; }
 .adm-tabs a b { font-size: 12px; opacity: 0.65; }
 .adm-tabs a[aria-current="page"] { background: var(--ink); color: #fff; }
 .adm-tabs a[aria-current="page"] b { opacity: 0.8; }
+
+/* Soonest available, one tap */
+.soonest { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; width: 100%; text-align: left; margin: 0 0 14px; padding: 14px 16px; min-height: 64px; border-radius: 12px; border: 2px solid #12385a; background: #eef4f9; color: #0d2233; cursor: pointer; font: inherit; }
+.soonest-k { grid-column: 1; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #34495a; }
+.soonest-v { grid-column: 1; font-size: 18px; font-weight: 700; }
+.soonest-go { grid-column: 2; grid-row: 1 / span 2; font-size: 14px; font-weight: 700; color: #fff; background: #12385a; border-radius: 8px; padding: 10px 14px; }
+
+/* Address suggestions */
+.field.addr { position: relative; }
+.addr-list { position: absolute; z-index: 20; left: 0; right: 0; top: 100%; margin: 4px 0 0; padding: 4px; list-style: none; background: #fff; border: 1px solid #c9d4dc; border-radius: 10px; box-shadow: 0 8px 24px rgba(13, 34, 51, 0.14); }
+.addr-list button { display: block; width: 100%; text-align: left; min-height: 48px; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; font: inherit; font-size: 15px; color: #0d2233; cursor: pointer; }
+.addr-list button:hover, .addr-list button:focus-visible { background: #eef4f9; }

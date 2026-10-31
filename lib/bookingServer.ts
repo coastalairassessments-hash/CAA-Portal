@@ -24,3 +24,27 @@ export async function bookingByToken(token: string) {
     .maybeSingle();
   return data ?? null;
 }
+
+// What a returning client does not have to retype: who they are, never the property. Used by "Book again".
+export async function prefillByToken(token: string) {
+  const db = serviceDb();
+  if (!db || !validToken(token)) return null;
+  const { data } = await db
+    .from("requests")
+    .select("name, email, phone, company, client_type, intake")
+    .eq("public_token", token)
+    .eq("source", "client")
+    .maybeSingle();
+  if (!data?.name || !data.email) return null;
+  const intake = (data.intake ?? {}) as Record<string, string>;
+  return {
+    clientType: data.client_type ?? "",
+    name: data.name,
+    phone: data.phone ?? "",
+    email: data.email,
+    company: data.company ?? "",
+    role: intake.role ?? "",
+    billTo: intake.billTo ?? "",
+    canApprove: intake.canApprove ?? "",
+  };
+}

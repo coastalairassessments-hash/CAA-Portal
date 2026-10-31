@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { monthTitle, monthWeeks, monthsOf } from "@/lib/calendarGrid";
-import { dayFull, hoursForTest, slotTaken } from "@/lib/availability";
+import { dayFull, hoursForTest, slotTaken, soonestSlot } from "@/lib/availability";
+import { formatDateLabel } from "@/lib/dates";
 import type { Slot } from "@/lib/slots";
 
 const TIMES = [
@@ -32,9 +33,18 @@ export default function SlotCalendar({
   const open = new Set(dates);
   const hours = hoursForTest(longVisit);
   if (!month) return null;
+  const soon = soonestSlot(dates, held, longVisit);
+  const soonLabel = soon ? `${formatDateLabel(soon.date)} at ${TIMES.find((t) => t.value === soon.time)?.label}` : "";
 
   return (
     <div className="cal">
+      {soon && !(date === soon.date && time === soon.time) && (
+        <button type="button" className="soonest" onClick={() => { onPick(soon.date, soon.time); setIndex(Math.max(0, months.indexOf(soon.date.slice(0, 7)))); }}>
+          <span className="soonest-k">Soonest available</span>
+          <span className="soonest-v">{soonLabel}</span>
+          <span className="soonest-go">Pick this</span>
+        </button>
+      )}
       <div className="cal-head">
         <button type="button" className="cal-nav" onClick={() => setIndex(index - 1)} disabled={index === 0} aria-label="Previous month">
           &lsaquo;

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateLabel } from "@/lib/dates";
 import SlotCalendar from "./SlotCalendar";
+import AddressField from "./AddressField";
 import type { Slot } from "@/lib/slots";
 import { HOW_HEARD, isLongVisit } from "@/lib/request";
 import { CLIENT_TYPES, PROPERTY_TYPES, WATER_WHEN, YES_NO, asksCompany, isMultiUnit, isOrg, needsQuote } from "@/lib/intake";
@@ -38,20 +39,25 @@ const STEP_TITLES = [
   "Where should we contact you?",
 ];
 const TOTAL = STEP_TITLES.length;
+const TIME_LEFT = ["about 2 minutes left", "about 2 minutes left", "about a minute and a half left", "about a minute left", "last step"];
+const DRAFT_KEY = "caa-request-draft-v1";
+
+// Everything a returning client does not have to retype. The property address is never carried over.
+export type Prefill = { clientType: string; name: string; phone: string; email: string; company: string; role: string; billTo: string; canApprove: string };
 
 type FieldErrors = Record<string, string>;
 
-export default function RequestFlow({ dates, held }: { dates: string[]; held: Slot[] }) {
+export default function RequestFlow({ dates, held, again }: { dates: string[]; held: Slot[]; again?: Prefill }) {
   const router = useRouter();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
-  const [step, setStep] = useState(0);
-  const [clientType, setClientType] = useState("");
+  const [step, setStep] = useState(again ? 1 : 0);
+  const [clientType, setClientType] = useState(again?.clientType ?? "");
   const [propertyType, setPropertyType] = useState("");
-  const [company, setCompany] = useState("");
-  const [role, setRole] = useState("");
-  const [canApprove, setCanApprove] = useState("");
-  const [billTo, setBillTo] = useState("");
+  const [company, setCompany] = useState(again?.company ?? "");
+  const [role, setRole] = useState(again?.role ?? "");
+  const [canApprove, setCanApprove] = useState(again?.canApprove ?? "");
+  const [billTo, setBillTo] = useState(again?.billTo ?? "");
   const [units, setUnits] = useState("");
   const [waterWhen, setWaterWhen] = useState("");
   const [leakFixed, setLeakFixed] = useState("");
@@ -62,9 +68,9 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
   const [preferredDate, setPreferredDate] = useState("");
   const [preferredTime, setPreferredTime] = useState("");
 
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(again?.name ?? "");
+  const [phone, setPhone] = useState(again?.phone ?? "");
+  const [email, setEmail] = useState(again?.email ?? "");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [zip, setZip] = useState("");
@@ -77,6 +83,42 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState("");
+
+  // Keep a draft on this phone so leaving to take a call does not lose the answers.
+  const [restored, setRestored] = useState(false);
+  /* Reading the saved draft has to happen after the page loads, so state is set from an effect on purpose. */
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!again) {
+      try {
+        const d = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "null");
+        if (d && typeof d === "object" && Date.now() - (d.at ?? 0) < 1000 * 60 * 60 * 24 * 3) {
+          const str = (v: unknown) => (typeof v === "string" ? v : "");
+          setClientType(str(d.clientType)); setPropertyType(str(d.propertyType)); setCompany(str(d.company)); setRole(str(d.role));
+          setCanApprove(str(d.canApprove)); setBillTo(str(d.billTo)); setUnits(str(d.units)); setIssue(str(d.issue)); setSizeBand(str(d.sizeBand));
+          setName(str(d.name)); setPhone(str(d.phone)); setEmail(str(d.email)); setAddress(str(d.address)); setCity(str(d.city)); setZip(str(d.zip)); setNotes(str(d.notes));
+          const day = str(d.preferredDate);
+          if (day && dates.includes(day)) { setPreferredDate(day); setPreferredTime(str(d.preferredTime)); }
+          const st = Number(d.step);
+          if (st >= 1 && st <= 4) setStep(st === 4 && !(day && dates.includes(day)) ? 3 : st);
+        }
+      } catch { /* no draft */ }
+    }
+    setRestored(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!restored) return;
+    const t = setTimeout(() => {
+      try {
+        const empty = !clientType && !name && !address;
+        if (empty) return;
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ at: Date.now(), step, clientType, propertyType, company, role, canApprove, billTo, units, issue, sizeBand, preferredDate, preferredTime, name, phone, email, address, city, zip, notes }));
+      } catch { /* storage can be off */ }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [restored, step, clientType, propertyType, company, role, canApprove, billTo, units, issue, sizeBand, preferredDate, preferredTime, name, phone, email, address, city, zip, notes]);
 
   // Move focus to the new step's heading so screen readers follow along.
   useEffect(() => {
@@ -131,6 +173,7 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
+        try { localStorage.removeItem(DRAFT_KEY); } catch { /* fine */ }
         // Booked and waiting on the deposit: go straight to the payment page.
         router.push(data.instant && data.token ? `/booking/${data.token}` : "/request/done");
         return;
@@ -183,7 +226,7 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
       >
         <span style={{ width: `${((step + 1) / TOTAL) * 100}%` }} />
       </div>
-      <p className="step-count">Step {step + 1} of {TOTAL}</p>
+      <p className="step-count">Step {step + 1} of {TOTAL} · {TIME_LEFT[step]}</p>
 
       <h1 ref={headingRef} tabIndex={-1}>
         {STEP_TITLES[step]}
@@ -367,19 +410,12 @@ export default function RequestFlow({ dates, held }: { dates: string[]; held: Sl
               {errors.email && <p className="error" id="email-err">{errors.email}</p>}
             </div>
 
-            <div className="field">
-              <label htmlFor="address">Property address</label>
-              <input
-                id="address"
-                type="text"
-                autoComplete="street-address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                aria-invalid={!!errors.address}
-                aria-describedby={errors.address ? "address-err" : undefined}
-              />
-              {errors.address && <p className="error" id="address-err">{errors.address}</p>}
-            </div>
+            <AddressField
+              value={address}
+              onChange={setAddress}
+              onPick={(p) => { setAddress(p.address); if (p.city) setCity(p.city); if (p.zip) setZip(p.zip); }}
+              error={errors.address}
+            />
 
             <div className="field-row">
               <div className="field">

@@ -26,3 +26,21 @@ describe("availability", () => {
     expect(dayFull(held, "2026-11-04", 1)).toBe(false);
   });
 });
+
+import { soonestSlot } from "./availability";
+describe("soonestSlot", () => {
+  const dates = ["2026-11-03", "2026-11-04"];
+  it("picks the first open time", () => {
+    expect(soonestSlot(dates, [], false)).toEqual({ date: "2026-11-03", time: "10:00" });
+  });
+  it("skips taken times and full days", () => {
+    expect(soonestSlot(dates, [{ date: "2026-11-03", time: "10:00", hours: 1 }], false)).toEqual({ date: "2026-11-03", time: "12:30" });
+    expect(soonestSlot(dates, [{ date: "2026-11-03", time: "10:00", hours: 3 }], false)).toEqual({ date: "2026-11-04", time: "10:00" });
+  });
+  it("long visits only start at 10:00 on a free day", () => {
+    expect(soonestSlot(dates, [{ date: "2026-11-03", time: "12:30", hours: 1 }], true)).toEqual({ date: "2026-11-04", time: "10:00" });
+  });
+  it("returns null when nothing is open", () => {
+    expect(soonestSlot(["2026-11-03"], [{ date: "2026-11-03", time: "10:00", hours: 3 }], false)).toBeNull();
+  });
+});
