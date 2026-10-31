@@ -979,3 +979,10 @@ details.adm-group[open] > summary::after { content: "\2212"; }
 
 .trust-line{font-size:.9rem;color:var(--muted,#5b6770);margin:0 0 1rem}
 .trust-line a{color:inherit}
+
+.adm-note{padding:.6rem 0;border-top:1px solid rgba(0,0,0,.08)}
+.adm-note form{margin-top:.25rem}
+.adm-photos{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;margin-top:.6rem}
+.adm-photos figure{margin:0}
+.adm-photos img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;display:block}
+.adm-field textarea{width:100%;font:inherit;padding:.6rem;border-radius:10px;border:1px solid rgba(0,0,0,.2)}

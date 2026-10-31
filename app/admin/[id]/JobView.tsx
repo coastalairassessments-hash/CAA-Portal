@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import FieldNotes from "./FieldNotes";
 import { formatPhone, formatStamp, formatTime, fullAddress, jobLabel, sizeLabel } from "@/lib/labels";
 import { formatDateLabel } from "@/lib/dates";
 import { mapsLink } from "@/lib/admin";
@@ -233,6 +235,9 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
           </div>
         </details>
         <Drawers r={r} saved={typeof query.saved === "string" ? query.saved : undefined} />
+        <Suspense fallback={null}>
+          <FieldNotes id={r.id} billedSamples={typeof r.lab_samples === "number" ? r.lab_samples : null} open={query.saved === "field"} />
+        </Suspense>
       </div>
 
       {booking && approve}

@@ -9,10 +9,12 @@ import { sendLogged } from "@/lib/mailLog";
 import { sendPush } from "@/lib/push";
 import { briefingPush } from "@/lib/pushText";
 import { dayBeforeEmail } from "@/lib/prep";
+import { invoiceReminderEmail, reminderDue, type OwedRow } from "@/lib/invoiceReminder";
+import { getInvoice } from "@/lib/qbSync";
 
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
 const COLUMNS =
-  "id, status, source, booking_mode, issue, name, email, public_token, zip, phone, address, city, confirmed_date, confirmed_time, block_hours, deposit_cents, deposit_paid_at, reminded_for, arrived_at, left_at, lab_samples, extras_cents, final_paid_at, final_invoice_no, cancel_refund, refunded_at";
+  "id, status, source, booking_mode, issue, name, email, public_token, zip, phone, address, city, confirmed_date, confirmed_time, block_hours, deposit_cents, deposit_paid_at, reminded_for, arrived_at, left_at, lab_samples, extras_cents, final_paid_at, final_invoice_no, cancel_refund, refunded_at, qb_invoice_id, final_invoiced_at, invoice_reminders, invoice_reminded_at";
 
 type RemindRow = {
   id: string; source: string; status: string; confirmed_date: string | null; confirmed_time: string | null;
@@ -35,6 +37,30 @@ async function remindTomorrow(db: SupabaseClient, data: unknown[]) {
     count++;
   }
   return { sent: count > 0, count };
+}
+
+// Unpaid invoices: a gentle note at 3, 7 and 14 days. Checks QuickBooks first so a paid
+// invoice never gets a reminder. Runs with the 5 PM pass.
+async function remindUnpaid(db: SupabaseClient, data: unknown[]) {
+  const today = todayInNewYork();
+  let count = 0;
+  for (const j of data as (OwedRow & { id: string; name: string; final_invoice_no: string | null })[]) {
+    const n = reminderDue(j, today);
+    if (!n || !j.email || !j.qb_invoice_id) continue;
+    let link: string | null = null;
+    try {
+      const inv = await getInvoice(j.qb_invoice_id);
+      if (inv && inv.balance === 0) continue;
+      link = inv?.link ?? null;
+    } catch {
+      continue; // cannot confirm it is unpaid, so say nothing
+    }
+    const res = await sendLogged(db, j.id, { to: j.email, ...invoiceReminderEmail(j, n, link) });
+    if (!res.ok) continue;
+    await db.from("requests").update({ invoice_reminders: n, invoice_reminded_at: new Date().toISOString() }).eq("id", j.id);
+    count++;
+  }
+  return { count };
 }
 
 export async function GET(req: Request) {
@@ -64,7 +90,11 @@ export async function GET(req: Request) {
   if (error) return NextResponse.json({ ok: false }, { status: 500 });
 
   const rows = (data ?? []) as unknown as (DashRow & BriefJob & { address: string; city: string })[];
-  if (mode === "remind") return NextResponse.json({ ok: true, ...(await remindTomorrow(db, data ?? [])) });
+  if (mode === "remind") {
+    const day = await remindTomorrow(db, data ?? []);
+    const owed = await remindUnpaid(db, data ?? []);
+    return NextResponse.json({ ok: true, ...day, unpaidReminders: owed.count });
+  }
   const date = mode === "today" ? todayInNewYork() : addDays(todayInNewYork(), 1);
   const jobs = rows.filter((r) => r.status === "confirmed" && r.confirmed_date === date && r.confirmed_time);
   const brief = buildBriefing(
