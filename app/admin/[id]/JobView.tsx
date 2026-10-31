@@ -257,12 +257,6 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
       {open && (
         <div className="adm-pinbar">
           {r.status === "new" && <a className="adm-btn primary" href="#approve">Approve</a>}
-          {r.status === "offered" && (
-            <form action={markDepositReceived}>
-              <input type="hidden" name="id" value={r.id} />
-              <button className="adm-btn primary" type="submit">Deposit received</button>
-            </form>
-          )}
           {r.status === "confirmed" && !r.left_at && (
             <form action={stampTime}>
               <input type="hidden" name="id" value={r.id} />
