@@ -17,7 +17,7 @@ describe("quick texts", () => {
   });
   it("the callback promise is soft and matches the moment", () => {
     expect(missedCallText("https://x.com")).toContain("text us your questions, or wait for a call back, usually by the end of the day");
-    expect(afterHoursText("https://x.com")).toContain("usually by the end of the next business day");
+    expect(afterHoursText("https://x.com")).toContain("we'll get back to you during business hours");
   });
   it("each text says what moment it is for", () => {
     expect(linkText("https://x.com")).toContain("Good talking with you");
