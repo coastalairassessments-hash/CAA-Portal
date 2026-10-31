@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { getConnection } from "@/lib/qbStore";
+import { connectionExpired, getConnection } from "@/lib/qbStore";
 import { logout } from "../actions";
 import PushToggle from "./PushToggle";
 
@@ -23,8 +23,11 @@ async function QuickBooks({ searchParams }: { searchParams: Promise<Record<strin
   const q = await searchParams;
   const note = typeof q.qb === "string" ? QB_NOTE[q.qb] : undefined;
   let linked = false;
+  let expired = false;
   try {
-    linked = !!(await getConnection());
+    const conn = await getConnection();
+    linked = !!conn;
+    expired = !!conn && connectionExpired(conn);
   } catch {
     linked = false;
   }
@@ -32,7 +35,7 @@ async function QuickBooks({ searchParams }: { searchParams: Promise<Record<strin
     <section className="adm-group">
       <h2>QuickBooks</h2>
       {note && <p className="adm-ok">{note}</p>}
-      <p className="adm-muted">{linked ? "Connected." : "Not connected yet."}</p>
+      <p className="adm-muted">{expired ? "The connection expired. Reconnect to keep invoices working." : linked ? "Connected." : "Not connected yet."}</p>
       <a className={`adm-btn wide${linked ? "" : " primary"}`} href="/api/qb/connect">
         {linked ? "Reconnect QuickBooks" : "Connect QuickBooks"}
       </a>
