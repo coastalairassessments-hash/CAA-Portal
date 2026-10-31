@@ -1,7 +1,7 @@
 {
   "name": "Coastal Air Assessments",
   "short_name": "CAA",
-  "start_url": "/admin",
+  "start_url": "/admin/today",
   "scope": "/admin",
   "display": "standalone",
   "background_color": "#ffffff",

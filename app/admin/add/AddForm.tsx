@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { addContractorJob, type ConfirmState } from "../actions";
 import { SERVICES } from "@/lib/contractorJob";
 
-export default function AddForm({ contractors, defaultDate, initialName = "", initialAddress = "" }: { contractors: { id: string; name: string }[]; defaultDate: string; initialName?: string; initialAddress?: string }) {
+export default function AddForm({ contractors, defaultDate, defaultTime = "10:00", initialName = "", initialAddress = "" }: { contractors: { id: string; name: string }[]; defaultDate: string; defaultTime?: string; initialName?: string; initialAddress?: string }) {
   const [state, action, pending] = useActionState<ConfirmState, FormData>(addContractorJob, { error: null });
   return (
     <form action={action} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -43,7 +43,7 @@ export default function AddForm({ contractors, defaultDate, initialName = "", in
       <div className="adm-row">
         <div className="adm-field">
           <label htmlFor="time">Start</label>
-          <input id="time" name="time" type="time" step={900} defaultValue="10:00" required />
+          <input id="time" name="time" type="time" step={900} defaultValue={defaultTime} required />
         </div>
         <div className="adm-field">
           <label htmlFor="hours">Time on site</label>

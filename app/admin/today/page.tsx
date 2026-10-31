@@ -3,13 +3,16 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { supabaseForUser } from "@/lib/supabase/server";
-import { addDays, formatDateLabel, todayInNewYork } from "@/lib/dates";
+import { todayInNewYork } from "@/lib/dates";
+import { homeDays } from "@/lib/home";
+import type { WeekRow } from "@/lib/week";
+import Schedule2 from "./Schedule";
 import { money, needsYou, nextUp } from "@/lib/dashboard";
 import { todayLabel } from "@/lib/admin";
 import { JobCard, MoneyCard, Motion, Tiles, type Job } from "./parts";
 
 export const metadata: Metadata = {
-  title: "Today | Coastal Air Assessments",
+  title: "Home | Coastal Air Assessments",
   robots: { index: false, follow: false },
 };
 
@@ -20,7 +23,6 @@ const COLUMNS =
 
 async function Schedule({ searchParams }: Props) {
   const q = await searchParams;
-  const week = q.range === "week";
   const supabase = await supabaseForUser();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) redirect("/admin/login");
@@ -28,46 +30,33 @@ async function Schedule({ searchParams }: Props) {
   if (!isAdmin) redirect("/admin");
 
   const today = todayInNewYork();
-  const last = addDays(today, week ? 6 : 0);
   const { data, error } = await supabase
     .from("requests")
     .select(COLUMNS)
     .in("status", ["new", "offered", "confirmed", "cancelled"])
     .order("created_at", { ascending: false })
     .limit(500);
-  if (error) return <p className="adm-err">Could not load the schedule. (Ref: today-{error.code ?? "unknown"})</p>;
+  if (error) return <p className="adm-err">Could not load your schedule. (Ref: home-{error.code ?? "unknown"})</p>;
+  const { data: blockData } = await supabase.from("time_blocks").select("day, slot").gte("day", today);
 
   const all = (data ?? []) as unknown as Job[];
-  const jobs = all
-    .filter((j) => j.status === "confirmed" && j.confirmed_date! >= today && j.confirmed_date! <= last)
-    .sort((x, y) => `${x.confirmed_date} ${x.confirmed_time}`.localeCompare(`${y.confirmed_date} ${y.confirmed_time}`));
-  const next = !week ? (nextUp(all) as Job | null) : null;
-  const rest = jobs.filter((j) => j.id !== next?.id);
-  const days = [...new Set(rest.map((j) => j.confirmed_date!))];
+  const days = homeDays(all as unknown as WeekRow[], blockData ?? [], today);
+  const next = nextUp(all) as Job | null;
+  const d = typeof q.d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(q.d) ? q.d : today;
+  const v = q.v === "week" ? "week" : "day";
 
   return (
     <>
       {q.added && <p className="adm-ok">Added to your schedule.</p>}
       {next && <JobCard r={next} today hero />}
 
-      {jobs.length === 0 && (
-        <p className="adm-empty">{week ? "Nothing booked this week." : "Nothing booked today."}</p>
-      )}
-      {days.map((d) => (
-        <section key={d}>
-          {(week || next) && <h2 className="adm-sub">{week ? (d === today ? "Today" : formatDateLabel(d)) : "Later today"}</h2>}
-          {rest.filter((j) => j.confirmed_date === d).map((j) => (
-            <JobCard key={j.id} r={j} today={d === today} />
-          ))}
-        </section>
-      ))}
+      <Schedule2 days={days} today={today} initialDay={d} initialView={v} />
 
       <Tiles n={needsYou(all)} />
 
       <Motion rows={all} today={today} />
 
       <MoneyCard m={money(all)} />
-
     </>
   );
 }
@@ -95,7 +84,7 @@ export default function TodayPage(props: Props) {
               <TodayDate />
             </Suspense>
           </div>
-          <h1 className="adm-title">Today</h1>
+          <h1 className="adm-title">Home</h1>
         </div>
         <Suspense fallback={null}>
           <CountPill />

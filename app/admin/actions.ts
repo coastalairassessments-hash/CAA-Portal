@@ -1,4 +1,5 @@
 "use server";
+import { safeBack } from "@/lib/home";
 import { redirect } from "next/navigation";
 import { supabaseForUser } from "@/lib/supabase/server";
 
@@ -12,7 +13,7 @@ export async function login(_prev: LoginState, form: FormData): Promise<LoginSta
   const supabase = await supabaseForUser();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: "That email or password didn't work." };
-  redirect("/admin");
+  redirect("/admin/today");
 }
 
 export async function logout() {
@@ -426,6 +427,8 @@ export async function closeSlot(form: FormData): Promise<void> {
   const w = String(form.get("w") ?? "0").replace(/\D/g, "") || "0";
   if (!supabase || !/^\d{4}-\d{2}-\d{2}$/.test(day) || !["10:00", "12:30", "all"].includes(slot)) redirect("/admin/week");
   const { error } = await supabase.from("time_blocks").upsert({ day, slot }, { onConflict: "day,slot", ignoreDuplicates: true });
+  const back = safeBack(form.get("back"));
+  if (back) redirect(back);
   redirect(`/admin/week?w=${w}${error ? "&error=save" : ""}`);
 }
 
@@ -436,6 +439,8 @@ export async function openSlot(form: FormData): Promise<void> {
   const w = String(form.get("w") ?? "0").replace(/\D/g, "") || "0";
   if (!supabase || !/^\d{4}-\d{2}-\d{2}$/.test(day) || !["10:00", "12:30", "all"].includes(slot)) redirect("/admin/week");
   const { error } = await supabase.from("time_blocks").delete().eq("day", day).eq("slot", slot);
+  const back = safeBack(form.get("back"));
+  if (back) redirect(back);
   redirect(`/admin/week?w=${w}${error ? "&error=save" : ""}`);
 }
 
