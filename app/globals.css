@@ -1002,3 +1002,15 @@ details.adm-group[open] > summary::after { content: "\2212"; }
   .adm-btn:hover, .adm-seg a:hover { background: var(--chip); }
   .adm-btn.primary:hover { background: var(--acc); filter: brightness(1.08); }
 }
+
+/* Resources guides */
+.guide-list { list-style: none; padding: 0; display: grid; gap: 14px; }
+.guide-list li { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.guide-list a { font-weight: 600; color: var(--tide); }
+.guide-list span { color: var(--muted); font-size: 0.95rem; }
+.guide-table { overflow-x: auto; margin: 1rem 0; border: 1px solid var(--line); border-radius: 10px; }
+.guide-table table { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: 0.95rem; }
+.guide-table th, .guide-table td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); line-height: 1.5; }
+.guide-table thead th { background: var(--foam); font-size: 0.85rem; }
+.guide-table tbody tr:last-child th, .guide-table tbody tr:last-child td { border-bottom: 0; }
+.guide-refs { font-size: 0.85rem; word-break: break-word; color: var(--muted); }

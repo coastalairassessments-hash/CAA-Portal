@@ -14,6 +14,7 @@ import { PREP_DO, PREP_DONT, PREP_INTRO } from "@/lib/prep";
 import { LIVE_STEPS, liveState } from "@/lib/live";
 import { todayInNewYork } from "@/lib/dates";
 import { reportState } from "@/lib/report";
+import { publicGuides } from "@/lib/guides";
 import { cancelMyBooking } from "../actions";
 import LiveRefresh from "./LiveRefresh";
 
@@ -132,6 +133,17 @@ async function Booking({ params, searchParams }: Props) {
             <input type="hidden" name="token" value={token} />
             <button type="submit" className="btn btn-quiet">Cancel this booking</button>
           </form>
+        </section>
+      )}
+
+      {publicGuides().length > 0 && (
+        <section className="bk-help">
+          <h2>Helpful guides</h2>
+          <ul>
+            {publicGuides().map((g) => (
+              <li key={g.slug}><Link href={`/resources/${g.slug}`}>{g.title}</Link></li>
+            ))}
+          </ul>
         </section>
       )}
 
