@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import FieldNotes from "./FieldNotes";
+import ReportBox from "./ReportBox";
 import { formatPhone, formatStamp, formatTime, fullAddress, jobLabel, sizeLabel } from "@/lib/labels";
 import { formatDateLabel } from "@/lib/dates";
 import { mapsLink } from "@/lib/admin";
@@ -238,6 +239,11 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
         <Suspense fallback={null}>
           <FieldNotes id={r.id} billedSamples={typeof r.lab_samples === "number" ? r.lab_samples : null} open={query.saved === "field"} />
         </Suspense>
+        {r.status === "confirmed" && (
+          <Suspense fallback={null}>
+            <ReportBox r={r as never} flag={typeof query.report === "string" ? query.report : undefined} />
+          </Suspense>
+        )}
       </div>
 
       {booking && approve}

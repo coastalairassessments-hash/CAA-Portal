@@ -13,6 +13,7 @@ import { depositCents, formatMoney } from "@/lib/pricing";
 import { PREP_DO, PREP_DONT, PREP_INTRO } from "@/lib/prep";
 import { LIVE_STEPS, liveState } from "@/lib/live";
 import { todayInNewYork } from "@/lib/dates";
+import { reportState } from "@/lib/report";
 import { cancelMyBooking } from "../actions";
 import LiveRefresh from "./LiveRefresh";
 
@@ -93,6 +94,19 @@ async function Booking({ params, searchParams }: Props) {
         <div><dt>When</dt><dd>{v.when}</dd></div>
         <div><dt>Where</dt><dd>{fullAddress(r as never)}</dd></div>
       </dl>
+
+      {reportState(r as never) === "ready" && (
+        <section className="bk-pay">
+          <h2>Your report</h2>
+          <a className="btn" href={`/booking/${token}/report`}>Open your report (PDF)</a>
+        </section>
+      )}
+      {reportState(r as never) === "locked" && (
+        <section className="bk-prep">
+          <h2>Your report</h2>
+          <p>Your report is ready. It unlocks as soon as your invoice is paid. Questions? Call or text 561-400-0929.</p>
+        </section>
+      )}
 
       {v.canCancel && (
         <section className="bk-prep">

@@ -39,6 +39,8 @@ import { addDays, todayInNewYork } from "@/lib/dates";
 import { jobLabel } from "@/lib/labels";
 import { enRouteEmail } from "@/lib/enroute";
 import { confirmationWithCalendar } from "@/lib/confirmMail";
+import { serviceDb } from "@/lib/bookingServer";
+import { sendReadyReports } from "@/lib/reportServer";
 
 export type ConfirmState = { error: string | null };
 
@@ -234,6 +236,12 @@ export async function markFinalPaid(form: FormData): Promise<void> {
     .update({ final_paid_at: clearing ? null : new Date().toISOString() })
     .eq("id", id);
   if (error) redirect(`/admin/${id}?error=save`);
+
+  // A report waiting on this payment goes out now.
+  if (!clearing) {
+    const db = serviceDb();
+    if (db) await sendReadyReports(db, id).catch(() => 0);
+  }
 
   // First time paid, and a review link is set: thank the client and ask for a review.
   if (!clearing && row && !row.final_paid_at && row.source === "client" && row.email && GOOGLE_REVIEW_URL) {

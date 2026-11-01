@@ -3,6 +3,7 @@
 import { NextResponse, connection } from "next/server";
 import { serviceDb } from "@/lib/bookingServer";
 import { SETTLE_COLUMNS, settleDeposit } from "@/lib/settle";
+import { sendReadyReports } from "@/lib/reportServer";
 
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
 
@@ -30,5 +31,6 @@ export async function GET(req: Request) {
     });
     tally[r] = (tally[r] ?? 0) + 1;
   }
-  return NextResponse.json({ ok: true, ...tally });
+  const reports = await sendReadyReports(db).catch(() => 0);
+  return NextResponse.json({ ok: true, ...tally, reports });
 }
