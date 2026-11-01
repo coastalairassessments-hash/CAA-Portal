@@ -9,6 +9,10 @@ import { SETTLE_COLUMNS, settleDeposit } from "@/lib/settle";
 import { voidInvoice } from "@/lib/qbSync";
 import { formatDateLabel } from "@/lib/dates";
 import { formatTime } from "@/lib/labels";
+import { canMove, movedEmail } from "@/lib/reschedule";
+import { heldSlots } from "@/lib/availabilityServer";
+import { overlaps } from "@/lib/slots";
+import { todayInNewYork } from "@/lib/dates";
 
 // A client cancels their own booking. Same rule as the policy: refund if more than 24 hours ahead.
 export async function cancelMyBooking(form: FormData): Promise<void> {
@@ -53,4 +57,37 @@ export async function cancelMyBooking(form: FormData): Promise<void> {
   const to = process.env.ALERT_EMAIL?.trim();
   if (!phones && to) await sendEmail({ to, subject: "Booking cancelled", text: what });
   redirect(`/booking/${token}`);
+}
+
+// A client moves their own visit to another open time. Free, more than 24 hours ahead. The deposit carries over.
+export async function rescheduleMyBooking(form: FormData): Promise<void> {
+  const token = String(form.get("token") ?? "");
+  if (!validToken(token)) redirect("/");
+  const r = await bookingByToken(token);
+  const db = serviceDb();
+  if (!r || !db || !canMove(r as never)) redirect(`/booking/${token}`);
+  const [date = "", time = ""] = String(form.get("slot") ?? "").split("|");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !["10:00", "12:30"].includes(time)) redirect(`/booking/${token}?error=1`);
+
+  const hours = Number(r.block_hours ?? 1);
+  const cur = { date: r.confirmed_date as string, time: String(r.confirmed_time).slice(0, 5), hours };
+  const next = { date, time, hours };
+  const others = (await heldSlots(todayInNewYork())).filter((h) => !(h.date === cur.date && h.time === cur.time));
+  if (others.some((h) => overlaps(h, next))) redirect(`/booking/${token}?error=taken`);
+  if (!canMove({ ...r, confirmed_date: date, confirmed_time: time } as never)) redirect(`/booking/${token}?error=1`);
+
+  const { error } = await db
+    .from("requests")
+    .update({ confirmed_date: date, confirmed_time: time, reminded_for: null })
+    .eq("id", r.id)
+    .eq("status", "confirmed");
+  if (error) redirect(`/booking/${token}?error=${error.code === "23P01" ? "taken" : "1"}`);
+
+  const sent = await sendEmail({ to: r.email, ...movedEmail(r as never, r.id, next) });
+  if (!sent.ok) console.error(`[client-move] email not sent: ${sent.reason}`);
+  const what = `${r.name} moved ${formatDateLabel(cur.date)} ${formatTime(cur.time)} to ${formatDateLabel(date)} ${formatTime(time)}`;
+  const phones = await sendPush({ title: "Visit moved", body: what, url: `/admin/${r.id}` });
+  const to = process.env.ALERT_EMAIL?.trim();
+  if (!phones && to) await sendEmail({ to, subject: "Visit moved", text: what });
+  redirect(`/booking/${token}?moved=1`);
 }

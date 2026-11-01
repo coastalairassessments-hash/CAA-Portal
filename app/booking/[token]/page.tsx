@@ -15,7 +15,13 @@ import { LIVE_STEPS, liveState } from "@/lib/live";
 import { todayInNewYork } from "@/lib/dates";
 import { reportState } from "@/lib/report";
 import { publicGuides } from "@/lib/guides";
-import { cancelMyBooking } from "../actions";
+import { canMove, moveOptions } from "@/lib/reschedule";
+import { heldSlots } from "@/lib/availabilityServer";
+import { nextBookableDates } from "@/lib/dates";
+import { TIMES } from "@/lib/request";
+import { formatDateLabel } from "@/lib/dates";
+import { formatTime } from "@/lib/labels";
+import { cancelMyBooking, rescheduleMyBooking } from "../actions";
 import LiveRefresh from "./LiveRefresh";
 
 export const metadata: Metadata = {
@@ -43,12 +49,23 @@ async function Booking({ params, searchParams }: Props) {
   const live = liveState(r as never, todayInNewYork());
   const v = live ? { ...base, headline: live.headline, detail: live.detail, canCancel: false } : base;
   const first = String(r.name).trim().split(/\s+/)[0];
+  const movable = canMove(r as never);
+  const moveSlots = movable
+    ? moveOptions(
+        nextBookableDates(new Date(), 40, 1),
+        TIMES,
+        await heldSlots(todayInNewYork()),
+        { date: r.confirmed_date as string, time: String(r.confirmed_time).slice(0, 5), hours: Number(r.block_hours ?? 1) },
+      ).slice(0, 60)
+    : [];
 
   return (
     <>
       <h1>{v.headline}</h1>
       <p className="bk-lead">{v.detail}</p>
-      {q.error && <p className="error">That did not go through. Please call or text us.</p>}
+      {q.error === "taken" && <p className="error">That time was just taken. Please pick another.</p>}
+      {q.error && q.error !== "taken" && <p className="error">That did not go through. Please call or text us.</p>}
+      {q.moved && <p className="bk-lead">Done. Your visit moved. We emailed you the new time.</p>}
 
       {(live || v.paying) && <LiveRefresh every={live ? 30000 : 8000} />}
 
@@ -151,6 +168,24 @@ async function Booking({ params, searchParams }: Props) {
         <h2>Another property?</h2>
         <p><Link href={`/request?again=${token}`}>Book again</Link>. We already have your details, so you only add the address.</p>
       </section>
+
+      {movable && moveSlots.length > 0 && (
+        <section className="bk-prep">
+          <h2>Pick a different time</h2>
+          <p>Free, and your deposit carries over.</p>
+          <form action={rescheduleMyBooking} className="field">
+            <input type="hidden" name="token" value={token} />
+            <label htmlFor="slot">New time</label>
+            <select id="slot" name="slot" required defaultValue="">
+              <option value="" disabled>Choose a time</option>
+              {moveSlots.map((s) => (
+                <option key={`${s.date}|${s.time}`} value={`${s.date}|${s.time}`}>{formatDateLabel(s.date)} at {formatTime(s.time)}</option>
+              ))}
+            </select>
+            <button type="submit" className="btn">Move my visit</button>
+          </form>
+        </section>
+      )}
 
       <section className="bk-help">
         <h2>Need a different time?</h2>
