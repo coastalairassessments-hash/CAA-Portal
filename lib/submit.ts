@@ -21,6 +21,7 @@ export type NewRequestRow = {
   zip: string;
   notes: string;
   how_heard: string | null;
+  referral_code?: string;
   client_type: string;
   property_type: string | null;
   company: string | null;
@@ -164,6 +165,7 @@ export async function submitRequest(
     zip: data.zip,
     notes: data.notes,
     how_heard: data.howHeard ?? null,
+    ...(data.ref ? { referral_code: data.ref } : {}),
     client_type: data.clientType,
     property_type: data.propertyType ?? null,
     company: data.company || null,

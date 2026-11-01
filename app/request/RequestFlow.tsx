@@ -47,7 +47,7 @@ export type Prefill = { clientType: string; name: string; phone: string; email: 
 
 type FieldErrors = Record<string, string>;
 
-export default function RequestFlow({ dates, held, again }: { dates: string[]; held: Slot[]; again?: Prefill }) {
+export default function RequestFlow({ dates, held, again, refCode }: { dates: string[]; held: Slot[]; again?: Prefill; refCode?: string }) {
   const router = useRouter();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -166,6 +166,7 @@ export default function RequestFlow({ dates, held, again }: { dates: string[]; h
           zip,
           notes,
           howHeard: howHeard || undefined,
+          ref: refCode,
           textConsent,
           termsAccepted,
           website,

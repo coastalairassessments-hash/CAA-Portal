@@ -7,6 +7,7 @@ import { nextBookableDates, todayInNewYork } from "@/lib/dates";
 import { heldSlots } from "@/lib/availabilityServer";
 import { prefillByToken } from "@/lib/bookingServer";
 import RequestFlow from "./RequestFlow";
+import { parseRefCode } from "@/lib/referrals";
 import { LICENSE_LINE, PHONE } from "@/lib/business";
 
 export const metadata: Metadata = {
@@ -14,17 +15,17 @@ export const metadata: Metadata = {
 };
 
 // Dates depend on today, so this part is built fresh for each visit.
-async function Flow({ again }: { again?: string }) {
+async function Flow({ again, refCode }: { again?: string; refCode?: string }) {
   await connection();
   const prefill = again ? await prefillByToken(again) : null;
   const dates = nextBookableDates(new Date(), 40, 1);
   const held = await heldSlots(todayInNewYork());
-  return <RequestFlow dates={dates} held={held} again={prefill ?? undefined} />;
+  return <RequestFlow dates={dates} held={held} again={prefill ?? undefined} refCode={parseRefCode(refCode) ?? undefined} />;
 }
 
 async function FlowFromQuery({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const q = await searchParams;
-  return <Flow again={typeof q.again === "string" ? q.again : undefined} />;
+  return <Flow again={typeof q.again === "string" ? q.again : undefined} refCode={typeof q.ref === "string" ? q.ref : undefined} />;
 }
 
 export default function RequestPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {

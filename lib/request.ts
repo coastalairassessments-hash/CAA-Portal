@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseRefCode } from "./referrals";
 import { CLIENT_TYPE_VALUES, PROPERTY_TYPE_VALUES, WATER_WHEN, YES_NO, isOrg } from "./intake";
 import {
   BOOKABLE_WEEKDAYS,
@@ -114,6 +115,8 @@ export function buildRequestSchema(now: Date = new Date()) {
       .transform((v) => v.slice(0, 5)),
     notes: z.string().trim().max(1000).optional().default(""),
     howHeard: z.enum(["google", "referral", "contractor", "social", "other"]).optional(),
+    // From a partner's personal link. Bad values are dropped, never an error.
+    ref: z.string().optional().transform((v) => parseRefCode(v) ?? undefined),
     textConsent: z.boolean(),
     termsAccepted: z.literal(true, { error: "Please agree to the terms and policy to continue" }),
     // Honeypot: real people never see or fill this field. Bots do.
