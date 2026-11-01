@@ -986,3 +986,19 @@ details.adm-group[open] > summary::after { content: "\2212"; }
 .adm-photos figure{margin:0}
 .adm-photos img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;display:block}
 .adm-field textarea{width:100%;font:inherit;padding:.6rem;border-radius:10px;border:1px solid rgba(0,0,0,.2)}
+
+/* Laptop: the phone layout, with the tab bar moved to a left sidebar and a wider page */
+@media (min-width: 1000px) {
+  .adm { padding-left: 200px; }
+  .adm-bar { top: 0; right: auto; width: 200px; grid-template-columns: 1fr; align-content: start; gap: 4px; border-top: 0; border-right: 1px solid var(--line); padding: 24px 12px; }
+  .adm-bar a { flex-direction: row; justify-content: flex-start; gap: 12px; min-height: 48px; padding: 0 14px; font-size: 15px; }
+  .adm-bar a:hover { background: var(--chip); }
+  .adm-bar a[aria-current="page"] { background: var(--chip); }
+  .adm-bar-badge { position: static; margin-left: auto; }
+  .adm-bar-add .adm-bar-icon { margin-top: 0; width: 32px; height: 32px; border-radius: 16px; }
+  .adm-wrap { max-width: 880px; padding: 32px 32px 48px; }
+  .adm-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .adm-title { font-size: 36px; }
+  .adm-btn:hover, .adm-seg a:hover { background: var(--chip); }
+  .adm-btn.primary:hover { background: var(--acc); filter: brightness(1.08); }
+}
