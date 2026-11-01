@@ -34,8 +34,15 @@ export function photoPath(requestId: string, now = Date.now(), rand = Math.rando
   return `${requestId}/${now}-${Math.floor(rand * 1e9).toString(36)}.jpg`;
 }
 
+// Photos a client sends before the visit carry a "c" so Cory can tell them from his own.
+export function clientPhotoPath(requestId: string, now = Date.now(), rand = Math.random()): string {
+  return `${requestId}/c${now}-${Math.floor(rand * 1e9).toString(36)}.jpg`;
+}
+export const isClientPhoto = (path: string) => /\/c[0-9]+-[0-9a-z]+\.jpg$/.test(path);
+export const MAX_CLIENT_PHOTOS = 10;
+
 export function validPhotoPath(requestId: string, path: string): boolean {
-  return new RegExp(`^${requestId}/[0-9]+-[0-9a-z]+\\.jpg$`).test(path);
+  return new RegExp(`^${requestId}/c?[0-9]+-[0-9a-z]+\\.jpg$`).test(path);
 }
 
 // Samples written down versus samples on the invoice: shown so a mismatch is noticed, never changed silently.

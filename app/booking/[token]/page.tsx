@@ -23,6 +23,8 @@ import { formatDateLabel } from "@/lib/dates";
 import { formatTime } from "@/lib/labels";
 import { cancelMyBooking, rescheduleMyBooking } from "../actions";
 import LiveRefresh from "./LiveRefresh";
+import ClientPhotos from "./ClientPhotos";
+import { isClientPhoto, MAX_CLIENT_PHOTOS } from "@/lib/fieldNotes";
 
 export const metadata: Metadata = {
   title: "Your booking | Coastal Air Assessments",
@@ -49,6 +51,12 @@ async function Booking({ params, searchParams }: Props) {
   const live = liveState(r as never, todayInNewYork());
   const v = live ? { ...base, headline: live.headline, detail: live.detail, canCancel: false } : base;
   const first = String(r.name).trim().split(/\s+/)[0];
+  let sentPhotos = 0;
+  if (v.canCancel) {
+    const db2 = serviceDb();
+    const { data: ph } = db2 ? await db2.from("job_photos").select("path").eq("request_id", r.id).limit(200) : { data: [] };
+    sentPhotos = (ph ?? []).filter((p) => isClientPhoto(p.path)).length;
+  }
   const movable = canMove(r as never);
   const moveSlots = movable
     ? moveOptions(
@@ -130,6 +138,14 @@ async function Booking({ params, searchParams }: Props) {
         <section className="bk-prep">
           <h2>{INSTASCOPE_TITLE}</h2>
           <p>{INSTASCOPE_BODY} {INSTASCOPE_PRICE}</p>
+        </section>
+      )}
+
+      {v.canCancel && sentPhotos < MAX_CLIENT_PHOTOS && (
+        <section className="bk-prep">
+          <h2>Show us the problem</h2>
+          <p>Photos of the stain, the damage or the area you are worried about help us arrive prepared. Optional, and only we see them.</p>
+          <ClientPhotos token={token} sent={sentPhotos} />
         </section>
       )}
 

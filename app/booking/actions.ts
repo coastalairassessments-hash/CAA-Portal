@@ -10,6 +10,7 @@ import { voidInvoice } from "@/lib/qbSync";
 import { formatDateLabel } from "@/lib/dates";
 import { formatTime } from "@/lib/labels";
 import { canMove, movedEmail } from "@/lib/reschedule";
+import { MAX_CLIENT_PHOTOS, MAX_PHOTO_BYTES, clientPhotoPath, isClientPhoto } from "@/lib/fieldNotes";
 import { heldSlots } from "@/lib/availabilityServer";
 import { overlaps } from "@/lib/slots";
 import { todayInNewYork } from "@/lib/dates";
@@ -90,4 +91,26 @@ export async function rescheduleMyBooking(form: FormData): Promise<void> {
   const to = process.env.ALERT_EMAIL?.trim();
   if (!phones && to) await sendEmail({ to, subject: "Visit moved", text: what });
   redirect(`/booking/${token}?moved=1`);
+}
+
+// A client sends photos of the problem before the visit. Private: only Cory sees them.
+export async function addClientPhoto(form: FormData): Promise<{ ok: boolean; error?: string }> {
+  const token = String(form.get("token") ?? "");
+  const file = form.get("photo");
+  const db = serviceDb();
+  if (!validToken(token) || !db || !(file instanceof File)) return { ok: false };
+  const r = await bookingByToken(token);
+  if (!r || !["new", "offered", "confirmed"].includes(r.status) || r.left_at) return { ok: false };
+  if (file.size === 0 || file.size > MAX_PHOTO_BYTES || file.type !== "image/jpeg") return { ok: false };
+  const { data: have } = await db.from("job_photos").select("path").eq("request_id", r.id).limit(200);
+  if ((have ?? []).filter((p) => isClientPhoto(p.path)).length >= MAX_CLIENT_PHOTOS) return { ok: false, error: "limit" };
+  const path = clientPhotoPath(r.id);
+  const up = await db.storage.from("job-photos").upload(path, file, { contentType: "image/jpeg", upsert: false });
+  if (up.error) return { ok: false };
+  const { error } = await db.from("job_photos").insert({ request_id: r.id, path });
+  if (error) {
+    await db.storage.from("job-photos").remove([path]);
+    return { ok: false };
+  }
+  return { ok: true };
 }

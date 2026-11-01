@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import { supabaseForUser } from "@/lib/supabase/server";
-import { SAMPLE_KINDS, sampleNote } from "@/lib/fieldNotes";
+import { SAMPLE_KINDS, isClientPhoto, sampleNote } from "@/lib/fieldNotes";
 import { formatStamp } from "@/lib/labels";
 import { addNote, addSample, deleteNote, deletePhoto, deleteSample } from "../fieldActions";
 import PhotoPicker from "./PhotoPicker";
@@ -64,7 +64,7 @@ export default async function FieldNotes({ id, billedSamples, open }: { id: stri
           return (
             <figure key={p.id}>
               {url ? <a href={url} target="_blank" rel="noreferrer"><img src={url} alt={`Photo ${formatStamp(p.created_at)}`} loading="lazy" /></a> : <div className="adm-muted">Not available</div>}
-              <figcaption className="adm-muted">{formatStamp(p.created_at)}</figcaption>
+              <figcaption className="adm-muted">{isClientPhoto(p.path) ? "From client · " : ""}{formatStamp(p.created_at)}</figcaption>
               <form action={deletePhoto}>
                 <input type="hidden" name="id" value={id} />
                 <input type="hidden" name="row" value={p.id} />

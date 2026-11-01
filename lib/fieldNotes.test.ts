@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_PHOTO_BYTES, parseNote, parseRowId, parseSample, photoPath, sampleNote, validPhotoPath } from "./fieldNotes";
+import { MAX_PHOTO_BYTES, clientPhotoPath, isClientPhoto, parseNote, parseRowId, parseSample, photoPath, sampleNote, validPhotoPath } from "./fieldNotes";
 
 const ID = "11111111-1111-4111-8111-111111111111";
 
@@ -36,5 +36,15 @@ describe("field notes", () => {
     expect(sampleNote(3, 3)).toBe("3 logged, matches the invoice.");
     expect(sampleNote(3, 2)).toBe("3 logged, invoice says 2.");
     expect(sampleNote(2, null)).toBe("2 logged. Invoice samples not set yet.");
+  });
+});
+
+describe("client photos", () => {
+  const id = "11111111-1111-1111-1111-111111111111";
+  it("are told apart from Cory's and still valid", () => {
+    expect(isClientPhoto(clientPhotoPath(id, 5, 0.5))).toBe(true);
+    expect(isClientPhoto(photoPath(id, 5, 0.5))).toBe(false);
+    expect(validPhotoPath(id, clientPhotoPath(id))).toBe(true);
+    expect(validPhotoPath(id, `${id}/x.jpg`)).toBe(false);
   });
 });

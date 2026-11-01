@@ -2,23 +2,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addPhoto } from "../fieldActions";
-
-const MAX_SIDE = 1600;
-
-// Shrinks a phone photo to a small JPEG before it is sent, so uploads are quick on a weak signal.
-async function shrink(file: File): Promise<Blob | null> {
-  try {
-    const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
-    const scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bmp.width * scale);
-    canvas.height = Math.round(bmp.height * scale);
-    canvas.getContext("2d")?.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-    return await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.72));
-  } catch {
-    return null;
-  }
-}
+import { shrinkPhoto } from "@/lib/shrinkPhoto";
 
 export default function PhotoPicker({ id }: { id: string }) {
   const input = useRef<HTMLInputElement>(null);
@@ -31,7 +15,7 @@ export default function PhotoPicker({ id }: { id: string }) {
     setMsg("Saving...");
     let saved = 0;
     for (const f of Array.from(files)) {
-      const blob = await shrink(f);
+      const blob = await shrinkPhoto(f);
       if (!blob) continue;
       const form = new FormData();
       form.set("id", id);
