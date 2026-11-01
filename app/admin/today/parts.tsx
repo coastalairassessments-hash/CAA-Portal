@@ -6,19 +6,19 @@ import { type DashRow, type money, type needsYou } from "@/lib/dashboard";
 import { formatMoney } from "@/lib/pricing";
 import { progress } from "@/lib/stage";
 import { stampTime } from "../actions";
+import OfflineStamp from "../OfflineStamp";
 
 export type Job = AdminRow & DashRow & { en_route_at?: string | null; arrived_at: string | null; left_at: string | null };
 
 function Stamp({ id, which, done, label }: { id: string; which: "en_route_at" | "arrived_at" | "left_at"; done: boolean; label: string }) {
+  if (!done) return <OfflineStamp id={id} which={which} label={label} className="adm-btn wide primary" />;
   return (
     <form action={stampTime}>
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="which" value={which} />
       <input type="hidden" name="back" value="today" />
-      {done && <input type="hidden" name="clear" value="1" />}
-      <button className={`adm-btn wide${done ? "" : " primary"}`} type="submit" style={{ minHeight: 48 }}>
-        {done ? `${label} ✓` : label}
-      </button>
+      <input type="hidden" name="clear" value="1" />
+      <button className="adm-btn wide" type="submit" style={{ minHeight: 48 }}>{`${label} ✓`}</button>
     </form>
   );
 }

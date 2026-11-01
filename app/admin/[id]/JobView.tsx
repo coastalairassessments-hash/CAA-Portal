@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import FieldNotes from "./FieldNotes";
 import ReportBox from "./ReportBox";
+import OfflineStamp from "../OfflineStamp";
 import ReferralBox from "./ReferralBox";
 import { formatPhone, formatStamp, formatTime, fullAddress, jobLabel, sizeLabel } from "@/lib/labels";
 import { formatDateLabel } from "@/lib/dates";
@@ -10,7 +11,7 @@ import { confirmText, offerText, smsLink } from "@/lib/confirm";
 import { GOOGLE_REVIEW_URL, depositReminderText, reviewText } from "@/lib/quicktexts";
 import { depositCents, firstHourCents, formatMoney } from "@/lib/pricing";
 import { googleCalendarLink } from "@/lib/calendar";
-import { cancelBooking, cancelJob, clearEmailFailed, declineRequest, markDepositReceived, markRefunded, stampTime } from "../actions";
+import { cancelBooking, cancelJob, clearEmailFailed, declineRequest, markDepositReceived, markRefunded } from "../actions";
 import { hoursUntil, refundDue } from "@/lib/cancel";
 import { STAGES, stageDone } from "@/lib/stage";
 import { clientTypeLabel, intakeLines } from "@/lib/intake";
@@ -280,11 +281,12 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
         <div className="adm-pinbar">
           {r.status === "new" && <a className="adm-btn primary" href="#approve">Approve</a>}
           {r.status === "confirmed" && !r.left_at && (
-            <form action={stampTime}>
-              <input type="hidden" name="id" value={r.id} />
-              <input type="hidden" name="which" value={r.arrived_at ? "left_at" : r.en_route_at ? "arrived_at" : "en_route_at"} />
-              <button className="adm-btn primary" type="submit">{r.arrived_at ? "Left" : r.en_route_at ? "Arrived" : "On my way"}</button>
-            </form>
+            <OfflineStamp
+              id={r.id}
+              which={r.arrived_at ? "left_at" : r.en_route_at ? "arrived_at" : "en_route_at"}
+              label={r.arrived_at ? "Left" : r.en_route_at ? "Arrived" : "On my way"}
+              className="adm-btn primary"
+            />
           )}
           {r.status === "confirmed" && r.left_at && <a className="adm-btn primary" href="#money">Invoice</a>}
           {(r.status === "offered" || r.status === "confirmed") && <a className="adm-btn danger" href="#cancel">Cancel</a>}
