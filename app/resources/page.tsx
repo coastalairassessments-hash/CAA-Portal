@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Logo from "@/app/components/Logo";
-import { publicGuides } from "@/lib/guides";
+import { publicResources } from "@/lib/guides";
 
 export const metadata: Metadata = {
   title: "Resources | Coastal Air Assessments",
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default function ResourcesPage() {
-  const guides = publicGuides();
+  const guides = publicResources();
   return (
     <>
       <header className="wrap site-header">
@@ -21,8 +21,8 @@ export default function ResourcesPage() {
         {guides.length === 0 && <p>New guides are on the way.</p>}
         <ul className="guide-list">
           {guides.map((g) => (
-            <li key={g.slug}>
-              <Link href={`/resources/${g.slug}`}>{g.title}</Link>
+            <li key={g.href}>
+              <Link href={g.href}>{g.title}</Link>
               <span>{g.summary}</span>
             </li>
           ))}

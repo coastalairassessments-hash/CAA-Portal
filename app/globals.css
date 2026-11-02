@@ -1014,3 +1014,43 @@ details.adm-group[open] > summary::after { content: "\2212"; }
 .guide-table thead th { background: var(--foam); font-size: 0.85rem; }
 .guide-table tbody tr:last-child th, .guide-table tbody tr:last-child td { border-bottom: 0; }
 .guide-refs { font-size: 0.85rem; word-break: break-word; color: var(--muted); }
+
+/* Home Environmental Control Plan: one-page guides in the CAA colors */
+.plan-kicker { margin: 0; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--signal); }
+.plan-hero { background: var(--tide-deep); color: #fff; border-radius: 16px; padding: 1.5rem 1.25rem; margin: 0.5rem 0 1.25rem; }
+.plan-hero h1 { color: #fff; margin: 0.25rem 0 0.5rem; }
+.plan-hero p { color: #d7e4ee; }
+.plan-hero .plan-kicker { color: #e3b25a; }
+.plan-gold { background: #e3b25a; color: #12262b; border-color: #e3b25a; }
+.plan-index { list-style: none; padding: 0; display: grid; gap: 10px; }
+.plan-index a { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #fff; text-decoration: none; color: var(--ink); min-height: 56px; }
+.plan-index a:hover { border-color: var(--tide); }
+.plan-num { flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--tide-deep); color: #fff; display: grid; place-items: center; font-weight: 600; }
+.plan-idx-text { display: flex; flex-direction: column; }
+.plan-idx-text small { color: var(--muted); }
+.plan-head { background: var(--tide-deep); color: #fff; border-radius: 16px; padding: 1.25rem 1.25rem 1rem; margin: 0.5rem 0 1rem; }
+.plan-head .plan-kicker { color: #e3b25a; }
+.plan-head h1 { color: #fff; margin: 0.25rem 0 0.75rem; }
+.plan-dots { display: flex; gap: 6px; }
+.plan-dots span { flex: 1; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.25); }
+.plan-dots span.done { background: rgba(255, 255, 255, 0.6); }
+.plan-dots span.on { background: #e3b25a; }
+.plan-simple { background: #fbeccd; border: 1px solid #ebcf98; border-left: 6px solid var(--signal); border-radius: 12px; padding: 0.9rem 1.1rem; margin: 1rem 0; color: #3d2900; }
+.plan-simple h2 { margin: 0 0 0.35rem; font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; color: #6b4400; }
+.plan-simple p { margin: 0.2rem 0; font-size: 1.05rem; }
+.plan-next { background: var(--foam); border: 1px solid var(--line); border-left: 6px solid var(--tide); border-radius: 12px; padding: 0.9rem 1.1rem; margin: 1.25rem 0; }
+.plan-next h2 { margin: 0 0 0.35rem; font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tide-deep); }
+.plan-next p { margin: 0; }
+.plan-table thead th { background: var(--tide-deep); color: #fff; }
+.plan-bar { list-style: none; padding: 0; margin: 1rem 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: 6px; }
+.plan-bar li { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
+.plan-bar span { font-size: 0.85rem; color: var(--muted); }
+.plan-bar .tone-ok { background: #e3f1e6; border-color: #b6d8bd; }
+.plan-bar .tone-low { background: var(--foam); }
+.plan-bar .tone-watch { background: #fbeccd; border-color: #ebcf98; }
+.plan-bar .tone-bad { background: #f6dcd8; border-color: #e3b1aa; }
+.plan-pager { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 1.25rem 0; }
+.plan-pager a { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; text-decoration: none; color: var(--tide); font-weight: 600; min-height: 56px; background: #fff; }
+.plan-pager a small { color: var(--muted); font-weight: 400; }
+.plan-pager-next { text-align: right; align-items: flex-end; }
+.plan-sources summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }

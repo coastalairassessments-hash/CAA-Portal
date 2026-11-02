@@ -14,7 +14,7 @@ import { PREP_DO, PREP_DONT, PREP_INTRO } from "@/lib/prep";
 import { LIVE_STEPS, liveState } from "@/lib/live";
 import { todayInNewYork } from "@/lib/dates";
 import { reportState } from "@/lib/report";
-import { publicGuides } from "@/lib/guides";
+import { publicResources } from "@/lib/guides";
 import { canMove, moveOptions } from "@/lib/reschedule";
 import { heldSlots } from "@/lib/availabilityServer";
 import { nextBookableDates } from "@/lib/dates";
@@ -169,12 +169,12 @@ async function Booking({ params, searchParams }: Props) {
         </section>
       )}
 
-      {publicGuides().length > 0 && (
+      {publicResources().length > 0 && (
         <section className="bk-help">
           <h2>Helpful guides</h2>
           <ul>
-            {publicGuides().map((g) => (
-              <li key={g.slug}><Link href={`/resources/${g.slug}`}>{g.title}</Link></li>
+            {publicResources().map((g) => (
+              <li key={g.href}><Link href={g.href}>{g.title}</Link></li>
             ))}
           </ul>
         </section>
