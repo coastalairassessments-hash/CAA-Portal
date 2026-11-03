@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { supabaseForUser } from "@/lib/supabase/server";
 import { serviceDb } from "@/lib/bookingServer";
 import { MAX_REPORT_BYTES, REPORT_BUCKET, looksLikePdf, reportPath, validReportPath } from "@/lib/report";
-import { sendReadyReports } from "@/lib/reportServer";
+import { sendLockedNotice, sendReadyReports } from "@/lib/reportServer";
+import { createFinalInvoice } from "@/lib/finalInvoiceServer";
 
 async function adminClient() {
   const supabase = await supabaseForUser();
@@ -30,7 +31,7 @@ export async function uploadReport(form: FormData): Promise<void> {
   if (up.error) return back(id, "error");
   const { error } = await supabase
     .from("requests")
-    .update({ report_path: path, report_uploaded_at: new Date().toISOString(), report_emailed_at: null })
+    .update({ report_path: path, report_uploaded_at: new Date().toISOString(), report_emailed_at: null, report_locked_emailed_at: null })
     .eq("id", id);
   if (error) {
     await supabase.storage.from(REPORT_BUCKET).remove([path]);
@@ -40,6 +41,38 @@ export async function uploadReport(form: FormData): Promise<void> {
   const db = serviceDb();
   if (db) await sendReadyReports(db, id).catch(() => 0);
   back(id, "saved");
+}
+
+// One click: attach the PDF, send the final invoice, tell the client the report is waiting. Each step is safe to repeat.
+export async function uploadAndInvoice(form: FormData): Promise<void> {
+  const supabase = await adminClient();
+  const id = String(form.get("id") ?? "");
+  const file = form.get("report");
+  if (!supabase || !validId(id)) redirect("/admin");
+  if (!(file instanceof File) || file.size === 0 || file.size > MAX_REPORT_BYTES) return back(id, "size");
+  if (!looksLikePdf(new Uint8Array(await file.slice(0, 8).arrayBuffer()))) return back(id, "type");
+
+  const { data: old } = await supabase.from("requests").select("report_path").eq("id", id).maybeSingle();
+  const path = reportPath(id);
+  const up = await supabase.storage.from(REPORT_BUCKET).upload(path, file, { contentType: "application/pdf", upsert: false });
+  if (up.error) return back(id, "error");
+  const { error } = await supabase
+    .from("requests")
+    .update({ report_path: path, report_uploaded_at: new Date().toISOString(), report_emailed_at: null, report_locked_emailed_at: null })
+    .eq("id", id);
+  if (error) {
+    await supabase.storage.from(REPORT_BUCKET).remove([path]);
+    return back(id, "error");
+  }
+  if (old?.report_path && validReportPath(id, old.report_path)) await supabase.storage.from(REPORT_BUCKET).remove([old.report_path]);
+
+  const inv = await createFinalInvoice(supabase, id);
+  const db = serviceDb();
+  if (db && (inv === "sent" || inv === "unsent" || inv === "exists")) {
+    await sendReadyReports(db, id).catch(() => 0);
+    if (inv !== "unsent") await sendLockedNotice(db, id).catch(() => false);
+  }
+  back(id, inv === "sent" ? "sent" : inv === "exists" ? "saved" : inv === "unsent" ? "unsent" : inv === "qbconnect" ? "qbconnect" : "qbfail");
 }
 
 // Unlock early, for a contractor on terms or as goodwill.

@@ -24,6 +24,26 @@ export const validReportPath = (requestId: string, path: unknown) =>
 export const looksLikePdf = (bytes: Uint8Array) =>
   bytes.length > 4 && bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
 
+export function reportLockedEmail(row: { name: string; public_token?: string | null }, siteUrl: string = SITE_URL_FALLBACK) {
+  const first = row.name.trim().split(/\s+/)[0] || "there";
+  const link = bookingUrl(row, siteUrl);
+  return {
+    subject: "Your report is ready",
+    text: [
+      `Hi ${first},`,
+      "",
+      "Your report is ready. Pay your final invoice to unlock it. The invoice is in a separate email from QuickBooks.",
+      "",
+      "Once it is paid, the report is emailed to you right away. You can also follow along here:",
+      link ?? siteUrl,
+      "",
+      `Questions? Call or text ${PHONE}.`,
+      "",
+      ...SIGNOFF,
+    ].join("\n"),
+  };
+}
+
 export function reportReadyEmail(row: { name: string; public_token?: string | null }, siteUrl: string = SITE_URL_FALLBACK) {
   const first = row.name.trim().split(/\s+/)[0] || "there";
   const link = bookingUrl(row, siteUrl);
