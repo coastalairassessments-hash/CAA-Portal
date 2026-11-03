@@ -1,0 +1,30 @@
+name: Security scans
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 9 * * 1"
+permissions:
+  contents: read
+jobs:
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # reads the whole history, not just the latest files
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  semgrep:
+    name: Code scan
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      # Report-only at first so a false alarm cannot block work. Once the first findings are triaged, remove continue-on-error.
+      - run: semgrep scan --config p/default --config p/typescript --config p/nextjs --metrics=off --error app lib netlify supabase
+        continue-on-error: true
