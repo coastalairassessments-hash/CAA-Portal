@@ -1,26 +1,3 @@
-# Only the parts that guard client data need Jonathan's eyes. Everything else can merge without him.
-# (Takes effect once "Require review from Code Owners" is on for main in GitHub branch protection.)
-/supabase/                         @jhuizingh
-/lib/clientServer.ts               @jhuizingh
-/lib/clientAuth.ts                 @jhuizingh
-/lib/contractorServer.ts           @jhuizingh
-/lib/contractorAuth.ts             @jhuizingh
-/lib/bookingServer.ts              @jhuizingh
-/lib/report.ts                     @jhuizingh
-/lib/reportServer.ts               @jhuizingh
-/lib/qb*.ts                        @jhuizingh
-/lib/secretBox.ts                  @jhuizingh
-/lib/supabase/                     @jhuizingh
-/app/portal/                       @jhuizingh
-/app/contractor/                   @jhuizingh
-/app/booking/                      @jhuizingh
-/app/admin/*Actions.ts             @jhuizingh
-/app/admin/actions.ts              @jhuizingh
-/app/api/                          @jhuizingh
-/netlify/                          @jhuizingh
-/proxy.ts                          @jhuizingh
-/next.config.ts                    @jhuizingh
-/.github/                          @jhuizingh
-/lib/finalInvoiceServer.ts           @jhuizingh
-/db/                               @jhuizingh
-/.github/workflows/                @jhuizingh
+# Owner of record for everything. Nobody else's approval is needed to merge;
+# the automatic checks (types, lint, tests, locked doors, database walls, scans) are the gate.
+* @coastalairassessments-hash

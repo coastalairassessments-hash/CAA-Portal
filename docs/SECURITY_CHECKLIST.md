@@ -1,6 +1,6 @@
-# Review checklist for Jonathan
+# Security checklist (run before each release)
 
-Goal: about half a day of judgment. The automatic checks (types, lint, 300+ unit tests, locked-door tests, secret scan, code scan, dependency scan) run on every push, so start from a green build. CODEOWNERS already routes only the files below to you.
+Goal: a release gate we run ourselves. Claude walks every box against the code and tests; Cory signs off. The automatic checks (types, lint, 300+ unit tests, locked-door tests, secret scan, code scan, dependency scan) run on every push, so start from a green build. The files below are the ones that guard money and client data.
 
 ## 1. Who can see what (about 3 hours)
 **Sign-in and sessions** `lib/clientServer.ts`, `lib/clientAuth.ts`, `lib/contractorServer.ts`, `lib/contractorAuth.ts`, `app/portal/`, `app/contractor/`
