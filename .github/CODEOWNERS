@@ -21,3 +21,6 @@
 /proxy.ts                          @jhuizingh
 /next.config.ts                    @jhuizingh
 /.github/                          @jhuizingh
+/lib/finalInvoiceServer.ts           @jhuizingh
+/db/                               @jhuizingh
+/.github/workflows/                @jhuizingh

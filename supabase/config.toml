@@ -1,0 +1,11 @@
+# Local Supabase for tests only (CI runs `supabase start`). Real data lives in the hosted project.
+project_id = "caa-portal-test"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+
+[db]
+port = 54322
+major_version = 15
