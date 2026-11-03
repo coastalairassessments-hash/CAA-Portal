@@ -14,6 +14,8 @@ import { PREP_DO, PREP_DONT, PREP_INTRO } from "@/lib/prep";
 import { LIVE_STEPS, liveState } from "@/lib/live";
 import { todayInNewYork } from "@/lib/dates";
 import { reportState } from "@/lib/report";
+import { timeline } from "@/lib/timeline";
+import { clientTimelineOn } from "@/lib/flags";
 import { publicResources } from "@/lib/guides";
 import { canMove, moveOptions } from "@/lib/reschedule";
 import { heldSlots } from "@/lib/availabilityServer";
@@ -50,6 +52,7 @@ async function Booking({ params, searchParams }: Props) {
   const base = bookingView(r as never);
   const live = liveState(r as never, todayInNewYork());
   const v = live ? { ...base, headline: live.headline, detail: live.detail, canCancel: false } : base;
+  const steps = clientTimelineOn() && !live ? timeline(r as never) : null;
   const first = String(r.name).trim().split(/\s+/)[0];
   let sentPhotos = 0;
   if (v.canCancel) {
@@ -103,7 +106,21 @@ async function Booking({ params, searchParams }: Props) {
         </ol>
       )}
 
-      {!live && v.step > 0 && (
+      {steps && (
+        <>
+          <ol className="bk-steps" aria-label="Progress">
+            {steps.map((s, i) => (
+              <li key={s.key} className={s.state === "done" ? "is-done" : undefined}>
+                <span>{s.state === "done" ? "✓" : i + 1}</span>
+                {s.label}
+              </li>
+            ))}
+          </ol>
+          {steps.find((s) => s.state === "current")?.note && <p className="bk-lead">{steps.find((s) => s.state === "current")?.note}</p>}
+        </>
+      )}
+
+      {!live && !steps && v.step > 0 && (
         <ol className="bk-steps" aria-label="Progress">
           {CLIENT_STEPS.map((label, i) => (
             <li key={label} className={i < v.step ? "is-done" : undefined}>
