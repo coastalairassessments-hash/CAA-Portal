@@ -32,7 +32,7 @@ export function reportReadyEmail(row: { name: string; public_token?: string | nu
     text: [
       `Hi ${first},`,
       "",
-      "Your report is ready. You can open and download it from your booking page:",
+      "Your report is ready. Open it from your booking page, then sign in with this email address (no password) to download it:",
       link ?? siteUrl,
       "",
       `Questions about anything in it? Call or text ${PHONE}.`,

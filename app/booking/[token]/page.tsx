@@ -141,6 +141,7 @@ async function Booking({ params, searchParams }: Props) {
       {reportState(r as never) === "ready" && (
         <section className="bk-pay">
           <h2>Your report</h2>
+          <p>Sign in with the email you booked with (no password) to open it.</p>
           <a className="btn" href={`/booking/${token}/report`}>Open your report (PDF)</a>
         </section>
       )}
@@ -196,6 +197,11 @@ async function Booking({ params, searchParams }: Props) {
           </ul>
         </section>
       )}
+
+      <section className="bk-help">
+        <h2>Your portal</h2>
+        <p>See all your bookings and reports in one place: <Link href="/portal">sign in to your portal</Link>.</p>
+      </section>
 
       <section className="bk-help">
         <h2>Another property?</h2>
