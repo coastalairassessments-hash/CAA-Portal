@@ -1,0 +1,6 @@
+# Known, accepted findings. Each one needs a reason and an end date so it gets looked at again.
+
+[[IgnoredVulns]]
+id = "GHSA-g3hv-75wg-m249"
+ignoreUntil = 2027-02-01
+reason = "minimatch slow-pattern issue in dev-only lint tooling (eslint). Patch is only in 11.x, which eslint 9 cannot use yet. Never runs in production or on client input; globs come from our own config."

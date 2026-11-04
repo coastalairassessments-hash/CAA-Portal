@@ -19,5 +19,5 @@ Live: https://book.coastalairassessments.com (admin at /admin). Main site repo: 
 2. Intuit production keys: finish the app questionnaire (privacy /privacy, EULA /eula, host book.coastalairassessments.com, redirect https://book.coastalairassessments.com/api/qb/callback), then set QB_ENV=production with the production Client ID/Secret and reconnect on More.
 3. Optional: grey out held slots on the client calendar (asked, not yet answered).
 4. Subdomain book.coastalairassessments.com, then swap the buttons on the main site and set SITE_URL.
-5. Before real clients: Supabase Pro backups, two-factor on logins, clear test data, Jonathan security review, attorney glance at policy/privacy/EULA.
+5. Before real clients: Supabase Pro backups, two-factor on logins, clear test data, automated security gates plus a one-time paid penetration test, attorney glance at policy/privacy/EULA.
 6. Later: deposit via QuickBooks pay link, mark paid from QuickBooks, day-before reminders, carrier registration for automatic texts.

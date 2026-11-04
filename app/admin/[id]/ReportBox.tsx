@@ -2,14 +2,21 @@ import { connection } from "next/server";
 import { supabaseForUser } from "@/lib/supabase/server";
 import { REPORT_BUCKET, reportState, validReportPath } from "@/lib/report";
 import { formatStamp } from "@/lib/labels";
-import { releaseReport, removeReport, uploadReport } from "../reportActions";
+import { finalInvoice, minutesOnSite } from "@/lib/billing";
+import { formatMoney } from "@/lib/pricing";
+import { releaseReport, removeReport, uploadAndInvoice, uploadReport } from "../reportActions";
+import DropZone from "./DropZone";
 
-type Row = { id: string; report_path?: string | null; report_uploaded_at?: string | null; report_released_at?: string | null; report_emailed_at?: string | null; final_paid_at?: string | null };
+type Row = { id: string; report_path?: string | null; report_uploaded_at?: string | null; report_released_at?: string | null; report_emailed_at?: string | null; final_paid_at?: string | null; qb_invoice_id?: string | null; final_invoice_no?: string | null; issue?: string; arrived_at?: string | null; left_at?: string | null; lab_samples?: number | null; extras_cents?: number | null; deposit_cents?: number | null; deposit_paid_at?: string | null };
 
 const NOTES: Record<string, string> = {
   saved: "Report saved.",
   released: "Released. The client can open it now.",
   removed: "Report removed.",
+  sent: "Report saved. Final invoice sent, and the client knows the report is waiting.",
+  unsent: "Report saved. The invoice was made in QuickBooks but the email did not go out. Send it from QuickBooks.",
+  qbconnect: "Report saved. QuickBooks is not connected, so no invoice went out.",
+  qbfail: "Report saved. The invoice did not go through. Try Send final invoice under Money.",
   size: "That file is empty or over 10 MB.",
   type: "That is not a PDF.",
   error: "Something did not save. Try again.",
@@ -24,6 +31,16 @@ export default async function ReportBox({ r, flag }: { r: Row; flag?: string }) 
     const { data } = await supabase.storage.from(REPORT_BUCKET).createSignedUrl(r.report_path, 600);
     openUrl = data?.signedUrl ?? null;
   }
+  const inv = r.issue
+    ? finalInvoice({
+        issue: r.issue,
+        minutes: minutesOnSite(r.arrived_at ?? null, r.left_at ?? null),
+        samples: r.lab_samples ?? null,
+        extrasCents: r.extras_cents ?? 0,
+        depositPaidCents: r.deposit_paid_at && typeof r.deposit_cents === "number" ? r.deposit_cents : null,
+      })
+    : null;
+  const needsInvoice = !r.qb_invoice_id && !!inv;
   const note = flag ? NOTES[flag] : undefined;
 
   return (
@@ -31,7 +48,7 @@ export default async function ReportBox({ r, flag }: { r: Row; flag?: string }) 
       <summary>
         Report <span className="v">{state === "none" ? "Not uploaded" : state === "locked" ? "Locked until paid" : "Client can open it"}</span>
       </summary>
-      {note && <p className={flag === "size" || flag === "type" || flag === "error" ? "adm-err" : "adm-ok"}>{note}</p>}
+      {note && <p className={["size","type","error","unsent","qbconnect","qbfail"].includes(flag ?? "") ? "adm-err" : "adm-ok"}>{note}</p>}
       {r.report_path && (
         <>
           <p className="adm-line">
@@ -55,12 +72,22 @@ export default async function ReportBox({ r, flag }: { r: Row; flag?: string }) 
           </form>
         </>
       )}
-      <form action={uploadReport} className="adm-field">
-        <input type="hidden" name="id" value={r.id} />
-        <label htmlFor="report-file">{r.report_path ? "Replace the PDF" : "Attach the PDF (up to 10 MB)"}</label>
-        <input id="report-file" name="report" type="file" accept="application/pdf" required />
-        <button className="adm-btn primary wide" type="submit">Upload report</button>
-      </form>
+      {needsInvoice ? (
+        <form action={uploadAndInvoice} className="adm-field adm-uploadform">
+          <input type="hidden" name="id" value={r.id} />
+          <DropZone />
+          <p className="adm-muted">
+            Balance due {formatMoney(inv.balance)} (total {formatMoney(inv.total)}). Uploading sends this invoice and tells the client the report is waiting. Check Money first.
+          </p>
+          <button className="adm-btn primary wide" type="submit">Upload report and send {formatMoney(inv.balance)} invoice</button>
+        </form>
+      ) : (
+        <form action={uploadReport} className="adm-field adm-uploadform">
+          <input type="hidden" name="id" value={r.id} />
+          <DropZone />
+          <button className="adm-btn primary wide" type="submit">{r.report_path ? "Replace report" : "Upload report"}</button>
+        </form>
+      )}
     </details>
   );
 }

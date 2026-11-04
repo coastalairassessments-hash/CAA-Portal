@@ -32,11 +32,8 @@ import { depositCents } from "@/lib/pricing";
 import { overlaps } from "@/lib/slots";
 import { isSection, parseSection } from "@/lib/job";
 import { issueForService, parseContractorJob } from "@/lib/contractorJob";
-import { finalInvoice, minutesOnSite } from "@/lib/billing";
-import { finalInvoicePayload } from "@/lib/qbInvoice";
-import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, qbConnected } from "@/lib/qbSync";
-import { addDays, todayInNewYork } from "@/lib/dates";
-import { jobLabel } from "@/lib/labels";
+import { createFinalInvoice } from "@/lib/finalInvoiceServer";
+import { ensureCustomer, qbConnected } from "@/lib/qbSync";
 import { enRouteEmail } from "@/lib/enroute";
 import { confirmationWithCalendar } from "@/lib/confirmMail";
 import { serviceDb } from "@/lib/bookingServer";
@@ -382,49 +379,10 @@ export async function sendFinalInvoice(form: FormData): Promise<void> {
   if (!r || r.status !== "confirmed") redirect(`/admin/${id}?error=save`);
   if (r.qb_invoice_id) redirect(`/admin/${id}`);
 
-  let sent = false;
-  try {
-    if (!(await qbConnected())) redirect(`/admin/${id}?error=qbconnect`);
-    const customerId = r.qb_customer_id || (await ensureCustomer(r));
-    const itemId = await ensureServiceItem();
-    const minutes = minutesOnSite(r.arrived_at, r.left_at);
-    const inv = finalInvoice({
-      issue: r.issue,
-      minutes,
-      samples: r.lab_samples,
-      extrasCents: r.extras_cents ?? 0,
-      depositPaidCents: r.deposit_paid_at && typeof r.deposit_cents === "number" ? r.deposit_cents : null,
-    });
-    const today = todayInNewYork();
-    const payload = finalInvoicePayload({
-      customerId,
-      itemId,
-      service: jobLabel(r),
-      inv,
-      quarterMinutes: inv.quarters * 15,
-      samples: r.lab_samples ?? 0,
-      email: r.email,
-      txnDate: today,
-      dueDate: r.source === "contractor" ? addDays(today, 7) : today,
-    });
-    const made = await createInvoice(payload);
-    sent = await emailInvoice(made.id, r.email);
-    const { error } = await supabase
-      .from("requests")
-      .update({
-        qb_customer_id: customerId,
-        qb_invoice_id: made.id,
-        final_invoice_no: made.number || r.final_invoice_no,
-        final_invoiced_at: new Date().toISOString(),
-      })
-      .eq("id", id);
-    if (error) console.error("[qb] invoice made but not saved:", error.code);
-  } catch (e) {
-    if (e && typeof e === "object" && "digest" in e) throw e; // let redirect() through
-    console.error("[qb] final invoice failed:", e instanceof Error ? e.message : e);
-    redirect(`/admin/${id}?error=qb`);
-  }
-  redirect(`/admin/${id}?saved=${sent ? "invoice" : "invoice-unsent"}`);
+  const res = await createFinalInvoice(supabase, id);
+  if (res === "qbconnect") redirect(`/admin/${id}?error=qbconnect`);
+  if (res === "qb" || res === "notfound") redirect(`/admin/${id}?error=qb`);
+  redirect(`/admin/${id}?saved=${res === "sent" ? "invoice" : res === "exists" ? "" : "invoice-unsent"}`);
 }
 
 // Time away: close a start time (or the whole day) so clients cannot pick it, or open it again.

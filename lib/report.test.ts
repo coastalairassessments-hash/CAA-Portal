@@ -31,3 +31,15 @@ describe("reportReadyEmail", () => {
     expect(m.subject).toBe("Your report is ready");
   });
 });
+
+describe("reportLockedEmail", () => {
+  it("tells the client the report waits on the final invoice, without pressure", async () => {
+    const { reportLockedEmail } = await import("./report");
+    const m = reportLockedEmail({ name: "Dana Lee", public_token: "a".repeat(32) }, "https://book.example.com");
+    expect(m.subject).toBe("Your report is ready");
+    expect(m.text).toContain("Hi Dana,");
+    expect(m.text).toContain("Pay your final invoice to unlock it.");
+    expect(m.text).toContain("https://book.example.com");
+    expect(m.text.toLowerCase()).not.toMatch(/overdue|late fee|urgent/);
+  });
+});
