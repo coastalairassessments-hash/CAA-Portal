@@ -1,5 +1,6 @@
 // SERVER ONLY. Stores the QuickBooks tokens (service key) and makes authorized calls.
 import { createClient } from "@supabase/supabase-js";
+import { open, seal } from "./secretBox";
 import { TOKEN_URL, apiBase, basicAuth, qbConfig, tokenDates, type TokenReply } from "./qb";
 
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
@@ -22,15 +23,17 @@ type Conn = {
 export async function getConnection(): Promise<Conn | null> {
   const { data, error } = await db().from("qb_connection").select("*").eq("id", 1).maybeSingle();
   if (error) throw error;
-  return (data as Conn | null) ?? null;
+  if (!data) return null;
+  const c = data as Conn;
+  return { ...c, access_token: open(c.access_token), refresh_token: open(c.refresh_token) };
 }
 
 export async function saveConnection(realmId: string, r: TokenReply) {
   const { error } = await db().from("qb_connection").upsert({
     id: 1,
     realm_id: realmId,
-    access_token: r.access_token,
-    refresh_token: r.refresh_token,
+    access_token: seal(r.access_token),
+    refresh_token: seal(r.refresh_token),
     ...tokenDates(r),
     updated_at: new Date().toISOString(),
   });

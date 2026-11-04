@@ -1,5 +1,9 @@
 import { NextResponse, connection } from "next/server";
 import { parseComponents, parseSuggestions } from "@/lib/address";
+import { makeLimiter, requestIp } from "@/lib/rateLimit";
+
+// Each lookup can cost money, so one visitor gets a generous but finite number a minute.
+const allow = makeLimiter(40, 60_000);
 
 // Address help for the request form. Without a key it quietly returns nothing and the form works as plain typing.
 const KEY = () => process.env.GOOGLE_PLACES_KEY?.trim().replace(/^["']+|["']+$/g, "");
@@ -9,6 +13,7 @@ export async function GET(req: Request) {
   await connection();
   const key = KEY();
   if (!key) return none();
+  if (!allow(requestIp(req))) return NextResponse.json({ suggestions: [], place: null }, { status: 429, headers: { "Cache-Control": "no-store" } });
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
   const q = (url.searchParams.get("q") ?? "").trim();
