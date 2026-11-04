@@ -84,4 +84,12 @@ test.describe("public endpoints", () => {
     const broken = await request.post("/api/requests", { headers: { "content-type": "application/json" }, data: Buffer.from("{not json") });
     expect(broken.status()).toBe(400);
   });
+
+  test("the QuickBooks webhook refuses unsigned and wrongly signed notes", async ({ request }) => {
+    const body = JSON.stringify({ eventNotifications: [{ dataChangeEvent: { entities: [{ name: "Payment", id: "1" }] } }] });
+    const none = await request.post("/api/qb/webhook", { data: Buffer.from(body), headers: { "content-type": "application/json" } });
+    expect(none.status()).toBe(401);
+    const bad = await request.post("/api/qb/webhook", { data: Buffer.from(body), headers: { "content-type": "application/json", "intuit-signature": "AAAA" } });
+    expect(bad.status()).toBe(401);
+  });
 });

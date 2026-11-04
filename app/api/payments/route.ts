@@ -4,6 +4,7 @@ import { NextResponse, connection } from "next/server";
 import { serviceDb } from "@/lib/bookingServer";
 import { SETTLE_COLUMNS, settleDeposit } from "@/lib/settle";
 import { sendReadyReports } from "@/lib/reportServer";
+import { settleAllFinals } from "@/lib/settleFinal";
 
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
 
@@ -31,6 +32,8 @@ export async function GET(req: Request) {
     });
     tally[r] = (tally[r] ?? 0) + 1;
   }
+  // Backup for the QuickBooks webhook: notice any final invoice that has been paid.
+  const finals = await settleAllFinals(db).catch(() => ({}));
   const reports = await sendReadyReports(db).catch(() => 0);
-  return NextResponse.json({ ok: true, ...tally, reports });
+  return NextResponse.json({ ok: true, ...tally, finals, reports });
 }
