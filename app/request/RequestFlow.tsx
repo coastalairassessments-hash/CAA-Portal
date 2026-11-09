@@ -6,6 +6,7 @@ import { formatDateLabel } from "@/lib/dates";
 import SlotCalendar from "./SlotCalendar";
 import AddressField from "./AddressField";
 import { driveZone, type Zoned } from "@/lib/driveTime";
+import { classifyZip } from "@/lib/zones";
 import { HOW_HEARD, isLongVisit } from "@/lib/request";
 import { CLIENT_TYPES, PROPERTY_TYPES, WATER_WHEN, YES_NO, asksCompany, isMultiUnit, isOrg, needsQuote } from "@/lib/intake";
 import { depositCents, firstHourCents, formatMoney } from "@/lib/pricing";
@@ -23,7 +24,7 @@ const SIZES = [
   { value: "under_2000", label: "Under 2,000 sq ft", hint: "Typically about 1 hour" },
   { value: "2000_4000", label: "2,000 to 4,000 sq ft", hint: "Typically about 2 to 3 hours" },
   { value: "4000_6000", label: "4,000 to 6,000 sq ft", hint: "Typically about 3 to 4 hours" },
-  { value: "over_6000", label: "Over 6,000 sq ft", hint: "We confirm the time with you" },
+  { value: "over_6000", label: "Over 6,000 sq ft", hint: "Takes a full day" },
 ];
 
 const TIMES = [
@@ -209,8 +210,8 @@ export default function RequestFlow({ dates, held, again, refCode }: { dates: st
     }
   }
 
-  // Everyone except bigger buildings books and pays the deposit right away.
-  const instantFlow = !needsQuote(propertyType) && sizeBand !== "over_6000";
+  // Anyone inside Martin, St. Lucie or Palm Beach books and pays the deposit right away.
+  const instantFlow = classifyZip(zip).area === "core";
   const issueLabel = ISSUES.find((i) => i.value === issue)?.label;
   const sizeLabel = SIZES.find((s) => s.value === sizeBand)?.label;
   const timeLabel = TIMES.find((t) => t.value === preferredTime)?.label;
@@ -346,7 +347,7 @@ export default function RequestFlow({ dates, held, again, refCode }: { dates: st
               {issue && (
                 <p className="price-line">
                   {needsQuote(propertyType)
-                    ? `${issueLabel}: we confirm the price for this kind of property. The deposit is 75% of the first hour.`
+                    ? `${issueLabel}: deposit to hold your time is ${formatMoney(depositCents(issue))}. We confirm the final price for this kind of property before the visit.`
                     : `${issueLabel} from ${formatMoney(firstHourCents(issue))} for the first hour. Deposit to hold your time: ${formatMoney(depositCents(issue))}.`}
                 </p>
               )}

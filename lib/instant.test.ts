@@ -10,13 +10,14 @@ describe("instant booking rules", () => {
     expect(hoursFor("musty_smell", "2000_4000")).toBe(3);
     expect(hoursFor("water_damage", "4000_6000")).toBe(4);
     expect(hoursFor("consultation", "4000_6000")).toBe(1);
+    expect(hoursFor("musty_smell", "over_6000")).toBe(6);
   });
-  it("sends bigger or outside jobs to a request", () => {
+  it("lets anyone in the three home counties book, and sends outside jobs to a request", () => {
     expect(canBookInstantly({ area: "core", propertyType: "single_family", sizeBand: "under_2000" })).toBe(true);
     expect(canBookInstantly({ area: "core", propertyType: "condo", sizeBand: "2000_4000" })).toBe(true);
     expect(canBookInstantly({ area: "outside", propertyType: "single_family", sizeBand: "under_2000" })).toBe(false);
-    expect(canBookInstantly({ area: "core", propertyType: "commercial", sizeBand: "under_2000" })).toBe(false);
-    expect(canBookInstantly({ area: "core", propertyType: "single_family", sizeBand: "over_6000" })).toBe(false);
+    expect(canBookInstantly({ area: "core", propertyType: "commercial", sizeBand: "under_2000" })).toBe(true);
+    expect(canBookInstantly({ area: "core", propertyType: "single_family", sizeBand: "over_6000" })).toBe(true);
     expect(canBookInstantly({ area: "core", sizeBand: "under_2000" })).toBe(false);
   });
   it("holds a time only while the hold lasts", () => {
@@ -74,13 +75,15 @@ describe("submit with instant booking", () => {
     expect(d.revertToRequest).toHaveBeenCalledWith("id-1");
     expect(d.notify).toHaveBeenCalled();
   });
-  it("keeps apartment buildings and big homes as requests", async () => {
+  it("lets apartment buildings and big homes book and pay too", async () => {
     const d = deps();
     const r = await submitRequest({ ...form, propertyType: "multifamily" }, null, d);
-    expect(r).toEqual({ ok: true });
-    expect(d.startPayment).not.toHaveBeenCalled();
-    const big = await submitRequest({ ...form, sizeBand: "over_6000" }, null, deps());
-    expect(big).toEqual({ ok: true });
+    expect(r).toMatchObject({ ok: true, instant: true });
+    expect(d.startPayment).toHaveBeenCalled();
+    const d2 = deps();
+    const big = await submitRequest({ ...form, sizeBand: "over_6000" }, null, d2);
+    expect(big).toMatchObject({ ok: true, instant: true });
+    expect(d2.startPayment).toHaveBeenCalled();
   });
 });
 

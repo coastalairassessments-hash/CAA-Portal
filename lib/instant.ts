@@ -1,5 +1,4 @@
 // Rules for booking and paying in one go. Pure, so every rule is easy to test.
-import { needsQuote } from "./intake";
 
 // How long a time is held while the client pays. After this the time is free again.
 export const HOLD_MINUTES = 15;
@@ -11,14 +10,15 @@ export function hoursFor(issue: string, sizeBand: string): number {
   if (issue === "consultation") return 1;
   if (sizeBand === "2000_4000") return 3;
   if (sizeBand === "4000_6000") return 4;
+  if (sizeBand === "over_6000") return 6;
   return 1;
 }
 
-// Who can book and pay right away. Everyone else sends a request and we confirm the price.
+// Who can book and pay right away: anyone inside the three home counties. The deposit is the same for
+// every property, so bigger buildings book too and Cory confirms the final price before the visit.
+// Outside that area, Cory reviews the request first.
 export function canBookInstantly(r: { area: string; propertyType?: string | null; sizeBand: string }): boolean {
-  if (r.area !== "core") return false;
-  if (!r.propertyType || needsQuote(r.propertyType)) return false;
-  return r.sizeBand !== "over_6000";
+  return r.area === "core" && !!r.propertyType;
 }
 
 const minutesSince = (iso: string, now: Date) => (now.getTime() - new Date(iso).getTime()) / 60000;
