@@ -70,8 +70,8 @@ export function productionDeps(
         .eq("id", row.id);
       if (error) throw error;
     },
-    async paymentProblem(row) {
-      const body = `${row.name} tried to book and pay a deposit, but QuickBooks would not make the invoice. Open More and tap Reconnect QuickBooks.`;
+    async paymentProblem(row, reason) {
+      const body = `${row.name} tried to book and pay a deposit, but QuickBooks would not make the invoice. Reason: ${reason.slice(0, 200)}. Open More and tap Test deposit payments.`;
       const phones = await sendPush({ title: "Deposit link failed", body, url: "/admin/more" });
       const to = process.env.ALERT_EMAIL?.trim();
       if (!phones && to) await sendEmail({ to, subject: "Deposit link failed", text: body });

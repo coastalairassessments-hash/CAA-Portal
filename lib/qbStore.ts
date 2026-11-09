@@ -99,7 +99,16 @@ export async function qbFetch(path: string, init: RequestInit = {}): Promise<unk
   if (!res.ok) {
     console.error(`QuickBooks error ${res.status} intuit_tid=${tidOf(res)} path=${path.split("?")[0]}`);
     if (res.status === 401) throw new QbReconnectError();
-    throw new Error(`QuickBooks error ${res.status} (intuit_tid ${tidOf(res)})`);
+    // QuickBooks says why in its reply. Keep the short reason so a failure can be understood.
+    let why = "";
+    try {
+      const body = (await res.json()) as { Fault?: { Error?: { Message?: string; Detail?: string }[] } };
+      const e = body.Fault?.Error?.[0];
+      why = [e?.Message, e?.Detail].filter(Boolean).join(": ").slice(0, 240);
+    } catch {
+      /* no readable reason */
+    }
+    throw new Error(`QuickBooks error ${res.status}${why ? ` - ${why}` : ""} (intuit_tid ${tidOf(res)})`);
   }
   return res.json();
 }

@@ -49,7 +49,7 @@ export type SubmitDeps = {
   insert: (row: NewRequestRow) => Promise<{ id: string; public_token?: string | null }>;
   notify: (row: NewRequestRow & { id: string; public_token?: string | null }) => Promise<void>;
   // Tell Cory a client could not get a payment link, so he can fix QuickBooks.
-  paymentProblem?: (row: NewRequestRow & { id: string }) => Promise<void>;
+  paymentProblem?: (row: NewRequestRow & { id: string }, reason: string) => Promise<void>;
   ipSalt: string;
   now?: () => Date;
   // Instant booking. Left out, every request simply waits for Cory, as before.
@@ -216,7 +216,7 @@ export async function submitRequest(
       // Payments are down or not connected. Never lose the client: turn it into a normal request.
       logFailure("start-payment", err);
       try {
-        await deps.paymentProblem?.({ ...row, id });
+        await deps.paymentProblem?.({ ...row, id }, err instanceof Error ? err.message : String(err));
       } catch {
         // an alert must never fail the request
       }

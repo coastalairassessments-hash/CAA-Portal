@@ -6,6 +6,7 @@ import { connectionExpired, getConnection } from "@/lib/qbStore";
 import { qbHealth } from "@/lib/qbSync";
 import { logout } from "../actions";
 import PushToggle from "./PushToggle";
+import DepositCheck from "./DepositCheck";
 
 export const metadata: Metadata = {
   title: "More | Coastal Air Assessments",
@@ -52,6 +53,7 @@ async function QuickBooks({ searchParams }: { searchParams: Promise<Record<strin
       <a className={`adm-btn wide${health?.ok ? "" : " primary"}`} href="/api/qb/connect">
         {linked ? "Reconnect QuickBooks" : "Connect QuickBooks"}
       </a>
+      {linked && <DepositCheck />}
     </section>
   );
 }

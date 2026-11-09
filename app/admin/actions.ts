@@ -34,8 +34,9 @@ import { isSection, parseSection } from "@/lib/job";
 import { issueForService, parseContractorJob } from "@/lib/contractorJob";
 import { finalInvoice, minutesOnSite } from "@/lib/billing";
 import { finalInvoicePayload } from "@/lib/qbInvoice";
-import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, qbConnected, voidInvoice } from "@/lib/qbSync";
+import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, getInvoice, qbConnected, voidInvoice } from "@/lib/qbSync";
 import { createDepositInvoice } from "@/lib/depositInvoice";
+import { depositInvoicePayload } from "@/lib/qbInvoice";
 import { addDays, todayInNewYork } from "@/lib/dates";
 import { jobLabel } from "@/lib/labels";
 import { enRouteEmail } from "@/lib/enroute";
@@ -478,4 +479,31 @@ export async function sendTestAlert(): Promise<{ sent: number }> {
   const supabase = await adminClient();
   if (!supabase) return { sent: 0 };
   return { sent: await sendPush({ title: "Alerts are working", body: "You will get new requests and your daily briefing here.", url: "/admin/today" }) };
+}
+
+// A real deposit invoice for $1, made and then voided, so Cory can see whether clients can pay.
+export type DepositCheckState = { message: string | null; ok: boolean };
+export async function checkDeposits(_prev: DepositCheckState): Promise<DepositCheckState> {
+  const supabase = await adminClient();
+  if (!supabase) return { ok: false, message: "This account is not on the admin list." };
+  let step = "connecting to QuickBooks";
+  try {
+    if (!(await qbConnected())) return { ok: false, message: "QuickBooks is not connected. Tap Reconnect." };
+    step = "finding the test client";
+    const customerId = await ensureCustomer({ name: "CAA Test Client", email: "test@example.com" });
+    step = "finding the service item";
+    const itemId = await ensureServiceItem();
+    step = "making the test invoice";
+    const made = await createInvoice(
+      depositInvoicePayload({ customerId, itemId, description: "Test, please ignore", cents: 100, email: "test@example.com", txnDate: todayInNewYork() }),
+    );
+    step = "reading the pay link";
+    const inv = await getInvoice(made.id);
+    await voidInvoice(made.id);
+    return inv?.link
+      ? { ok: true, message: "Works. A client gets a Pay button that goes straight to QuickBooks." }
+      : { ok: true, message: "Invoice works, but QuickBooks gave no pay link, so clients are emailed the invoice instead." };
+  } catch (e) {
+    return { ok: false, message: `Stopped while ${step}. ${e instanceof Error ? e.message : "Unknown error"}` };
+  }
 }
