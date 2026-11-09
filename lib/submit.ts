@@ -48,6 +48,8 @@ export type SubmitDeps = {
   countRecentByIp: (ipHash: string, sinceIso: string) => Promise<number>;
   insert: (row: NewRequestRow) => Promise<{ id: string; public_token?: string | null }>;
   notify: (row: NewRequestRow & { id: string; public_token?: string | null }) => Promise<void>;
+  // Tell Cory a client could not get a payment link, so he can fix QuickBooks.
+  paymentProblem?: (row: NewRequestRow & { id: string }) => Promise<void>;
   ipSalt: string;
   now?: () => Date;
   // Instant booking. Left out, every request simply waits for Cory, as before.
@@ -213,6 +215,11 @@ export async function submitRequest(
     } catch (err) {
       // Payments are down or not connected. Never lose the client: turn it into a normal request.
       logFailure("start-payment", err);
+      try {
+        await deps.paymentProblem?.({ ...row, id });
+      } catch {
+        // an alert must never fail the request
+      }
       try {
         await deps.revertToRequest?.(id);
       } catch (e) {

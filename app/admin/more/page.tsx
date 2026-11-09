@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { connectionExpired, getConnection } from "@/lib/qbStore";
+import { qbHealth } from "@/lib/qbSync";
 import { logout } from "../actions";
 import PushToggle from "./PushToggle";
 
@@ -24,10 +25,12 @@ async function QuickBooks({ searchParams }: { searchParams: Promise<Record<strin
   const note = typeof q.qb === "string" ? QB_NOTE[q.qb] : undefined;
   let linked = false;
   let expired = false;
+  let health: Awaited<ReturnType<typeof qbHealth>> | null = null;
   try {
     const conn = await getConnection();
     linked = !!conn;
     expired = !!conn && connectionExpired(conn);
+    if (conn && !expired) health = await qbHealth();
   } catch {
     linked = false;
   }
@@ -35,8 +38,18 @@ async function QuickBooks({ searchParams }: { searchParams: Promise<Record<strin
     <section className="adm-group">
       <h2>QuickBooks</h2>
       {note && <p className="adm-ok">{note}</p>}
-      <p className="adm-muted">{expired ? "The connection expired. Reconnect to keep invoices working." : linked ? "Connected." : "Not connected yet."}</p>
-      <a className={`adm-btn wide${linked ? "" : " primary"}`} href="/api/qb/connect">
+      {health?.ok ? (
+        <p className="adm-ok">Working. Linked to {health.company}.</p>
+      ) : (
+        <p className="adm-err">
+          {expired
+            ? "The connection expired. Reconnect to keep invoices and deposits working."
+            : linked
+              ? "QuickBooks is rejecting the saved connection, so clients cannot pay deposits. Tap Reconnect."
+              : "Not connected yet. Clients cannot pay deposits until you connect."}
+        </p>
+      )}
+      <a className={`adm-btn wide${health?.ok ? "" : " primary"}`} href="/api/qb/connect">
         {linked ? "Reconnect QuickBooks" : "Connect QuickBooks"}
       </a>
     </section>

@@ -1,7 +1,7 @@
 // SERVER ONLY. Uses the Supabase service key, which must never reach a browser.
 // Import this file only from route handlers / server code.
 import { createClient } from "@supabase/supabase-js";
-import { sendEmailAlert } from "./notify";
+import { sendEmail, sendEmailAlert } from "./notify";
 import { sendLogged } from "./mailLog";
 import { receivedEmail } from "./ack";
 import { sendPush, pushConfigured } from "./push";
@@ -69,6 +69,12 @@ export function productionDeps(
         .update({ qb_customer_id: made.customerId, qb_deposit_invoice_id: made.invoiceId, pay_url: made.payUrl })
         .eq("id", row.id);
       if (error) throw error;
+    },
+    async paymentProblem(row) {
+      const body = `${row.name} tried to book and pay a deposit, but QuickBooks would not make the invoice. Open More and tap Reconnect QuickBooks.`;
+      const phones = await sendPush({ title: "Deposit link failed", body, url: "/admin/more" });
+      const to = process.env.ALERT_EMAIL?.trim();
+      if (!phones && to) await sendEmail({ to, subject: "Deposit link failed", text: body });
     },
     async revertToRequest(id) {
       const { error } = await db

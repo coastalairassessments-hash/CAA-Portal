@@ -69,9 +69,10 @@ describe("submit with instant booking", () => {
     expect(d.insert).not.toHaveBeenCalled();
   });
   it("falls back to a normal request when payments are down", async () => {
-    const d = deps({ startPayment: vi.fn(async () => { throw new Error("QuickBooks is not connected"); }) });
+    const d = deps({ startPayment: vi.fn(async () => { throw new Error("QuickBooks is not connected"); }), paymentProblem: vi.fn(async () => {}) });
     const r = await submitRequest(form, null, d);
     expect(r).toEqual({ ok: true });
+    expect(d.paymentProblem).toHaveBeenCalled();
     expect(d.revertToRequest).toHaveBeenCalledWith("id-1");
     expect(d.notify).toHaveBeenCalled();
   });

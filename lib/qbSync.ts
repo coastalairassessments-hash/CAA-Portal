@@ -87,3 +87,15 @@ export async function voidInvoice(id: string): Promise<boolean> {
     return false;
   }
 }
+
+// A real call to QuickBooks, so the More screen can say whether the connection truly works.
+export async function qbHealth(): Promise<{ ok: true; company: string } | { ok: false }> {
+  try {
+    const r = (await qbFetch(q("select CompanyName from CompanyInfo"))) as {
+      QueryResponse?: { CompanyInfo?: { CompanyName?: string }[] };
+    };
+    return { ok: true, company: r.QueryResponse?.CompanyInfo?.[0]?.CompanyName ?? "your company" };
+  } catch {
+    return { ok: false };
+  }
+}
