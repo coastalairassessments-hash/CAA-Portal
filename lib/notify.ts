@@ -54,6 +54,8 @@ export async function sendEmailAlert(
 // One email to a client (or anyone). Never throws: returns what happened so the screen can say it.
 export type SendResult = { ok: true } | { ok: false; reason: string };
 
+import { textToHtml } from "./emailHtml";
+
 export async function sendEmail(
   msg: { to: string; subject: string; text: string; attachments?: { filename: string; content: string }[] },
   env: Record<string, string | undefined> = process.env,
@@ -72,6 +74,7 @@ export async function sendEmail(
         to: [msg.to],
         subject: msg.subject,
         text: msg.text,
+        html: textToHtml(msg.text),
         ...(msg.attachments?.length ? { attachments: msg.attachments } : {}),
         ...(replyTo ? { reply_to: replyTo } : {}),
       }),
