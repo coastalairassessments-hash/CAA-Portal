@@ -10,7 +10,7 @@ describe("instant booking rules", () => {
     expect(hoursFor("musty_smell", "2000_4000")).toBe(3);
     expect(hoursFor("water_damage", "4000_6000")).toBe(4);
     expect(hoursFor("consultation", "4000_6000")).toBe(1);
-    expect(hoursFor("musty_smell", "over_6000")).toBe(6);
+    expect(hoursFor("musty_smell", "over_6000")).toBe(4);
   });
   it("lets anyone in the three home counties book, and sends outside jobs to a request", () => {
     expect(canBookInstantly({ area: "core", propertyType: "single_family", sizeBand: "under_2000" })).toBe(true);

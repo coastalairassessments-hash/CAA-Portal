@@ -10,7 +10,7 @@ export function hoursFor(issue: string, sizeBand: string): number {
   if (issue === "consultation") return 1;
   if (sizeBand === "2000_4000") return 3;
   if (sizeBand === "4000_6000") return 4;
-  if (sizeBand === "over_6000") return 6;
+  if (sizeBand === "over_6000") return 4;
   return 1;
 }
 
