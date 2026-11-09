@@ -23,7 +23,7 @@ export async function cancelMyBooking(form: FormData): Promise<void> {
   const db = serviceDb();
   if (!r || !db) redirect(`/booking/${token}`);
   // They may have just paid. Book that first, so a paid deposit is never lost by a cancel.
-  if (r.status === "offered" && r.booking_mode === "instant" && r.qb_deposit_invoice_id) {
+  if (r.status === "offered" && r.qb_deposit_invoice_id) {
     const { data: full } = await db.from("requests").select(SETTLE_COLUMNS).eq("id", r.id).maybeSingle();
     if (full) await settleDeposit(db, full as never).catch(() => "waiting");
     r = (await bookingByToken(token)) ?? r;
@@ -43,9 +43,9 @@ export async function cancelMyBooking(form: FormData): Promise<void> {
   if (error) redirect(`/booking/${token}?error=1`);
 
   // Never paid: close the deposit invoice so it does not sit open in QuickBooks, and say nothing more.
-  if (r.booking_mode === "instant" && r.status === "offered" && r.qb_deposit_invoice_id) {
+  if (r.status === "offered" && r.qb_deposit_invoice_id) {
     await voidInvoice(r.qb_deposit_invoice_id);
-    redirect(`/booking/${token}`);
+    if (r.booking_mode === "instant") redirect(`/booking/${token}`);
   }
 
   const slot = { date, time, hours: Number(r.block_hours ?? 1) };

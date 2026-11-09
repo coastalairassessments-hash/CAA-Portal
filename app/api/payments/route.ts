@@ -18,7 +18,6 @@ export async function GET(req: Request) {
     .from("requests")
     .select(SETTLE_COLUMNS)
     .eq("status", "offered")
-    .eq("booking_mode", "instant")
     .not("qb_deposit_invoice_id", "is", null)
     .limit(100);
   if (error) return NextResponse.json({ ok: false }, { status: 500 });

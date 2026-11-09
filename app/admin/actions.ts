@@ -34,7 +34,8 @@ import { isSection, parseSection } from "@/lib/job";
 import { issueForService, parseContractorJob } from "@/lib/contractorJob";
 import { finalInvoice, minutesOnSite } from "@/lib/billing";
 import { finalInvoicePayload } from "@/lib/qbInvoice";
-import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, qbConnected } from "@/lib/qbSync";
+import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, qbConnected, voidInvoice } from "@/lib/qbSync";
+import { createDepositInvoice } from "@/lib/depositInvoice";
 import { addDays, todayInNewYork } from "@/lib/dates";
 import { jobLabel } from "@/lib/labels";
 import { enRouteEmail } from "@/lib/enroute";
@@ -72,7 +73,7 @@ export async function offerRequest(_prev: ConfirmState, form: FormData): Promise
   const { id, date, time, hours } = parsed.data;
 
   const { data: row, error: readErr } = await supabase
-    .from("requests").select(`${CLIENT_COLUMNS}, issue, status, qb_customer_id`).eq("id", id).single();
+    .from("requests").select(`${CLIENT_COLUMNS}, issue, status, qb_customer_id, qb_deposit_invoice_id`).eq("id", id).single();
   if (readErr || !row) return { error: "Could not find that request." };
   if (!["new", "offered", "confirmed"].includes(row.status)) {
     return { error: "This request is closed. Nothing to send." };
@@ -81,6 +82,22 @@ export async function offerRequest(_prev: ConfirmState, form: FormData): Promise
   const alreadyBooked = row.status === "confirmed";
   const deposit = depositCents(row.issue);
   const now = new Date().toISOString();
+
+  // A new offer needs a deposit invoice the client can pay. Make it first, so an offer is never
+  // sent without a way to pay. If QuickBooks says no, nothing is saved and nothing is sent.
+  let made: Awaited<ReturnType<typeof createDepositInvoice>> | null = null;
+  if (!alreadyBooked) {
+    try {
+      made = await createDepositInvoice({
+        name: row.name, phone: row.phone, email: row.email, address: row.address, city: row.city, zip: row.zip,
+        confirmed_date: date, confirmed_time: time, deposit_cents: deposit,
+      });
+    } catch (e) {
+      console.error("[offer] could not make the deposit invoice:", e instanceof Error ? e.message : e);
+      return { error: "QuickBooks did not accept the deposit invoice. Nothing was sent. Reconnect QuickBooks on the More screen, then try again." };
+    }
+  }
+
   const { error: saveErr } = await supabase
     .from("requests")
     .update(
@@ -93,25 +110,21 @@ export async function offerRequest(_prev: ConfirmState, form: FormData): Promise
             block_hours: hours,
             offered_at: now,
             deposit_cents: deposit,
+            qb_customer_id: made!.customerId,
+            qb_deposit_invoice_id: made!.invoiceId,
+            pay_url: made!.payUrl,
           },
     )
     .eq("id", id);
   if (saveErr) {
+    if (made) await voidInvoice(made.invoiceId);
     if (saveErr.code === EXCLUSION_VIOLATION) {
       return { error: "Another paid job already holds that time. Pick a different time." };
     }
     return { error: `Could not save. (Ref: offer-${saveErr.code ?? "unknown"})` };
   }
-
-  // Approving a new request also puts the client in QuickBooks (best effort; never blocks the offer).
-  if (!alreadyBooked && !row.qb_customer_id && (await qbConnected())) {
-    try {
-      const customerId = await ensureCustomer(row);
-      await supabase.from("requests").update({ qb_customer_id: customerId }).eq("id", id);
-    } catch (e) {
-      console.error("[qb] could not add customer:", e instanceof Error ? e.message : e);
-    }
-  }
+  // Offering a different time? Close the old deposit invoice so the client cannot pay for it.
+  if (made && row.qb_deposit_invoice_id && row.qb_deposit_invoice_id !== made.invoiceId) await voidInvoice(row.qb_deposit_invoice_id);
 
   const booking = { date, time, hours };
   const mail = alreadyBooked

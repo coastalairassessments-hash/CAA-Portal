@@ -90,7 +90,7 @@ export function offerEmail(row: ConfirmRow, b: Booking, deposit: number, siteUrl
       "If you would like to limit our time on site, reply to this email. The assessment will then cover the areas we can complete in that time.",
       "",
       "How to lock it in:",
-      `1. Pay the 75% deposit of ${formatMoney(deposit)}. Your secure deposit invoice follows in a separate message.`,
+      `1. Pay the 75% deposit of ${formatMoney(deposit)}. Use the Pay deposit button on your booking page, linked below.`,
       "2. The date is held when the deposit is received. If two people ask for the same time, the first deposit holds it.",
       "3. You pay the balance after the visit. Your written report follows within days.",
       "",

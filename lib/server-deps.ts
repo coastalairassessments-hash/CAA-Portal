@@ -10,10 +10,7 @@ import type { SubmitDeps } from "./submit";
 import { heldSlots } from "./availabilityServer";
 import { overlaps } from "./slots";
 import { tooFar } from "./driveTime";
-import { depositInvoicePayload } from "./qbInvoice";
-import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, getInvoice, qbConnected } from "./qbSync";
-import { formatDateLabel, todayInNewYork } from "./dates";
-import { formatTime } from "./labels";
+import { createDepositInvoice } from "./depositInvoice";
 
 export function productionDeps(
   env: Record<string, string | undefined> = process.env,
@@ -66,26 +63,10 @@ export function productionDeps(
     },
     // Puts the client in QuickBooks, makes the deposit invoice, and finds the link they pay from.
     async startPayment(row) {
-      if (!(await qbConnected())) throw new Error("QuickBooks is not connected");
-      const customerId = await ensureCustomer(row);
-      const itemId = await ensureServiceItem();
-      const when = `${formatDateLabel(row.confirmed_date!)} at ${formatTime(row.confirmed_time!)}`;
-      const made = await createInvoice(
-        depositInvoicePayload({
-          customerId,
-          itemId,
-          description: `Deposit to hold ${when}`,
-          cents: row.deposit_cents!,
-          email: row.email,
-          txnDate: todayInNewYork(),
-        }),
-      );
-      const payUrl = (await getInvoice(made.id).catch(() => null))?.link ?? null;
-      // No hosted link? Have QuickBooks email the invoice with its pay button instead.
-      if (!payUrl) await emailInvoice(made.id, row.email);
+      const made = await createDepositInvoice(row as never);
       const { error } = await db
         .from("requests")
-        .update({ qb_customer_id: customerId, qb_deposit_invoice_id: made.id, pay_url: payUrl })
+        .update({ qb_customer_id: made.customerId, qb_deposit_invoice_id: made.invoiceId, pay_url: made.payUrl })
         .eq("id", row.id);
       if (error) throw error;
     },

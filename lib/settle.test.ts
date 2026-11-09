@@ -38,6 +38,20 @@ const soon = new Date("2026-11-03T15:05:00Z");
 beforeEach(() => { vi.clearAllMocks(); });
 
 describe("settleDeposit", () => {
+  it("books an offer Cory sent as soon as its deposit is paid", async () => {
+    getInvoice.mockResolvedValue({ balance: 0, link: null, syncToken: "0" });
+    const { db, calls } = fakeDb([{ data: [{ id: "id-1" }], error: null }]);
+    expect(await settleDeposit(db, { ...row, booking_mode: "request" }, soon)).toBe("paid");
+    expect(calls[0]).toMatchObject({ status: "confirmed" });
+  });
+  it("never cancels an unpaid offer Cory sent, however long it waits", async () => {
+    getInvoice.mockResolvedValue({ balance: 513.75, link: null, syncToken: "0" });
+    const { db, calls } = fakeDb([]);
+    const later = new Date("2026-11-08T15:00:00Z");
+    expect(await settleDeposit(db, { ...row, booking_mode: "request" }, later)).toBe("waiting");
+    expect(calls).toHaveLength(0);
+    expect(voidInvoice).not.toHaveBeenCalled();
+  });
   it("does nothing for a job that is not an unpaid instant booking", async () => {
     const { db } = fakeDb([]);
     expect(await settleDeposit(db, { ...row, status: "confirmed" }, soon)).toBe("skip");

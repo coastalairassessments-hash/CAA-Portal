@@ -54,7 +54,7 @@ export function bookingView(r: BookingRow, now: Date = new Date()) {
     }
   } else if (r.status === "offered") {
     headline = `Your time: ${when}`;
-    detail = `A ${deposit} deposit holds it. We send a secure deposit link by email. If two people ask for the same time, the first deposit gets it.`;
+    detail = `A ${deposit} deposit holds it. Pay below and you are booked the moment it clears. If two people ask for the same time, the first deposit gets it.`;
   } else if (r.status === "confirmed" && !r.left_at) {
     headline = `You are booked: ${when}`;
     detail = "Your deposit is received. We will see you then.";

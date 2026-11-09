@@ -27,7 +27,7 @@ type Row = {
 export type SettleResult = "paid" | "waiting" | "taken" | "abandoned" | "skip";
 
 export async function settleDeposit(db: SupabaseClient, r: Row, now: Date = new Date()): Promise<SettleResult> {
-  if (r.status !== "offered" || r.booking_mode !== "instant" || !r.qb_deposit_invoice_id) return "skip";
+  if (r.status !== "offered" || !r.qb_deposit_invoice_id) return "skip";
   if (!r.confirmed_date || !r.confirmed_time || !r.block_hours) return "skip";
 
   const inv = await getInvoice(r.qb_deposit_invoice_id).catch(() => null);
@@ -35,7 +35,8 @@ export async function settleDeposit(db: SupabaseClient, r: Row, now: Date = new 
 
   if (inv.balance > 0) {
     // Never paid and well past the hold: free the time and close the invoice.
-    if (holdAbandoned(r, now)) {
+    // Only a book-and-pay hold lapses. An offer Cory sent keeps its time until he decides.
+    if (r.booking_mode === "instant" && holdAbandoned(r, now)) {
       const { data } = await db.from("requests").update({ status: "cancelled", cancel_refund: false }).eq("id", r.id).eq("status", "offered").select("id");
       if (data?.length) {
         await voidInvoice(r.qb_deposit_invoice_id);

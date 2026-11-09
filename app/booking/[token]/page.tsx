@@ -40,7 +40,7 @@ async function Booking({ params, searchParams }: Props) {
   let r = await bookingByToken(token);
   if (!r) notFound();
   // Paid? Book it now, so the client sees the result without waiting for the next check.
-  if (r.status === "offered" && r.booking_mode === "instant" && r.qb_deposit_invoice_id) {
+  if (r.status === "offered" && r.qb_deposit_invoice_id) {
     const db = serviceDb();
     const { data: full } = db ? await db.from("requests").select(SETTLE_COLUMNS).eq("id", r.id).maybeSingle() : { data: null };
     if (db && full && (await settleDeposit(db, full as never).catch(() => "waiting")) !== "waiting") {
@@ -50,6 +50,8 @@ async function Booking({ params, searchParams }: Props) {
   const base = bookingView(r as never);
   const live = liveState(r as never, todayInNewYork());
   const v = live ? { ...base, headline: live.headline, detail: live.detail, canCancel: false } : base;
+  // Paying now: a book-and-pay hold, or an offer Cory sent that has its deposit invoice ready.
+  const showPay = v.paying || (r.status === "offered" && r.booking_mode !== "instant" && !!r.qb_deposit_invoice_id);
   const first = String(r.name).trim().split(/\s+/)[0];
   let sentPhotos = 0;
   if (v.canCancel) {
@@ -75,9 +77,9 @@ async function Booking({ params, searchParams }: Props) {
       {q.error && q.error !== "taken" && <p className="error">That did not go through. Please call or text us.</p>}
       {q.moved && <p className="bk-lead">Done. Your visit moved. We emailed you the new time.</p>}
 
-      {(live || v.paying) && <LiveRefresh every={live ? 30000 : 8000} />}
+      {(live || showPay) && <LiveRefresh every={live ? 30000 : 8000} />}
 
-      {v.paying && (
+      {showPay && (
         <section className="bk-pay">
           {r.pay_url ? (
             <a className="btn" href={r.pay_url}>Pay {formatMoney(r.deposit_cents ?? depositCents(r.issue))} deposit</a>
