@@ -9,6 +9,7 @@ import { newRequestPush } from "./pushText";
 import type { SubmitDeps } from "./submit";
 import { heldSlots } from "./availabilityServer";
 import { overlaps } from "./slots";
+import { tooFar } from "./driveTime";
 import { depositInvoicePayload } from "./qbInvoice";
 import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, getInvoice, qbConnected } from "./qbSync";
 import { formatDateLabel, todayInNewYork } from "./dates";
@@ -61,7 +62,7 @@ export function productionDeps(
       return { id: data.id as string, public_token: data.public_token as string | null };
     },
     async slotHeld(slot) {
-      return (await heldSlots(slot.date)).some((h) => overlaps(h, slot));
+      return (await heldSlots(slot.date)).some((h) => overlaps(h, slot) || !!tooFar(h, slot));
     },
     // Puts the client in QuickBooks, makes the deposit invoice, and finds the link they pay from.
     async startPayment(row) {

@@ -1,32 +1,33 @@
 // SERVER ONLY. Reads which times are held, using the service key. Returns no personal details.
 import { createClient } from "@supabase/supabase-js";
-import type { Slot } from "./slots";
+import type { Zoned } from "./driveTime";
+import { driveZone } from "./driveTime";
 import { holdActive } from "./instant";
 
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
 
-export async function heldSlots(fromDate: string): Promise<Slot[]> {
+export async function heldSlots(fromDate: string): Promise<Zoned[]> {
   const url = clean(process.env.SUPABASE_URL);
   const key = clean(process.env.SUPABASE_SERVICE_ROLE_KEY);
   if (!url || !key) return [];
   const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data, error } = await db
     .from("requests")
-    .select("confirmed_date, confirmed_time, block_hours")
+    .select("confirmed_date, confirmed_time, block_hours, zip")
     .eq("status", "confirmed")
     .gte("confirmed_date", fromDate);
   // Someone paying right now holds their time too, for a few minutes.
   const { data: holds } = await db
     .from("requests")
-    .select("confirmed_date, confirmed_time, block_hours, status, booking_mode, offered_at")
+    .select("confirmed_date, confirmed_time, block_hours, zip, status, booking_mode, offered_at")
     .eq("status", "offered")
     .eq("booking_mode", "instant")
     .gte("confirmed_date", fromDate);
-  const paying: Slot[] = (holds ?? [])
+  const paying: Zoned[] = (holds ?? [])
     .filter((r) => holdActive(r) && r.confirmed_date && r.confirmed_time)
-    .map((r) => ({ date: r.confirmed_date as string, time: String(r.confirmed_time).slice(0, 5), hours: Number(r.block_hours ?? 1) }));
+    .map((r) => ({ date: r.confirmed_date as string, time: String(r.confirmed_time).slice(0, 5), hours: Number(r.block_hours ?? 1), zone: driveZone(r.zip as string | null) }));
   const { data: blocks } = await db.from("time_blocks").select("day, slot").gte("day", fromDate);
-  const closed: Slot[] = (blocks ?? []).map((b) =>
+  const closed: Zoned[] = (blocks ?? []).map((b) =>
     b.slot === "all"
       ? { date: b.day as string, time: "10:00", hours: 3 }
       : { date: b.day as string, time: b.slot as string, hours: 1 },
@@ -39,5 +40,6 @@ export async function heldSlots(fromDate: string): Promise<Slot[]> {
       date: r.confirmed_date as string,
       time: String(r.confirmed_time).slice(0, 5),
       hours: Number(r.block_hours ?? 1),
+      zone: driveZone(r.zip as string | null),
     }))];
 }

@@ -28,8 +28,8 @@ export default function Home() {
             tool, used only when they help answer the question.
           </p>
           <p className="lede">
-            Licensed Florida mold assessors in Martin, St. Lucie and Palm Beach counties. Pick a
-            day in two minutes. Nothing to pay to request.
+            Licensed Florida mold assessors in Martin, St. Lucie and Palm Beach counties, and in
+            Indian River and Brevard on request. Pick a day in two minutes. Nothing to pay to request.
           </p>
           <div className="actions">
             <Link href="/request" className="btn">
@@ -260,8 +260,8 @@ export default function Home() {
             <details>
               <summary>Where do you work?</summary>
               <p>
-                Martin, St. Lucie and Palm Beach counties. Outside that? Send a request anyway and
-                we will tell you what is possible.
+                Martin, St. Lucie and Palm Beach counties, and Indian River and Brevard on request.
+                Outside that? Send a request anyway and we will tell you what is possible.
               </p>
             </details>
           </div>
@@ -279,7 +279,7 @@ export default function Home() {
       </main>
 
       <footer className="wrap site-footer">
-        <p>Coastal Air Assessments. Serving Martin, St. Lucie and Palm Beach counties, Florida.</p>
+        <p>Coastal Air Assessments. Serving Martin, St. Lucie and Palm Beach counties, Florida. Indian River and Brevard on request.</p>
         <p>{LICENSE_LINE}.</p>
         <p>Questions? Call or text <a href="tel:+15614000929">561-400-0929</a>.</p>
         <p>

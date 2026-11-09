@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { supabaseForUser } from "@/lib/supabase/server";
 import JobView from "./JobView";
+import { driveZone, type Zoned } from "@/lib/driveTime";
+import { todayInNewYork } from "@/lib/dates";
 
 export const metadata: Metadata = {
   title: "Request | Coastal Air Assessments",
@@ -28,7 +30,23 @@ async function Detail({ params, searchParams }: Props) {
   const { data: r } = await supabase.from("requests").select("*").eq("id", id).maybeSingle();
   if (!r) notFound();
 
-  return <JobView r={r} query={query} />;
+  // Other booked visits, so the approve screen can warn about a long drive between them.
+  const { data: others } = await supabase
+    .from("requests")
+    .select("confirmed_date, confirmed_time, block_hours, zip")
+    .eq("status", "confirmed")
+    .neq("id", id)
+    .gte("confirmed_date", todayInNewYork());
+  const booked: Zoned[] = (others ?? [])
+    .filter((o) => o.confirmed_date && o.confirmed_time)
+    .map((o) => ({
+      date: o.confirmed_date as string,
+      time: String(o.confirmed_time).slice(0, 5),
+      hours: Number(o.block_hours ?? 1),
+      zone: driveZone(o.zip as string | null),
+    }));
+
+  return <JobView r={r} query={query} booked={booked} />;
 }
 
 export default function RequestDetailPage(props: Props) {

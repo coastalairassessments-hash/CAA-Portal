@@ -15,7 +15,7 @@ const body = Inter({
 export const metadata: Metadata = {
   title: "Coastal Air Assessments | Request a mold or air quality assessment",
   description:
-    "Mold and indoor air quality assessments in Martin, St. Lucie and Palm Beach counties. See pricing and request a date online.",
+    "Mold and indoor air quality assessments in Martin, St. Lucie and Palm Beach counties, and Indian River and Brevard on request. See pricing and request a date online.",
 };
 
 export const viewport: Viewport = {

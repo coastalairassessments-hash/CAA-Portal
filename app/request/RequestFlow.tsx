@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { formatDateLabel } from "@/lib/dates";
 import SlotCalendar from "./SlotCalendar";
 import AddressField from "./AddressField";
-import type { Slot } from "@/lib/slots";
+import { driveZone, type Zoned } from "@/lib/driveTime";
 import { HOW_HEARD, isLongVisit } from "@/lib/request";
 import { CLIENT_TYPES, PROPERTY_TYPES, WATER_WHEN, YES_NO, asksCompany, isMultiUnit, isOrg, needsQuote } from "@/lib/intake";
 import { depositCents, firstHourCents, formatMoney } from "@/lib/pricing";
@@ -47,7 +47,7 @@ export type Prefill = { clientType: string; name: string; phone: string; email: 
 
 type FieldErrors = Record<string, string>;
 
-export default function RequestFlow({ dates, held, again, refCode }: { dates: string[]; held: Slot[]; again?: Prefill; refCode?: string }) {
+export default function RequestFlow({ dates, held, again, refCode }: { dates: string[]; held: Zoned[]; again?: Prefill; refCode?: string }) {
   const router = useRouter();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -302,7 +302,21 @@ export default function RequestFlow({ dates, held, again, refCode }: { dates: st
               </button>
             ))}
           </div>
-          <button type="button" className="btn" disabled={!propertyType || !sizeBand} onClick={() => setStep(3)}>
+          <h2 className="sub-q">ZIP code of the property</h2>
+          <p className="help">So we show times that fit your area.</p>
+          <div className="field">
+            <label htmlFor="zip-early">ZIP</label>
+            <input
+              id="zip-early"
+              type="text"
+              inputMode="numeric"
+              autoComplete="postal-code"
+              maxLength={10}
+              value={zip}
+              onChange={(e) => { setPreferredDate(""); setPreferredTime(""); setZip(e.target.value); }}
+            />
+          </div>
+          <button type="button" className="btn" disabled={!propertyType || !sizeBand || !/^\d{5}/.test(zip.trim())} onClick={() => setStep(3)}>
             Continue
           </button>
         </>
@@ -315,6 +329,7 @@ export default function RequestFlow({ dates, held, again, refCode }: { dates: st
           time={preferredTime}
           longVisit={isLongVisit(sizeBand)}
           held={held}
+          zone={driveZone(zip)}
           onPick={(d, t) => {
             setPreferredDate(d);
             setPreferredTime(t);

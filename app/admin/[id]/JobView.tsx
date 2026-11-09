@@ -16,6 +16,7 @@ import { hoursUntil, refundDue } from "@/lib/cancel";
 import { STAGES, stageDone } from "@/lib/stage";
 import { clientTypeLabel, intakeLines } from "@/lib/intake";
 import ConfirmForm from "./ConfirmForm";
+import { driveZone, type Zoned } from "@/lib/driveTime";
 import Drawers from "./Drawers";
 
 type Query = Record<string, string | string[] | undefined>;
@@ -30,7 +31,7 @@ type Job = {
 const statusLabel = (s: string) =>
   s === "new" ? "New" : s === "offered" ? "Deposit waiting" : s === "confirmed" ? "Booked" : s === "cancelled" ? "Cancelled" : s === "declined" ? "Declined" : s;
 
-export default function JobView({ r, query }: { r: Job; query: Query }) {
+export default function JobView({ r, query, booked = [] }: { r: Job; query: Query; booked?: Zoned[] }) {
   const contractor = r.source === "contractor";
   const slot = r.confirmed_date
     ? { date: r.confirmed_date as string, time: r.confirmed_time as string, hours: r.block_hours as number }
@@ -49,6 +50,8 @@ export default function JobView({ r, query }: { r: Job; query: Query }) {
         id={r.id}
         defaultDate={slot?.date ?? r.preferred_date}
         defaultTime={slot?.time ?? r.preferred_time}
+        zone={driveZone(r.zip)}
+        booked={booked}
         label={booking ? "Update and email client" : offer ? "Resend offer" : "Approve and send deposit offer"}
       />
       {!booking && (

@@ -1,11 +1,11 @@
 import { createHash } from "node:crypto";
 import { parseRequest } from "./request";
 import { classifyZip } from "./zones";
+import { driveZone, type Zoned } from "./driveTime";
 import { TERMS_VERSION } from "./terms";
 import { POLICY_VERSION } from "./policy";
 import { canBookInstantly, hoursFor } from "./instant";
 import { depositCents } from "./pricing";
-import type { Slot } from "./slots";
 
 // Row shape matches the `requests` table (supabase/migrations/0001_requests.sql).
 export type NewRequestRow = {
@@ -51,7 +51,7 @@ export type SubmitDeps = {
   ipSalt: string;
   now?: () => Date;
   // Instant booking. Left out, every request simply waits for Cory, as before.
-  slotHeld?: (slot: Slot) => Promise<boolean>;
+  slotHeld?: (slot: Zoned) => Promise<boolean>;
   startPayment?: (row: NewRequestRow & { id: string; public_token?: string | null }) => Promise<void>;
   revertToRequest?: (id: string) => Promise<void>;
 };
@@ -144,7 +144,7 @@ export async function submitRequest(
     !!deps.startPayment && !!deps.slotHeld &&
     canBookInstantly({ area: zone.area, propertyType: data.propertyType, sizeBand: data.sizeBand });
   const hours = hoursFor(data.issue, data.sizeBand);
-  if (instant && (await deps.slotHeld!({ date: data.preferredDate, time: data.preferredTime, hours }))) {
+  if (instant && (await deps.slotHeld!({ date: data.preferredDate, time: data.preferredTime, hours, zone: driveZone(data.zip) }))) {
     return {
       ok: false,
       status: 409,

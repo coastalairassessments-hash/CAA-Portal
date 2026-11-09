@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react";
 import { monthTitle, monthWeeks, monthsOf } from "@/lib/calendarGrid";
-import { dayFull, hoursForTest, slotTaken, soonestSlot } from "@/lib/availability";
+import { dayFull, hoursForTest, slotUnavailable, soonestSlot } from "@/lib/availability";
+import type { DriveZone, Zoned } from "@/lib/driveTime";
 import { formatDateLabel } from "@/lib/dates";
-import type { Slot } from "@/lib/slots";
 
 const TIMES = [
   { value: "10:00", short: "10:00", label: "10:00 AM" },
@@ -17,13 +17,15 @@ export default function SlotCalendar({
   time,
   longVisit,
   held,
+  zone,
   onPick,
 }: {
   dates: string[];
   date: string;
   time: string;
   longVisit: boolean;
-  held: Slot[];
+  held: Zoned[];
+  zone?: DriveZone | null;
   onPick: (date: string, time: string) => void;
 }) {
   const months = monthsOf(dates);
@@ -33,7 +35,7 @@ export default function SlotCalendar({
   const open = new Set(dates);
   const hours = hoursForTest(longVisit);
   if (!month) return null;
-  const soon = soonestSlot(dates, held, longVisit);
+  const soon = soonestSlot(dates, held, longVisit, zone);
   const soonLabel = soon ? `${formatDateLabel(soon.date)} at ${TIMES.find((t) => t.value === soon.time)?.label}` : "";
 
   return (
@@ -65,13 +67,13 @@ export default function SlotCalendar({
             d === null ? (
               <div className="cal-cell empty" key={i} />
             ) : open.has(d) ? (
-              <div className={`cal-cell${dayFull(held, d, hours) ? " full" : ""}`} key={d}>
+              <div className={`cal-cell${dayFull(held, d, hours, zone) ? " full" : ""}`} key={d}>
                 <span className="cal-num">{Number(d.slice(8))}</span>
-                {dayFull(held, d, hours) ? (
+                {dayFull(held, d, hours, zone) ? (
                   <span className="cal-full">Full</span>
                 ) : (
                   TIMES.map((t) => {
-                    const taken = slotTaken(held, d, t.value, hours);
+                    const taken = slotUnavailable(held, d, t.value, hours, zone);
                     const blocked = taken || (longVisit && t.value !== "10:00");
                     return (
                       <button
