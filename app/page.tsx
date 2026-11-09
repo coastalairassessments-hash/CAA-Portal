@@ -1,13 +1,13 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import Logo from "@/app/components/Logo";
-import { LICENSE_LINE, REPLY_PROMISE } from "@/lib/business";
+import { LICENSE_LINE } from "@/lib/business";
 
 const sizes: { label: string; time: string; h: string; open?: boolean }[] = [
   { label: "Under 2,000 sq ft", time: "About 1 hour", h: "36px" },
   { label: "2,000 to 4,000 sq ft", time: "About 2 to 3 hours", h: "84px" },
   { label: "4,000 to 6,000 sq ft", time: "About 3 to 4 hours", h: "124px" },
-  { label: "Over 6,000 sq ft", time: "We confirm with you", h: "160px", open: true },
+  { label: "Over 6,000 sq ft", time: "About 4 hours", h: "160px", open: true },
 ];
 
 export default function Home() {
@@ -29,7 +29,7 @@ export default function Home() {
           </p>
           <p className="lede">
             Licensed Florida mold assessors in Martin, St. Lucie and Palm Beach counties, and in
-            Indian River and Brevard on request. Pick a day in two minutes. Nothing to pay to request.
+            Indian River and Brevard on request. Pick a day and time in two minutes. Your 75% deposit books it.
           </p>
           <div className="actions">
             <Link href="/request" className="btn">
@@ -37,7 +37,7 @@ export default function Home() {
             </Link>
           </div>
           <p className="trust">
-            <strong>{LICENSE_LINE}</strong> · {REPLY_PROMISE}
+            <strong>{LICENSE_LINE}</strong> · Booked the moment your deposit is paid.
           </p>
         </section>
 
@@ -184,20 +184,20 @@ export default function Home() {
           <ol className="steps">
             <li>
               <div>
-                <h3>Request a day</h3>
-                <p>Tell us what you are seeing and where.</p>
+                <h3>Pick a day and time</h3>
+                <p>Tell us what you are seeing and where, then choose a time that works.</p>
               </div>
             </li>
             <li>
               <div>
-                <h3>We confirm</h3>
-                <p>We reply with the day, time and how long we expect to be there.</p>
+                <h3>A 75% deposit books it</h3>
+                <p>Pay by card or bank. If two people ask for the same time, the first deposit gets it.</p>
               </div>
             </li>
             <li>
               <div>
-                <h3>A 75% deposit holds it</h3>
-                <p>If two people ask for the same time, the first deposit gets it.</p>
+                <h3>You are booked</h3>
+                <p>Your confirmation and calendar invite arrive right away. In Indian River and Brevard, we confirm the day with you first.</p>
               </div>
             </li>
             <li>
@@ -223,8 +223,8 @@ export default function Home() {
             <details>
               <summary>Can I pick my time?</summary>
               <p>
-                We schedule Monday through Thursday, starting at 10:00 AM or 12:30 PM. Tell us what
-                you prefer and we will confirm what works.
+                Yes. We schedule Monday through Thursday, starting at 10:00 AM or 12:30 PM. Pick the
+                one you like when you book.
               </p>
             </details>
             <details>
@@ -270,7 +270,7 @@ export default function Home() {
         <section className="wrap">
           <div className="closing">
             <h2>Ready?</h2>
-            <p>It takes about two minutes. Nothing to pay until we confirm.</p>
+            <p>It takes about two minutes. Your deposit books your time.</p>
             <Link href="/request" className="btn">
               Request a date
             </Link>
