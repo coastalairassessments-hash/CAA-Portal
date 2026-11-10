@@ -23,7 +23,8 @@ const QB_NOTE: Record<string, string> = {
 async function QuickBooks({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   await connection();
   const q = await searchParams;
-  const note = typeof q.qb === "string" ? QB_NOTE[q.qb] : undefined;
+  const why = typeof q.why === "string" ? q.why.slice(0, 160) : "";
+  const note = typeof q.qb === "string" ? QB_NOTE[q.qb] + (why ? ` Reason: ${why}` : "") : undefined;
   let linked = false;
   let expired = false;
   let health: Awaited<ReturnType<typeof qbHealth>> | null = null;

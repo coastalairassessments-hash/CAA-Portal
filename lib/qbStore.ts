@@ -60,23 +60,56 @@ export async function tokenRequest(form: Record<string, string>): Promise<TokenR
     cache: "no-store",
   });
   if (!res.ok) {
-    console.error(`QuickBooks token error ${res.status} intuit_tid=${tidOf(res)}`);
+    // Intuit says why in a short code (such as invalid_grant). It holds no secrets, so keep it.
+    let why = "";
+    try {
+      const b = (await res.json()) as { error?: string; error_description?: string };
+      why = [b.error, b.error_description].filter(Boolean).join(": ").slice(0, 160);
+    } catch {
+      /* no readable reason */
+    }
+    console.error(`QuickBooks token error ${res.status} ${form.grant_type} ${why} intuit_tid=${tidOf(res)}`);
     // A refused refresh token (expired or revoked) cannot fix itself: the owner reconnects.
     if (form.grant_type === "refresh_token" && (res.status === 400 || res.status === 401)) throw new QbReconnectError();
-    throw new Error(`QuickBooks token error ${res.status}`);
+    throw new Error(`QuickBooks token error ${res.status}${why ? ` - ${why}` : ""}`);
   }
   return (await res.json()) as TokenReply;
+}
+
+// Intuit gives a NEW refresh token every time one is used, and the old one stops working.
+// So two refreshes at once (a page load and the 5-minute check, say) would break the connection.
+// Within one server we share a single refresh; across servers we re-read what the winner saved.
+let inFlight: Promise<{ token: string; realm: string }> | null = null;
+
+async function refresh(): Promise<{ token: string; realm: string }> {
+  const conn = await getConnection();
+  if (!conn) throw new QbReconnectError("QuickBooks is not connected");
+  if (Date.parse(conn.refresh_expires_at) <= Date.now()) throw new QbReconnectError();
+  try {
+    const fresh = await tokenRequest({ grant_type: "refresh_token", refresh_token: conn.refresh_token });
+    await saveConnection(conn.realm_id, fresh);
+    return { token: fresh.access_token, realm: conn.realm_id };
+  } catch (e) {
+    if (!(e instanceof QbReconnectError)) throw e;
+    // Another server may have just renewed it. If the stored token changed, use the newer one.
+    const latest = await getConnection();
+    if (!latest || latest.refresh_token === conn.refresh_token) throw e;
+    if (Date.parse(latest.access_expires_at) > Date.now() + 30_000) {
+      return { token: latest.access_token, realm: latest.realm_id };
+    }
+    const fresh = await tokenRequest({ grant_type: "refresh_token", refresh_token: latest.refresh_token });
+    await saveConnection(latest.realm_id, fresh);
+    return { token: fresh.access_token, realm: latest.realm_id };
+  }
 }
 
 // A valid access token, refreshed when it is about to expire (or when forced after a 401).
 async function ready(force = false): Promise<{ token: string; realm: string }> {
   const conn = await getConnection();
   if (!conn) throw new QbReconnectError("QuickBooks is not connected");
-  if (!force && Date.parse(conn.access_expires_at) > Date.now()) return { token: conn.access_token, realm: conn.realm_id };
-  if (Date.parse(conn.refresh_expires_at) <= Date.now()) throw new QbReconnectError();
-  const fresh = await tokenRequest({ grant_type: "refresh_token", refresh_token: conn.refresh_token });
-  await saveConnection(conn.realm_id, fresh);
-  return { token: fresh.access_token, realm: conn.realm_id };
+  if (!force && Date.parse(conn.access_expires_at) > Date.now() + 60_000) return { token: conn.access_token, realm: conn.realm_id };
+  if (!inFlight) inFlight = refresh().finally(() => { inFlight = null; });
+  return inFlight;
 }
 
 // True when the stored connection can no longer refresh itself, so the owner must reconnect.
