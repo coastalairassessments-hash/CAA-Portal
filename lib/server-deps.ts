@@ -10,7 +10,7 @@ import type { SubmitDeps } from "./submit";
 import { heldSlots } from "./availabilityServer";
 import { overlaps } from "./slots";
 import { tooFar } from "./driveTime";
-import { createDepositInvoice } from "./depositInvoice";
+import { createDeposit } from "./depositPay";
 
 export function productionDeps(
   env: Record<string, string | undefined> = process.env,
@@ -63,10 +63,10 @@ export function productionDeps(
     },
     // Puts the client in QuickBooks, makes the deposit invoice, and finds the link they pay from.
     async startPayment(row) {
-      const made = await createDepositInvoice(row as never);
+      const made = await createDeposit(row as never);
       const { error } = await db
         .from("requests")
-        .update({ qb_customer_id: made.customerId, qb_deposit_invoice_id: made.invoiceId, pay_url: made.payUrl })
+        .update({ ...(made.customerId ? { qb_customer_id: made.customerId } : {}), qb_deposit_invoice_id: made.invoiceId, pay_url: made.payUrl })
         .eq("id", row.id);
       if (error) throw error;
     },

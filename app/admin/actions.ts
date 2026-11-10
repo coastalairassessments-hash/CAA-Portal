@@ -35,7 +35,8 @@ import { issueForService, parseContractorJob } from "@/lib/contractorJob";
 import { finalInvoice, minutesOnSite } from "@/lib/billing";
 import { finalInvoicePayload } from "@/lib/qbInvoice";
 import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, qbConnected, voidInvoice } from "@/lib/qbSync";
-import { createDepositInvoice } from "@/lib/depositInvoice";
+import { createDeposit } from "@/lib/depositPay";
+import { voidPayment } from "@/lib/payState";
 import { testDepositInvoice } from "@/lib/depositTest";
 import { addDays, todayInNewYork } from "@/lib/dates";
 import { jobLabel } from "@/lib/labels";
@@ -86,16 +87,17 @@ export async function offerRequest(_prev: ConfirmState, form: FormData): Promise
 
   // A new offer needs a deposit invoice the client can pay. Make it first, so an offer is never
   // sent without a way to pay. If QuickBooks says no, nothing is saved and nothing is sent.
-  let made: Awaited<ReturnType<typeof createDepositInvoice>> | null = null;
+  let made: Awaited<ReturnType<typeof createDeposit>> | null = null;
   if (!alreadyBooked) {
     try {
-      made = await createDepositInvoice({
+      made = await createDeposit({
+        id, public_token: row.public_token,
         name: row.name, phone: row.phone, email: row.email, address: row.address, city: row.city, zip: row.zip,
         confirmed_date: date, confirmed_time: time, deposit_cents: deposit,
       });
     } catch (e) {
       console.error("[offer] could not make the deposit invoice:", e instanceof Error ? e.message : e);
-      return { error: "QuickBooks did not accept the deposit invoice. Nothing was sent. Reconnect QuickBooks on the More screen, then try again." };
+      return { error: "The deposit payment link could not be made. Nothing was sent. Open More and tap Test deposit payments, then try again." };
     }
   }
 
@@ -111,21 +113,21 @@ export async function offerRequest(_prev: ConfirmState, form: FormData): Promise
             block_hours: hours,
             offered_at: now,
             deposit_cents: deposit,
-            qb_customer_id: made!.customerId,
+            ...(made!.customerId ? { qb_customer_id: made!.customerId } : {}),
             qb_deposit_invoice_id: made!.invoiceId,
             pay_url: made!.payUrl,
           },
     )
     .eq("id", id);
   if (saveErr) {
-    if (made) await voidInvoice(made.invoiceId);
+    if (made) await voidPayment(made.invoiceId);
     if (saveErr.code === EXCLUSION_VIOLATION) {
       return { error: "Another paid job already holds that time. Pick a different time." };
     }
     return { error: `Could not save. (Ref: offer-${saveErr.code ?? "unknown"})` };
   }
   // Offering a different time? Close the old deposit invoice so the client cannot pay for it.
-  if (made && row.qb_deposit_invoice_id && row.qb_deposit_invoice_id !== made.invoiceId) await voidInvoice(row.qb_deposit_invoice_id);
+  if (made && row.qb_deposit_invoice_id && row.qb_deposit_invoice_id !== made.invoiceId) await voidPayment(row.qb_deposit_invoice_id);
 
   const booking = { date, time, hours };
   const mail = alreadyBooked
@@ -488,7 +490,8 @@ export async function checkDeposits(_prev: DepositCheckState): Promise<DepositCh
   const supabase = await adminClient();
   if (!supabase) return { ok: false, message: "This account is not on the admin list." };
   try {
-    const { link } = await testDepositInvoice();
+    const { link, via } = await testDepositInvoice();
+    if (via === "stripe") return { ok: true, message: "Works. Clients pay the deposit on a Stripe page." };
     return link
       ? { ok: true, message: "Works. A client gets a Pay button that goes straight to QuickBooks." }
       : { ok: true, message: "Invoice works, but QuickBooks gave no pay link, so clients are emailed the invoice instead." };

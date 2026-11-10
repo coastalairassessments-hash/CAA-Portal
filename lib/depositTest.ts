@@ -3,8 +3,17 @@
 import { depositInvoicePayload } from "./qbInvoice";
 import { createInvoice, ensureCustomer, ensureServiceItem, getInvoice, qbConnected, voidInvoice } from "./qbSync";
 import { todayInNewYork } from "./dates";
+import { stripeConfigured, testStripe } from "./stripePay";
 
-export async function testDepositInvoice(): Promise<{ link: boolean }> {
+export async function testDepositInvoice(): Promise<{ link: boolean; via?: "stripe" }> {
+  if (stripeConfigured()) {
+    try {
+      await testStripe();
+      return { link: true, via: "stripe" };
+    } catch (e) {
+      throw new Error(`Stripe stopped: ${e instanceof Error ? e.message : "unknown error"}`);
+    }
+  }
   let step = "connecting to QuickBooks";
   try {
     if (!(await qbConnected())) throw new Error("QuickBooks is not connected");

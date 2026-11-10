@@ -1,6 +1,6 @@
 // SERVER ONLY. Notices that a client paid their deposit, and books the time. Safe to run again and again.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getInvoice, voidInvoice } from "./qbSync";
+import { paymentState, voidPayment } from "./payState";
 import { SITE_URL_FALLBACK } from "./notify";
 import { sendLogged } from "./mailLog";
 import { sendPush } from "./push";
@@ -30,16 +30,16 @@ export async function settleDeposit(db: SupabaseClient, r: Row, now: Date = new 
   if (r.status !== "offered" || !r.qb_deposit_invoice_id) return "skip";
   if (!r.confirmed_date || !r.confirmed_time || !r.block_hours) return "skip";
 
-  const inv = await getInvoice(r.qb_deposit_invoice_id).catch(() => null);
+  const inv = await paymentState(r.qb_deposit_invoice_id);
   if (!inv) return "waiting";
 
-  if (inv.balance > 0) {
+  if (!inv.paid) {
     // Never paid and well past the hold: free the time and close the invoice.
     // Only a book-and-pay hold lapses. An offer Cory sent keeps its time until he decides.
     if (r.booking_mode === "instant" && holdAbandoned(r, now)) {
       const { data } = await db.from("requests").update({ status: "cancelled", cancel_refund: false }).eq("id", r.id).eq("status", "offered").select("id");
       if (data?.length) {
-        await voidInvoice(r.qb_deposit_invoice_id);
+        await voidPayment(r.qb_deposit_invoice_id);
         await sendPush(abandonedPush(r, `${formatDateLabel(r.confirmed_date)} at ${formatTime(String(r.confirmed_time).slice(0, 5))}`));
         const site = clean(process.env.SITE_URL) || SITE_URL_FALLBACK;
         await sendLogged(db, r.id, { to: r.email, ...releasedEmail(r, { date: r.confirmed_date, time: String(r.confirmed_time).slice(0, 5) }, site) });

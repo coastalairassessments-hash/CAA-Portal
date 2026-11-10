@@ -6,7 +6,7 @@ import { cancelEmail } from "@/lib/confirm";
 import { sendEmail } from "@/lib/notify";
 import { sendPush } from "@/lib/push";
 import { SETTLE_COLUMNS, settleDeposit } from "@/lib/settle";
-import { voidInvoice } from "@/lib/qbSync";
+import { voidPayment } from "@/lib/payState";
 import { formatDateLabel } from "@/lib/dates";
 import { formatTime } from "@/lib/labels";
 import { canMove, movedEmail } from "@/lib/reschedule";
@@ -44,7 +44,7 @@ export async function cancelMyBooking(form: FormData): Promise<void> {
 
   // Never paid: close the deposit invoice so it does not sit open in QuickBooks, and say nothing more.
   if (r.status === "offered" && r.qb_deposit_invoice_id) {
-    await voidInvoice(r.qb_deposit_invoice_id);
+    await voidPayment(r.qb_deposit_invoice_id);
     if (r.booking_mode === "instant") redirect(`/booking/${token}`);
   }
 
