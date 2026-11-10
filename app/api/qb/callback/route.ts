@@ -1,5 +1,4 @@
-import { cookies } from "next/headers";
-import { qbConfig } from "@/lib/qb";
+import { checkState, qbConfig } from "@/lib/qb";
 import { isAdminUser } from "@/lib/qbAdmin";
 import { saveConnection, tokenRequest } from "@/lib/qbStore";
 
@@ -9,15 +8,12 @@ export async function GET(request: Request) {
   if (!(await isAdminUser())) return Response.redirect(new URL("/admin/login", request.url), 303);
 
   const params = new URL(request.url).searchParams;
-  const store = await cookies();
-  const expected = store.get("qb_state")?.value;
-  store.delete("qb_state");
   const code = params.get("code");
   const realm = params.get("realmId");
   if (params.get("error") || !code || !realm) return back("denied");
-  if (!expected || expected !== params.get("state")) {
-    console.error(`QuickBooks callback: state mismatch (cookie ${expected ? "present" : "missing"})`);
-    return back("failed", expected ? "The sign-in check did not match. Start again from the same browser." : "The sign-in check was lost. Start again and finish in the same browser.");
+  if (!checkState(params.get("state"), qbConfig().clientSecret)) {
+    console.error("QuickBooks callback: sign-in check failed");
+    return back("failed", "The sign-in check failed or timed out. Tap Reconnect and finish within a few minutes.");
   }
 
   try {

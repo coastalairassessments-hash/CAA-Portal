@@ -57,3 +57,24 @@ export function tokenDates(r: Pick<TokenReply, "expires_in" | "x_refresh_token_e
     refresh_expires_at: new Date(now + r.x_refresh_token_expires_in * 1000).toISOString(),
   };
 }
+
+// The "state" value proves the sign-in came from us. It is signed, so no cookie is needed
+// (cookies are lost when the app and the browser are different places on a phone).
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+const sign = (body: string, secret: string) => createHmac("sha256", secret).update(body).digest("hex").slice(0, 32);
+
+export function makeState(secret: string, now = Date.now()): string {
+  const body = String(now);
+  return `${body}.${sign(body, secret)}`;
+}
+
+export function checkState(state: string | null, secret: string, now = Date.now(), maxAgeMs = 15 * 60_000): boolean {
+  if (!state) return false;
+  const [body, sig] = state.split(".");
+  if (!body || !sig || !/^\d+$/.test(body)) return false;
+  const want = sign(body, secret);
+  if (sig.length !== want.length || !timingSafeEqual(Buffer.from(sig), Buffer.from(want))) return false;
+  const age = now - Number(body);
+  return age >= 0 && age <= maxAgeMs;
+}

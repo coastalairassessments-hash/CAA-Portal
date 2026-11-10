@@ -44,3 +44,15 @@ describe("quickbooks urls", () => {
     expect(Date.parse(d.refresh_expires_at)).toBe(8726400 * 1000);
   });
 });
+
+import { checkState, makeState } from "./qb";
+describe("signed state", () => {
+  it("accepts fresh, rejects tampered/old/empty", () => {
+    const s = makeState("k", 1000);
+    expect(checkState(s, "k", 2000)).toBe(true);
+    expect(checkState(s, "other", 2000)).toBe(false);
+    expect(checkState(s, "k", 1000 + 16 * 60_000)).toBe(false);
+    expect(checkState(null, "k")).toBe(false);
+    expect(checkState("1.abc", "k", 2)).toBe(false);
+  });
+});
