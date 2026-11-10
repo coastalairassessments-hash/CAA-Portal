@@ -1,10 +1,12 @@
 import { durationLabel, finalInvoice, minutesOnSite } from "@/lib/billing";
 import { formatMoney } from "@/lib/pricing";
 import { formatStamp } from "@/lib/labels";
-import { markFinalPaid, saveSection, sendFinalInvoice, stampTime } from "../actions";
+import { markFinalPaid, saveSection, saveVisitTimes, sendFinalInvoice, stampTime } from "../actions";
 
 type Job = Record<string, unknown> & { id: string; issue: string; status: string };
 
+const nyTime = (iso: string) =>
+  new Intl.DateTimeFormat("en-GB", { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(iso));
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 const dollars = (c: unknown) => (typeof c === "number" ? (c / 100).toFixed(2) : "");
 
@@ -67,6 +69,25 @@ export default function Drawers({ r, saved }: { r: Job; saved?: string }) {
               </form>
             ))}
           </div>
+          {note("time")}
+          <details className="adm-sub">
+            <summary>Enter or fix the times by hand</summary>
+            <form action={saveVisitTimes} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <input type="hidden" name="id" value={r.id} />
+              <Field label="Visit date" name="date" type="date" value={str(r.confirmed_date)} />
+              <div className="adm-row">
+                <Field label="Arrived" name="arrive" type="time" value={r.arrived_at ? nyTime(str(r.arrived_at)) : ""} />
+                <Field label="Left" name="leave" type="time" value={r.left_at ? nyTime(str(r.left_at)) : ""} />
+              </div>
+              <Field label="Or total hours (such as 2.5)" name="hours" value="" inputMode="decimal" />
+              <button className="adm-btn wide" type="submit">Save times</button>
+              {!r.qb_invoice_id && (
+                <button className="adm-btn primary wide" type="submit" name="then" value="invoice">
+                  Save times and invoice the balance
+                </button>
+              )}
+            </form>
+          </details>
           {minutes !== null && (
             <p className="adm-line">
               {durationLabel(minutes)} on site

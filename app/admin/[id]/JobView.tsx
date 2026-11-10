@@ -102,10 +102,16 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
       {query.error === "qb" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>QuickBooks did not accept the invoice. Nothing was sent. Try again.</p>
       )}
+      {query.error === "time" && (
+        <p className="adm-err" style={{ marginBottom: 14 }}>{typeof query.why === "string" ? query.why.slice(0, 160) : "Check the times and try again."}</p>
+      )}
+      {query.error === "timeinvoiced" && (
+        <p className="adm-err" style={{ marginBottom: 14 }}>The final invoice is already sent, so the times are locked.</p>
+      )}
       {query.saved === "invoice-unsent" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>The invoice is in QuickBooks, but it could not be emailed. Send it from QuickBooks.</p>
       )}
-      {query.error && !["taken", "check", "qb", "qbconnect"].includes(String(query.error)) && (
+      {query.error && !["taken", "check", "qb", "qbconnect", "time", "timeinvoiced"].includes(String(query.error)) && (
         <p className="adm-err" style={{ marginBottom: 14 }}>Something did not save. Try again.</p>
       )}
 

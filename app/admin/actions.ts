@@ -33,6 +33,7 @@ import { overlaps } from "@/lib/slots";
 import { isSection, parseSection } from "@/lib/job";
 import { issueForService, parseContractorJob } from "@/lib/contractorJob";
 import { finalInvoice, minutesOnSite } from "@/lib/billing";
+import { visitFromEntry } from "@/lib/visitTime";
 import { finalInvoicePayload } from "@/lib/qbInvoice";
 import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, qbConnected, voidInvoice } from "@/lib/qbSync";
 import { createDeposit } from "@/lib/depositPay";
@@ -236,6 +237,23 @@ export async function stampTime(form: FormData): Promise<void> {
   }
   if (form.get("back") === "today") redirect("/admin/today");
   redirect(`/admin/${id}${error ? "?error=save" : ""}`);
+}
+
+// Enter the visit by hand (back at the office, or a forgotten tap). "Save and invoice" also sends the final invoice.
+export async function saveVisitTimes(form: FormData): Promise<void> {
+  const supabase = await adminClient();
+  const id = String(form.get("id") ?? "");
+  if (!supabase || !/^[0-9a-f-]{36}$/i.test(id)) redirect("/admin");
+  const { data: r } = await supabase.from("requests").select("status, confirmed_time, qb_invoice_id").eq("id", id).single();
+  if (!r || r.status !== "confirmed") redirect(`/admin/${id}?error=save`);
+  if (r.qb_invoice_id) redirect(`/admin/${id}?error=timeinvoiced`);
+  const text = (k: string) => String(form.get(k) ?? "");
+  const v = visitFromEntry({ date: text("date"), arrive: text("arrive"), leave: text("leave"), hours: text("hours"), plannedTime: r.confirmed_time });
+  if (!v.ok) redirect(`/admin/${id}?error=time&why=${encodeURIComponent(v.error)}`);
+  const { error } = await supabase.from("requests").update({ arrived_at: v.arrived_at, left_at: v.left_at }).eq("id", id);
+  if (error) redirect(`/admin/${id}?error=save`);
+  if (form.get("then") === "invoice") return sendFinalInvoice(form);
+  redirect(`/admin/${id}?saved=time`);
 }
 
 // The final invoice was paid. This is what later releases the report.
