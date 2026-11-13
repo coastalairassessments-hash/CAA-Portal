@@ -1,18 +1,73 @@
 "use client";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { addContractorJob, type ConfirmState } from "../actions";
 import { SERVICES } from "@/lib/contractorJob";
 
 export default function AddForm({ contractors, defaultDate, defaultTime = "10:00", initialName = "", initialAddress = "" }: { contractors: { id: string; name: string }[]; defaultDate: string; defaultTime?: string; initialName?: string; initialAddress?: string }) {
   const [state, action, pending] = useActionState<ConfirmState, FormData>(addContractorJob, { error: null });
+  type Hit = { name: string; address: string; phone: string | null; kind: "client" | "job" };
+  const [q, setQ] = useState("");
+  const [hits, setHits] = useState<Hit[]>([]);
+  const [past, setPast] = useState<Hit[]>([]);
+  const [name, setName] = useState(initialName);
+  const [address, setAddress] = useState(initialAddress);
+  const [contractorId, setContractorId] = useState("");
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Search past clients and properties as you type.
+  useEffect(() => {
+    if (timer.current) clearTimeout(timer.current);
+    if (q.trim().length < 2) return;
+    timer.current = setTimeout(async () => {
+      try {
+        const r = await fetch(`/admin/lookup?q=${encodeURIComponent(q.trim())}`, { cache: "no-store" });
+        setHits(r.ok ? ((await r.json()) as { hits: Hit[] }).hits : []);
+      } catch { setHits([]); }
+    }, 250);
+    return () => { if (timer.current) clearTimeout(timer.current); };
+  }, [q]);
+
+  // Properties already done for the chosen contractor.
+  useEffect(() => {
+    if (!contractorId) return;
+    let live = true;
+    fetch(`/admin/lookup?contractor=${contractorId}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { hits: [] }))
+      .then((d: { hits: Hit[] }) => { if (live) setPast(d.hits); })
+      .catch(() => { if (live) setPast([]); });
+    return () => { live = false; };
+  }, [contractorId]);
+
+  const shown = q.trim().length >= 2 ? hits : [];
+  const shownPast = contractorId ? past : [];
+  const pick = (h: Hit) => {
+    const match = contractors.find((c) => c.name.trim().toLowerCase() === h.name.trim().toLowerCase());
+    if (match) { setContractorId(match.id); setName(""); } else { setContractorId(""); setName(h.name); }
+    if (h.address) setAddress(h.address);
+    setQ(""); setHits([]);
+  };
+  const row = (h: Hit, i: number) => (
+    <li key={`${h.name}|${h.address}|${i}`}>
+      <button type="button" className="adm-btn" style={{ width: "100%", justifyContent: "flex-start", textAlign: "left", flexDirection: "column", alignItems: "flex-start", gap: 2, padding: 10 }} onClick={() => pick(h)}>
+        <b>{h.name}</b>
+        <span className="adm-muted">{h.address || "No address on file"}{h.kind === "client" ? " · client list" : " · past job"}</span>
+      </button>
+    </li>
+  );
+
   return (
     <form action={action} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <Link className="adm-link" href="/admin/clients">Find a client</Link>
+      <div className="adm-field">
+        <label htmlFor="lookup">Look up a past client or property</label>
+        <input id="lookup" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, street or city" autoComplete="off" />
+        {shown.length > 0 && <ul style={{ listStyle: "none", padding: 0, margin: "8px 0 0", display: "flex", flexDirection: "column", gap: 6 }}>{shown.map(row)}</ul>}
+        {q.trim().length >= 2 && shown.length === 0 && <p className="adm-muted">Nothing found. Type the details below.</p>}
+      </div>
       {contractors.length > 0 && (
         <div className="adm-field">
           <label htmlFor="contractorId">Contractor</label>
-          <select id="contractorId" name="contractorId" defaultValue="">
+          <select id="contractorId" name="contractorId" value={contractorId} onChange={(e) => setContractorId(e.target.value)}>
             <option value="">New contractor (type below)</option>
             {contractors.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
@@ -22,8 +77,18 @@ export default function AddForm({ contractors, defaultDate, defaultTime = "10:00
       )}
       <div className="adm-field">
         <label htmlFor="newName">{contractors.length > 0 ? "Or new contractor name" : "Contractor name"}</label>
-        <input id="newName" name="newName" type="text" autoComplete="off" defaultValue={initialName} />
+        <input id="newName" name="newName" type="text" autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} />
       </div>
+      {shownPast.length > 0 && (
+        <div className="adm-field">
+          <label>Past properties for this contractor</label>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+            {shownPast.slice(0, 8).map((h, i) => (
+              <li key={`${h.address}|${i}`}><button type="button" className="adm-btn" style={{ width: "100%", justifyContent: "flex-start", textAlign: "left", padding: 10 }} onClick={() => setAddress(h.address)}>{h.address}</button></li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="adm-field">
         <label htmlFor="service">Service</label>
         <select id="service" name="service" defaultValue="prv">
@@ -34,7 +99,7 @@ export default function AddForm({ contractors, defaultDate, defaultTime = "10:00
       </div>
       <div className="adm-field">
         <label htmlFor="address">Job address</label>
-        <input id="address" name="address" type="text" autoComplete="off" placeholder="Street, city" defaultValue={initialAddress} required />
+        <input id="address" name="address" type="text" autoComplete="off" placeholder="Street, city" value={address} onChange={(e) => setAddress(e.target.value)} required />
       </div>
       <div className="adm-field">
         <label htmlFor="date">Date</label>
