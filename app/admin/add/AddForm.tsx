@@ -44,6 +44,14 @@ export default function AddForm({ contractors, defaultDate, defaultTime = "10:00
         <label htmlFor="reference">PO or reference number (optional)</label>
         <input id="reference" name="reference" type="text" autoComplete="off" maxLength={80} />
       </div>
+      <div className="adm-field">
+        <label htmlFor="notes">Job notes (private: contact, gate code, lockbox, access)</label>
+        <textarea id="notes" name="notes" rows={4} maxLength={1000} />
+      </div>
+      <div className="adm-field">
+        <label htmlFor="invoiceNote">Invoice note (optional, prints on the invoice)</label>
+        <textarea id="invoiceNote" name="invoiceNote" rows={2} maxLength={500} />
+      </div>
       <div className="adm-row">
         <div className="adm-field">
           <label htmlFor="time">Start</label>

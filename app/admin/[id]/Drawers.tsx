@@ -145,7 +145,19 @@ export default function Drawers({ r, saved, chargesSlot }: { r: Job; saved?: str
               <Field label="Deposit invoice no." name="deposit_invoice_no" value={str(r.deposit_invoice_no)} />
               <Field label="Final invoice no." name="final_invoice_no" value={str(r.final_invoice_no)} />
             </div>
-            {r.source === "contractor" && <Field label="PO or reference number" name="reference" value={str(r.reference)} />}
+            {r.source === "contractor" && (
+              <>
+                <Field label="PO or reference number" name="reference" value={str(r.reference)} />
+                <div className="adm-field">
+                  <label htmlFor="notes">Job notes (private: contact, gate code, access)</label>
+                  <textarea id="notes" name="notes" rows={4} maxLength={1000} defaultValue={str(r.notes)} />
+                </div>
+                <div className="adm-field">
+                  <label htmlFor="invoice_note">Invoice note (prints on the invoice)</label>
+                  <textarea id="invoice_note" name="invoice_note" rows={2} maxLength={500} defaultValue={str(r.invoice_note)} />
+                </div>
+              </>
+            )}
             <div className="adm-field">
               <label htmlFor="payment_method">Paid by</label>
               <select id="payment_method" name="payment_method" defaultValue={str(r.payment_method)}>

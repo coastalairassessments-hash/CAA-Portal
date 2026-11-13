@@ -338,6 +338,8 @@ export async function addContractorJob(_prev: ConfirmState, form: FormData): Pro
     time: form.get("time"),
     hours: form.get("hours"),
     reference: form.get("reference") ?? "",
+    notes: form.get("notes") ?? "",
+    invoiceNote: form.get("invoiceNote") ?? "",
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form." };
   const v = parsed.data;
@@ -369,6 +371,8 @@ export async function addContractorJob(_prev: ConfirmState, form: FormData): Pro
       source: "contractor",
       contractor_id: contractorId,
       reference: v.reference || null,
+      notes: v.notes || null,
+      invoice_note: v.invoiceNote || null,
       status: "confirmed",
       issue: issueForService(v.service),
       name: contractorName,
@@ -499,6 +503,7 @@ async function sendBalanceByCard(supabase: Awaited<ReturnType<typeof adminClient
           ? `Thank you for having us out. The property was not ready for the full visit, so this is the trip fee for ${jobLabel(r)}.`
           : `Thank you for having us out. Here is the balance for ${jobLabel(r)}.`,
         "",
+        ...(contractor && r.invoice_note ? [String(r.invoice_note), ""] : []),
         ...balanceLines({ inv, tripOnly: r.trip_only === true, service: jobLabel(r), charges, legacySamples: typeof r.lab_samples === "number" ? r.lab_samples : 0 }),
         "",
         contractor ? "View the invoice and pay by card:" : "Pay securely by card:",

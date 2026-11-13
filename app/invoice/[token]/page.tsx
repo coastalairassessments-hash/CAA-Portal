@@ -76,6 +76,7 @@ async function Invoice({ params }: { params: Promise<{ token: string }> }) {
           </tbody>
         </table>
       </section>
+      {r.invoice_note && <p className="bk-lead" style={{ whiteSpace: "pre-wrap" }}>{r.invoice_note}</p>}
       {canPay && (
         <section className="bk-pay">
           <a className="btn" href={`/booking/${token}/balance`}>Pay {formatMoney(inv.balance)} by card</a>
