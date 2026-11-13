@@ -82,11 +82,11 @@ async function Booking({ params, searchParams }: Props) {
       {showPay && (
         <section className="bk-pay">
           {r.pay_url ? (
-            <a className="btn" href={r.pay_url}>Pay {formatMoney(r.deposit_cents ?? depositCents(r.issue))} deposit</a>
+            <a className="btn" href={`/booking/${token}/pay`}>Pay {formatMoney(r.deposit_cents ?? depositCents(r.issue))} deposit</a>
           ) : (
             <p>We emailed you a secure link to pay the deposit. Open it and your booking confirms automatically.</p>
           )}
-          <p className="bk-pay-note">Secure payment by card or bank through QuickBooks. This page updates by itself once you pay.</p>
+          <p className="bk-pay-note">Secure card payment. This page updates by itself once you pay.</p>
         </section>
       )}
       {v.expired && (

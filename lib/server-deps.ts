@@ -70,6 +70,20 @@ export function productionDeps(
         .eq("id", row.id);
       if (error) throw error;
     },
+    async findOpenHold({ email, date, time }) {
+      const { data } = await db
+        .from("requests")
+        .select("public_token")
+        .eq("status", "offered")
+        .eq("booking_mode", "instant")
+        .eq("confirmed_date", date)
+        .eq("confirmed_time", `${time}:00`)
+        .ilike("email", email)
+        .not("qb_deposit_invoice_id", "is", null)
+        .limit(1)
+        .maybeSingle();
+      return (data?.public_token as string | undefined) ?? null;
+    },
     async paymentProblem(row, reason) {
       const body = `${row.name} tried to book and pay a deposit, but QuickBooks would not make the invoice. Reason: ${reason.slice(0, 200)}. Open More and tap Test deposit payments.`;
       const phones = await sendPush({ title: "Deposit link failed", body, url: "/admin/more" });

@@ -56,6 +56,8 @@ export type SubmitDeps = {
   slotHeld?: (slot: Zoned) => Promise<boolean>;
   startPayment?: (row: NewRequestRow & { id: string; public_token?: string | null }) => Promise<void>;
   revertToRequest?: (id: string) => Promise<void>;
+  // The same client already has this exact time waiting for its deposit (a double tap or a retry).
+  findOpenHold?: (q: { email: string; date: string; time: string }) => Promise<string | null>;
 };
 
 export type SubmitResult =
@@ -146,6 +148,11 @@ export async function submitRequest(
     !!deps.startPayment && !!deps.slotHeld &&
     canBookInstantly({ area: zone.area, propertyType: data.propertyType, sizeBand: data.sizeBand });
   const hours = hoursFor(data.issue, data.sizeBand);
+  if (instant && deps.findOpenHold) {
+    // A retry must not make a second booking or tell them their own time is taken. Send them back to it.
+    const mine = await deps.findOpenHold({ email: data.email, date: data.preferredDate, time: data.preferredTime }).catch(() => null);
+    if (mine) return { ok: true, instant: true, token: mine };
+  }
   if (instant && (await deps.slotHeld!({ date: data.preferredDate, time: data.preferredTime, hours, zone: driveZone(data.zip) }))) {
     return {
       ok: false,

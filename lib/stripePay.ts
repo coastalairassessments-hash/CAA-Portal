@@ -51,14 +51,29 @@ export async function createCheckout(o: Parameters<typeof checkoutForm>[0]): Pro
   return { id: b.id, url: b.url };
 }
 
-export async function checkoutPaid(id: string): Promise<{ paid: boolean; expired: boolean }> {
+export async function getCheckout(id: string): Promise<{ paid: boolean; expired: boolean; url: string | null }> {
   const b = await call(`checkout/sessions/${encodeURIComponent(id)}`);
-  return { paid: b.payment_status === "paid", expired: b.status === "expired" };
+  return { paid: b.payment_status === "paid", expired: b.status === "expired", url: typeof b.url === "string" ? b.url : null };
+}
+
+export async function checkoutPaid(id: string): Promise<{ paid: boolean; expired: boolean }> {
+  const { paid, expired } = await getCheckout(id);
+  return { paid, expired };
 }
 
 // Closes an unpaid checkout so it cannot be paid later. Quietly fine if already closed.
 export async function expireCheckout(id: string): Promise<void> {
   await call(`checkout/sessions/${encodeURIComponent(id)}/expire`, new URLSearchParams()).catch(() => undefined);
+}
+
+// A quick look that the key still works. Never throws.
+export async function stripeHealth(): Promise<boolean> {
+  try {
+    await call("checkout/sessions?limit=1");
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // Proves a client could pay: opens a $1 checkout and closes it again.

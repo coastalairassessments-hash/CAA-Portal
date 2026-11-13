@@ -68,6 +68,17 @@ describe("submit with instant booking", () => {
     expect(r).toMatchObject({ ok: false, status: 409 });
     expect(d.insert).not.toHaveBeenCalled();
   });
+  it("sends a retrying client back to their own open hold instead of making a second one", async () => {
+    const d = deps({ findOpenHold: vi.fn(async () => "tok-old"), slotHeld: vi.fn(async () => true) });
+    const r = await submitRequest(form, null, d);
+    expect(r).toEqual({ ok: true, instant: true, token: "tok-old" });
+    expect(d.insert).not.toHaveBeenCalled();
+    expect(d.startPayment).not.toHaveBeenCalled();
+  });
+  it("still books normally when no earlier hold is found", async () => {
+    const d = deps({ findOpenHold: vi.fn(async () => null) });
+    expect(await submitRequest(form, null, d)).toEqual({ ok: true, instant: true, token: "tok" });
+  });
   it("falls back to a normal request when payments are down", async () => {
     const d = deps({ startPayment: vi.fn(async () => { throw new Error("QuickBooks is not connected"); }), paymentProblem: vi.fn(async () => {}) });
     const r = await submitRequest(form, null, d);

@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { connectionExpired, getConnection } from "@/lib/qbStore";
 import { qbHealth } from "@/lib/qbSync";
+import { stripeConfigured, stripeHealth } from "@/lib/stripePay";
 import { logout } from "../actions";
 import PushToggle from "./PushToggle";
 import DepositCheck from "./DepositCheck";
@@ -19,6 +20,27 @@ const QB_NOTE: Record<string, string> = {
   failed: "QuickBooks connection failed. Try again.",
   missing: "QuickBooks keys are missing in Netlify.",
 };
+
+async function Payments() {
+  await connection();
+  const set = stripeConfigured();
+  const ok = set ? await stripeHealth() : false;
+  return (
+    <section className="adm-group">
+      <h2>Deposits</h2>
+      {ok ? (
+        <p className="adm-ok">Working. Clients pay deposits by card on a Stripe page.</p>
+      ) : (
+        <p className="adm-err">
+          {set
+            ? "Stripe is not answering, so clients cannot pay deposits. Tap Test deposit payments to see why."
+            : "Stripe is not set up yet, so deposits go through QuickBooks."}
+        </p>
+      )}
+      <DepositCheck />
+    </section>
+  );
+}
 
 async function QuickBooks({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   await connection();
@@ -39,22 +61,22 @@ async function QuickBooks({ searchParams }: { searchParams: Promise<Record<strin
   return (
     <section className="adm-group">
       <h2>QuickBooks</h2>
+      <p className="adm-muted">Only used for final invoices. Clients are never held up by it.</p>
       {note && <p className="adm-ok">{note}</p>}
       {health?.ok ? (
         <p className="adm-ok">Working. Linked to {health.company}.</p>
       ) : (
-        <p className="adm-err">
-          {expired
-            ? "The connection expired. Reconnect to keep invoices and deposits working."
-            : linked
-              ? "QuickBooks is rejecting the saved connection, so clients cannot pay deposits. Tap Reconnect."
-              : "Not connected yet. Clients cannot pay deposits until you connect."}
-        </p>
+        <>
+          <p className="adm-err">
+            {expired || linked
+              ? "Not connected right now. Reconnect before sending a final invoice."
+              : "Not connected yet. Connect before sending a final invoice."}
+          </p>
+          <a className="adm-btn wide" href="/api/qb/connect">
+            {linked ? "Reconnect QuickBooks" : "Connect QuickBooks"}
+          </a>
+        </>
       )}
-      <a className={`adm-btn wide${health?.ok ? "" : " primary"}`} href="/api/qb/connect">
-        {linked ? "Reconnect QuickBooks" : "Connect QuickBooks"}
-      </a>
-      {linked && <DepositCheck />}
     </section>
   );
 }
@@ -74,6 +96,9 @@ export default function MorePage({ searchParams }: { searchParams: Promise<Recor
       </header>
       <Suspense fallback={null}>
         <Alerts />
+      </Suspense>
+      <Suspense fallback={null}>
+        <Payments />
       </Suspense>
       <Suspense fallback={null}>
         <QuickBooks searchParams={searchParams} />
