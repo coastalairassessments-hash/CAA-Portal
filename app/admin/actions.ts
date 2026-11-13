@@ -372,7 +372,7 @@ export async function addContractorJob(_prev: ConfirmState, form: FormData): Pro
       source: "contractor",
       contractor_id: contractorId,
       reference: v.reference || null,
-      notes: v.notes || null,
+      notes: v.notes,
       invoice_note: v.invoiceNote || null,
       status: "confirmed",
       issue: issueForService(v.service),

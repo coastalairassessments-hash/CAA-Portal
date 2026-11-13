@@ -56,7 +56,7 @@ const sections = {
     deposit_invoice_no: text(60),
     final_invoice_no: text(60),
     reference: text(80),
-    notes: text(1000),
+    notes: z.string().trim().max(1000).optional(),
     invoice_note: text(500),
     payment_method: z.enum(["", "card", "check", "cash", "ach", "other"]).transform((v) => (v === "" ? null : v)),
   }),

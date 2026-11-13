@@ -1,94 +1,103 @@
 "use client";
-import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { addContractorJob, type ConfirmState } from "../actions";
 import { SERVICES } from "@/lib/contractorJob";
 
-export default function AddForm({ contractors, defaultDate, defaultTime = "10:00", initialName = "", initialAddress = "" }: { contractors: { id: string; name: string }[]; defaultDate: string; defaultTime?: string; initialName?: string; initialAddress?: string }) {
+type Hit = { name: string; address: string; phone: string | null; kind: "client" | "job" };
+type Contractor = { id: string; name: string };
+
+const list: React.CSSProperties = { listStyle: "none", padding: 0, margin: "6px 0 0", display: "flex", flexDirection: "column", gap: 6 };
+const item: React.CSSProperties = { width: "100%", justifyContent: "flex-start", textAlign: "left", flexDirection: "column", alignItems: "flex-start", gap: 2, padding: 10 };
+
+export default function AddForm({ contractors, defaultDate, defaultTime = "10:00", initialName = "", initialAddress = "" }: { contractors: Contractor[]; defaultDate: string; defaultTime?: string; initialName?: string; initialAddress?: string }) {
   const [state, action, pending] = useActionState<ConfirmState, FormData>(addContractorJob, { error: null });
-  type Hit = { name: string; address: string; phone: string | null; kind: "client" | "job" };
-  const [q, setQ] = useState("");
-  const [hits, setHits] = useState<Hit[]>([]);
-  const [past, setPast] = useState<Hit[]>([]);
   const [name, setName] = useState(initialName);
   const [address, setAddress] = useState(initialAddress);
-  const [contractorId, setContractorId] = useState("");
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [focus, setFocus] = useState<"name" | "addr" | null>(null);
+  const [nameHits, setNameHits] = useState<Hit[]>([]);
+  const [addrHits, setAddrHits] = useState<Hit[]>([]);
+  const [past, setPast] = useState<{ id: string; list: Hit[] }>({ id: "", list: [] });
+  const t1 = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const t2 = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Search past clients and properties as you type.
-  useEffect(() => {
+  const typed = name.trim().toLowerCase();
+  const chosen = contractors.find((c) => c.name.trim().toLowerCase() === typed) ?? null;
+  const pastList = chosen && past.id === chosen.id ? past.list : [];
+
+  const search = (q: string, set: (h: Hit[]) => void, timer: { current: ReturnType<typeof setTimeout> | null }) => {
     if (timer.current) clearTimeout(timer.current);
     if (q.trim().length < 2) return;
     timer.current = setTimeout(async () => {
       try {
         const r = await fetch(`/admin/lookup?q=${encodeURIComponent(q.trim())}`, { cache: "no-store" });
-        setHits(r.ok ? ((await r.json()) as { hits: Hit[] }).hits : []);
-      } catch { setHits([]); }
+        set(r.ok ? ((await r.json()) as { hits: Hit[] }).hits : []);
+      } catch { set([]); }
     }, 250);
-    return () => { if (timer.current) clearTimeout(timer.current); };
-  }, [q]);
-
-  // Properties already done for the chosen contractor.
-  useEffect(() => {
-    if (!contractorId) return;
-    let live = true;
-    fetch(`/admin/lookup?contractor=${contractorId}`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : { hits: [] }))
-      .then((d: { hits: Hit[] }) => { if (live) setPast(d.hits); })
-      .catch(() => { if (live) setPast([]); });
-    return () => { live = false; };
-  }, [contractorId]);
-
-  const shown = q.trim().length >= 2 ? hits : [];
-  const shownPast = contractorId ? past : [];
-  const pick = (h: Hit) => {
-    const match = contractors.find((c) => c.name.trim().toLowerCase() === h.name.trim().toLowerCase());
-    if (match) { setContractorId(match.id); setName(""); } else { setContractorId(""); setName(h.name); }
-    if (h.address) setAddress(h.address);
-    setQ(""); setHits([]);
   };
-  const row = (h: Hit, i: number) => (
-    <li key={`${h.name}|${h.address}|${i}`}>
-      <button type="button" className="adm-btn" style={{ width: "100%", justifyContent: "flex-start", textAlign: "left", flexDirection: "column", alignItems: "flex-start", gap: 2, padding: 10 }} onClick={() => pick(h)}>
-        <b>{h.name}</b>
-        <span className="adm-muted">{h.address || "No address on file"}{h.kind === "client" ? " · client list" : " · past job"}</span>
-      </button>
-    </li>
-  );
+
+  // The chosen contractor's earlier properties.
+  useEffect(() => {
+    if (!chosen) return;
+    let live = true;
+    fetch(`/admin/lookup?contractor=${chosen.id}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { hits: [] }))
+      .then((d: { hits: Hit[] }) => { if (live) setPast({ id: chosen.id, list: d.hits }); })
+      .catch(() => undefined);
+    return () => { live = false; };
+  }, [chosen?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onName = (v: string) => { setName(v); setFocus("name"); search(v, setNameHits, t1); };
+  const onAddr = (v: string) => { setAddress(v); setFocus("addr"); search(v, setAddrHits, t2); };
+
+  // Contractors first (from your list), then people from the client list.
+  const nameMatches = typed.length === 0 ? contractors.slice(0, 6) : contractors.filter((c) => c.name.toLowerCase().includes(typed)).slice(0, 6);
+  const nameExtra = typed.length >= 2 ? nameHits.filter((h) => !contractors.some((c) => c.name.trim().toLowerCase() === h.name.trim().toLowerCase())).slice(0, 5) : [];
+
+  const at = address.trim().toLowerCase();
+  const pastShown = pastList.filter((h) => !at || h.address.toLowerCase().includes(at)).slice(0, 8);
+  const seen = new Set(pastShown.map((h) => h.address.toLowerCase()));
+  const addrExtra = at.length >= 3 ? addrHits.filter((h) => h.address && !seen.has(h.address.toLowerCase())).slice(0, 6) : [];
+  const addrKnown = !!at && pastList.some((h) => h.address.trim().toLowerCase() === at);
+
+  const noBlur = (e: React.MouseEvent) => e.preventDefault();
 
   return (
     <form action={action} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <input type="hidden" name="contractorId" value={chosen?.id ?? ""} />
+      <input type="hidden" name="newName" value={chosen ? "" : name.trim()} />
+
       <div className="adm-field">
-        <label htmlFor="lookup">Look up a past client or property</label>
-        <input id="lookup" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, street or city" autoComplete="off" />
-        {shown.length > 0 && <ul style={{ listStyle: "none", padding: 0, margin: "8px 0 0", display: "flex", flexDirection: "column", gap: 6 }}>{shown.map(row)}</ul>}
-        {q.trim().length >= 2 && shown.length === 0 && <p className="adm-muted">Nothing found. Type the details below.</p>}
-      </div>
-      {contractors.length > 0 && (
-        <div className="adm-field">
-          <label htmlFor="contractorId">Contractor</label>
-          <select id="contractorId" name="contractorId" value={contractorId} onChange={(e) => setContractorId(e.target.value)}>
-            <option value="">New contractor (type below)</option>
-            {contractors.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+        <label htmlFor="contractor">Contractor</label>
+        <input id="contractor" type="text" autoComplete="off" value={name} placeholder="Start typing a name" onChange={(e) => onName(e.target.value)} onFocus={() => setFocus("name")} onBlur={() => setFocus(null)} required />
+        {focus === "name" && (nameMatches.length > 0 || nameExtra.length > 0) && (
+          <ul style={list}>
+            {nameMatches.map((c) => (
+              <li key={c.id}><button type="button" className="adm-btn" style={item} onMouseDown={noBlur} onClick={() => { setName(c.name); setFocus(null); }}><b>{c.name}</b><span className="adm-muted">Contractor</span></button></li>
             ))}
-          </select>
-        </div>
-      )}
-      <div className="adm-field">
-        <label htmlFor="newName">{contractors.length > 0 ? "Or new contractor name" : "Contractor name"}</label>
-        <input id="newName" name="newName" type="text" autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} />
-      </div>
-      {shownPast.length > 0 && (
-        <div className="adm-field">
-          <label>Past properties for this contractor</label>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
-            {shownPast.slice(0, 8).map((h, i) => (
-              <li key={`${h.address}|${i}`}><button type="button" className="adm-btn" style={{ width: "100%", justifyContent: "flex-start", textAlign: "left", padding: 10 }} onClick={() => setAddress(h.address)}>{h.address}</button></li>
+            {nameExtra.map((h, i) => (
+              <li key={`${h.name}|${i}`}><button type="button" className="adm-btn" style={item} onMouseDown={noBlur} onClick={() => { setName(h.name); if (h.address) setAddress(h.address); setFocus(null); }}><b>{h.name}</b><span className="adm-muted">{h.address || "Client list"} · client list</span></button></li>
             ))}
           </ul>
-        </div>
-      )}
+        )}
+        {name.trim() && !chosen && <p className="adm-muted">New contractor. They are added to your list when you save.</p>}
+      </div>
+
+      <div className="adm-field">
+        <label htmlFor="address">Job address</label>
+        <input id="address" name="address" type="text" autoComplete="off" value={address} placeholder="Street, city" onChange={(e) => onAddr(e.target.value)} onFocus={() => setFocus("addr")} onBlur={() => setFocus(null)} required />
+        {focus === "addr" && (pastShown.length > 0 || addrExtra.length > 0) && (
+          <ul style={list}>
+            {pastShown.map((h, i) => (
+              <li key={`p|${h.address}|${i}`}><button type="button" className="adm-btn" style={item} onMouseDown={noBlur} onClick={() => { setAddress(h.address); setFocus(null); }}><b>{h.address}</b><span className="adm-muted">Earlier job for {chosen?.name}</span></button></li>
+            ))}
+            {addrExtra.map((h, i) => (
+              <li key={`x|${h.address}|${i}`}><button type="button" className="adm-btn" style={item} onMouseDown={noBlur} onClick={() => { setAddress(h.address); setFocus(null); }}><b>{h.address}</b><span className="adm-muted">{h.name} · {h.kind === "client" ? "client list" : "past job"}</span></button></li>
+            ))}
+          </ul>
+        )}
+        {address.trim().length > 2 && name.trim() && !addrKnown && <p className="adm-muted">New property. It is saved to {chosen ? `${chosen.name}'s` : "this contractor's"} list when you save.</p>}
+      </div>
+
       <div className="adm-field">
         <label htmlFor="service">Service</label>
         <select id="service" name="service" defaultValue="prv">
@@ -96,10 +105,6 @@ export default function AddForm({ contractors, defaultDate, defaultTime = "10:00
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
         </select>
-      </div>
-      <div className="adm-field">
-        <label htmlFor="address">Job address</label>
-        <input id="address" name="address" type="text" autoComplete="off" placeholder="Street, city" value={address} onChange={(e) => setAddress(e.target.value)} required />
       </div>
       <div className="adm-field">
         <label htmlFor="outcome">When is this job?</label>
