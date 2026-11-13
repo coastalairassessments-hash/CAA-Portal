@@ -66,7 +66,8 @@ export function mapClients(csv: string, source: string): ClientRow[] {
     const st = pick(r, ["Service State", "Billing State", "State"]);
     const zip = pick(r, ["Service Zip code", "Billing Zip code", "Zip", "Zip code"]);
     const address = [street, [city, [st, zip].filter(Boolean).join(" ")].filter(Boolean).join(", ")].filter(Boolean).join(", ") || null;
-    const key = email ?? ph?.digits ?? name.toLowerCase().replace(/\s+/g, " ");
+    // Name plus contact, so two people who share an email or phone stay separate.
+    const key = `${name.toLowerCase().replace(/\s+/g, " ")}|${email ?? ph?.digits ?? ""}`;
     if (!out.has(key)) out.set(key, { key, name, phone: ph?.phone ?? null, phone_digits: ph?.digits ?? null, email, address, source });
   }
   return [...out.values()];
