@@ -17,3 +17,11 @@ describe("payment link", () => {
     expect(m.text).toContain("https://x/pay/abc");
   });
 });
+
+describe("saved without an email", () => {
+  it("allows a blank email only when saving", () => {
+    const base = { name: "A B", description: "x", amount: "10" };
+    expect(parsePaymentLink({ ...base, email: "" }, false).data?.email).toBeNull();
+    expect(parsePaymentLink({ ...base, email: "" }, true).success).toBe(false);
+  });
+});

@@ -6,7 +6,7 @@ import { connection } from "next/server";
 import { supabaseForUser } from "@/lib/supabase/server";
 import { getCheckout, isStripeId } from "@/lib/stripePay";
 import { formatMoney } from "@/lib/pricing";
-import { deletePaymentLink, sendPaymentLink } from "./actions";
+import { deletePaymentLink, sendPaymentLink, sendSavedLink } from "./actions";
 
 export const metadata: Metadata = {
   title: "Payment links | Coastal Air Assessments",
@@ -43,23 +43,32 @@ async function Body({ searchParams }: { searchParams: Promise<Q> }) {
   return (
     <>
       {error && <p className="adm-err">{error.code === "42P01" ? "Not set up yet. Run the 0026 SQL in Supabase." : "Could not load the list."}</p>}
+      {q.saved && <p className="adm-ok">Saved. It is in the list below, not sent.</p>}
       {q.sent && <p className="adm-ok">Sent. The client has a card link by email.</p>}
       {q.unsent && <p className="adm-err">The link was made but the email did not go out. Check that the email address is right.</p>}
       {one("error") && <p className="adm-err" role="alert">{one("error")}</p>}
       <form action={sendPaymentLink} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div className="adm-field"><label htmlFor="name">Client name</label><input id="name" name="name" defaultValue={one("name")} required /></div>
-        <div className="adm-field"><label htmlFor="email">Client email</label><input id="email" name="email" type="email" defaultValue={one("email")} required /></div>
+        <div className="adm-field"><label htmlFor="email">Client email</label><input id="email" name="email" type="email" defaultValue={one("email")} /></div>
         <div className="adm-field"><label htmlFor="description">What it is for</label><input id="description" name="description" defaultValue={one("description")} placeholder="Invoice #12979, PRV, Oct 16" required /></div>
         <div className="adm-field"><label htmlFor="amount">Amount ($)</label><input id="amount" name="amount" inputMode="decimal" defaultValue={one("amount")} required /></div>
         <button className="adm-btn primary wide" type="submit">Email card link</button>
+        <button className="adm-btn wide" type="submit" name="then" value="draft" formNoValidate>Save without sending</button>
       </form>
-      <p className="adm-muted" style={{ marginTop: 16 }}>Looking for the email? <Link href="/admin/clients">Search clients</Link> and copy it.</p>
+      <p className="adm-muted" style={{ marginTop: 16 }}>Need the email? <Link href="/admin/clients">Search clients</Link>.</p>
       {list.length > 0 && <h2 style={{ marginTop: 20 }}>Sent{owed > 0 ? ` · ${formatMoney(owed)} unpaid` : ""}</h2>}
       {list.map((r) => (
         <article className="adm-card" key={r.id}>
           <h2>{r.name} · {formatMoney(r.amount_cents)}</h2>
           <p className="adm-muted">{r.description}</p>
-          <p className="adm-line">{r.paid_at ? "Paid" : r.sent_at ? "Sent, waiting for payment" : "Not emailed"} · {r.email}</p>
+          <p className="adm-line">{r.paid_at ? "Paid" : r.sent_at ? "Sent, waiting for payment" : "Saved, not sent"}{r.email ? ` · ${r.email}` : ""}</p>
+          {!r.paid_at && !r.sent_at && (
+            <form action={sendSavedLink} style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
+              <input type="hidden" name="id" value={r.id} />
+              <input name="email" type="email" defaultValue={r.email ?? ""} placeholder="Client email" aria-label="Client email" required />
+              <button className="adm-btn primary" type="submit">Send card link</button>
+            </form>
+          )}
           {!r.paid_at && (
             <form action={deletePaymentLink}>
               <input type="hidden" name="id" value={r.id} />
