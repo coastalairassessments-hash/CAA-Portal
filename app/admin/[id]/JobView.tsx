@@ -11,7 +11,7 @@ import { confirmText, offerText, smsLink } from "@/lib/confirm";
 import { GOOGLE_REVIEW_URL, depositReminderText, reviewText } from "@/lib/quicktexts";
 import { depositCents, firstHourCents, formatMoney } from "@/lib/pricing";
 import { googleCalendarLink } from "@/lib/calendar";
-import { cancelBooking, cancelJob, clearEmailFailed, declineRequest, markDepositReceived, markRefunded } from "../actions";
+import { cancelBooking, cancelJob, clearEmailFailed, declineRequest, deleteRequest, markDepositReceived, markRefunded } from "../actions";
 import { hoursUntil, refundDue } from "@/lib/cancel";
 import { STAGES, stageDone } from "@/lib/stage";
 import { clientTypeLabel, intakeLines } from "@/lib/intake";
@@ -99,6 +99,9 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
       {query.error === "qbconnect" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>QuickBooks is not connected. Connect it on the More screen.</p>
       )}
+      {query.error === "nodelete" && (
+        <p className="adm-err" style={{ marginBottom: 14 }}>This job has money paid on it, so it cannot be deleted. Cancel it instead.</p>
+      )}
       {query.error === "stripe" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>The card link could not be made. Nothing was sent. Open More, tap Test deposit payments, then try again.</p>
       )}
@@ -117,7 +120,7 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
       {query.saved === "invoice-unsent" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>The payment link is ready, but the email could not be sent. Text or call the client and give them the link from their booking page.</p>
       )}
-      {query.error && !["taken", "check", "qb", "qbconnect", "time", "timeinvoiced", "stripe", "nobalance"].includes(String(query.error)) && (
+      {query.error && !["taken", "check", "qb", "qbconnect", "time", "timeinvoiced", "stripe", "nobalance", "nodelete"].includes(String(query.error)) && (
         <p className="adm-err" style={{ marginBottom: 14 }}>Something did not save. Try again.</p>
       )}
 
@@ -256,6 +259,16 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
         <Suspense fallback={null}>
           <FieldNotes id={r.id} open={query.saved === "field"} />
         </Suspense>
+        {r.status !== "confirmed" && !r.deposit_paid_at && !r.final_paid_at && (
+          <details className="adm-group">
+            <summary>Delete this request</summary>
+            <p className="adm-muted">Removes it for good. The client is not emailed, and any open payment page is closed.</p>
+            <form action={deleteRequest}>
+              <input type="hidden" name="id" value={r.id} />
+              <button className="adm-btn danger wide" type="submit">Yes, delete it for good</button>
+            </form>
+          </details>
+        )}
         <Suspense fallback={null}>
           <ReferralBox id={r.id} code={typeof r.referral_code === "string" ? r.referral_code : null} />
         </Suspense>

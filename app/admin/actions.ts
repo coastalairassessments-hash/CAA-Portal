@@ -36,6 +36,7 @@ import { finalInvoice, minutesOnSite } from "@/lib/billing";
 import { visitFromEntry } from "@/lib/visitTime";
 import { createCheckout, expireCheckout, isStripeId, stripeConfigured } from "@/lib/stripePay";
 import { balanceLink, siteBase } from "@/lib/finalPay";
+import { paymentState } from "@/lib/payState";
 import { finalInvoicePayload } from "@/lib/qbInvoice";
 import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, qbConnected, voidInvoice } from "@/lib/qbSync";
 import { createDeposit } from "@/lib/depositPay";
@@ -202,6 +203,31 @@ export async function declineRequest(form: FormData): Promise<void> {
   const sent = await sendEmail({ to: client.email, ...declineEmail(client) });
   if (!sent.ok) console.error(`[decline] client email not sent: ${sent.reason}`);
   redirect(`/admin/${id}?email=${sent.ok ? "sent" : "failed"}`);
+}
+
+// Remove a request for good, with no email to the client. Only jobs with no money taken.
+export async function deleteRequest(form: FormData): Promise<void> {
+  const supabase = await adminClient();
+  const id = String(form.get("id") ?? "");
+  if (!supabase || !/^[0-9a-f-]{36}$/i.test(id)) redirect("/admin");
+  const { data: r } = await supabase
+    .from("requests").select("status, deposit_paid_at, final_paid_at, qb_deposit_invoice_id").eq("id", id).single();
+  if (!r) redirect("/admin/today");
+  if (r.status === "confirmed" || r.deposit_paid_at || r.final_paid_at) redirect(`/admin/${id}?error=nodelete`);
+  // Close any open payment page first. If it turns out to be paid, keep the job.
+  if (r.qb_deposit_invoice_id) {
+    const state = await paymentState(r.qb_deposit_invoice_id);
+    if (state?.paid) redirect(`/admin/${id}?error=nodelete`);
+    await voidPayment(r.qb_deposit_invoice_id).catch(() => undefined);
+  }
+  const db = serviceDb();
+  if (!db) redirect(`/admin/${id}?error=save`);
+  const { error } = await db.from("requests").delete().eq("id", id).in("status", ["new", "offered", "declined", "cancelled"]);
+  if (error) {
+    console.error("[delete] failed:", error.code);
+    redirect(`/admin/${id}?error=save`);
+  }
+  redirect("/admin/today");
 }
 
 // ---- Job drawers: client extras, lab, money ----
