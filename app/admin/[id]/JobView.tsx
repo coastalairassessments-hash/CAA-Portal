@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import Charges from "./Charges";
 import FieldNotes from "./FieldNotes";
 import ReportBox from "./ReportBox";
 import OfflineStamp from "../OfflineStamp";
@@ -99,6 +100,9 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
       {query.error === "qbconnect" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>QuickBooks is not connected. Connect it on the More screen.</p>
       )}
+      {query.error === "charge" && (
+        <p className="adm-err" style={{ marginBottom: 14 }}>{typeof query.why === "string" ? query.why.slice(0, 160) : "That charge did not save."}</p>
+      )}
       {query.error === "nodelete" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>This job has money paid on it, so it cannot be deleted. Cancel it instead.</p>
       )}
@@ -106,7 +110,7 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
         <p className="adm-err" style={{ marginBottom: 14 }}>The card link could not be made. Nothing was sent. Open More, tap Test deposit payments, then try again.</p>
       )}
       {query.error === "nobalance" && (
-        <p className="adm-err" style={{ marginBottom: 14 }}>Nothing is owed on this job, so there is no balance to send.</p>
+        <p className="adm-err" style={{ marginBottom: 14 }}>Nothing is owed on this job, so there is no balance to send. If the deposit is more than the charges, the Money section shows the refund due.</p>
       )}
       {query.error === "qb" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>QuickBooks did not accept the invoice. Nothing was sent. Try again.</p>
@@ -120,7 +124,7 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
       {query.saved === "invoice-unsent" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>The payment link is ready, but the email could not be sent. Text or call the client and give them the link from their booking page.</p>
       )}
-      {query.error && !["taken", "check", "qb", "qbconnect", "time", "timeinvoiced", "stripe", "nobalance", "nodelete"].includes(String(query.error)) && (
+      {query.error && !["taken", "check", "qb", "qbconnect", "time", "timeinvoiced", "stripe", "nobalance", "nodelete", "charge"].includes(String(query.error)) && (
         <p className="adm-err" style={{ marginBottom: 14 }}>Something did not save. Try again.</p>
       )}
 
@@ -255,7 +259,15 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
             )}
           </div>
         </details>
-        <Drawers r={r} saved={typeof query.saved === "string" ? query.saved : undefined} />
+        <Drawers
+          r={r}
+          saved={typeof query.saved === "string" ? query.saved : undefined}
+          chargesSlot={
+            <Suspense fallback={null}>
+              <Charges id={r.id} locked={!!r.final_paid_at} open={query.saved === "charges"} />
+            </Suspense>
+          }
+        />
         <Suspense fallback={null}>
           <FieldNotes id={r.id} open={query.saved === "field"} />
         </Suspense>

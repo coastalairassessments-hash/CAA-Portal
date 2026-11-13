@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { durationLabel, finalInvoice, minutesOnSite } from "@/lib/billing";
 import { formatMoney } from "@/lib/pricing";
 import { formatStamp } from "@/lib/labels";
@@ -32,7 +33,7 @@ function Field({ label, name, value, type = "text", inputMode }: {
   );
 }
 
-export default function Drawers({ r, saved }: { r: Job; saved?: string }) {
+export default function Drawers({ r, saved, chargesSlot }: { r: Job; saved?: string; chargesSlot?: ReactNode }) {
   const booked = r.status === "confirmed";
   const minutes = minutesOnSite(str(r.arrived_at) || null, str(r.left_at) || null);
   const depositPaid = booked && typeof r.deposit_cents === "number" ? r.deposit_cents : null;
@@ -42,6 +43,7 @@ export default function Drawers({ r, saved }: { r: Job; saved?: string }) {
     samples: typeof r.lab_samples === "number" ? r.lab_samples : null,
     extrasCents: typeof r.extras_cents === "number" ? r.extras_cents : 0,
     depositPaidCents: depositPaid,
+    tripOnly: r.trip_only === true,
   });
   const note = (s: string) => (saved === s ? <p className="adm-ok">Saved.</p> : null);
 
@@ -55,6 +57,11 @@ export default function Drawers({ r, saved }: { r: Job; saved?: string }) {
             <input type="hidden" name="id" value={r.id} />
             <input type="hidden" name="date" value={str(r.confirmed_date)} />
             <Field label="Hours on site" name="hours" value={String(typeof r.block_hours === "number" ? r.block_hours : 1)} inputMode="decimal" />
+            <input type="hidden" name="trip_present" value="1" />
+            <label className="adm-line" style={{ display: "flex", gap: 10, alignItems: "center", minHeight: 44 }}>
+              <input type="checkbox" name="trip_only" defaultChecked={r.trip_only === true} />
+              Not ready or no access: bill the trip fee instead of the full price
+            </label>
             <button className="adm-btn primary wide" type="submit">I was there. Close the job</button>
           </form>
           <p className="adm-muted">It then waits under Owed until it is paid. You can fix the times or send the invoice from Money.</p>
@@ -95,6 +102,11 @@ export default function Drawers({ r, saved }: { r: Job; saved?: string }) {
                 <Field label="Left" name="leave" type="time" value={r.left_at ? nyTime(str(r.left_at)) : ""} />
               </div>
               <Field label="Or total hours (such as 2.5)" name="hours" value="" inputMode="decimal" />
+              <input type="hidden" name="trip_present" value="1" />
+              <label className="adm-line" style={{ display: "flex", gap: 10, alignItems: "center", minHeight: 44 }}>
+                <input type="checkbox" name="trip_only" defaultChecked={r.trip_only === true} />
+                Not ready or no access: bill the trip fee instead of the full price
+              </label>
               <button className="adm-btn wide" type="submit">Save times</button>
               {!r.qb_invoice_id && (
                 <button className="adm-btn primary wide" type="submit" name="then" value="invoice">
@@ -112,18 +124,20 @@ export default function Drawers({ r, saved }: { r: Job; saved?: string }) {
         </details>
       )}
 
+      {booked && chargesSlot}
+
       {booked && (
         <details className="adm-group" id="money">
           <summary>Money{depositPaid !== null && <span className="v">{formatMoney(depositPaid)} deposit paid</span>}</summary>
           {note("money")}
           <div className="adm-table">
-            <span>First hour</span><span className="amt">{formatMoney(inv.firstHour)}</span>
+            {!inv.tripOnly && (<><span>First hour</span><span className="amt">{formatMoney(inv.firstHour)}</span></>)}
             {inv.quarters > 0 && (<><span>Extra time ({inv.quarters} × $48.75)</span><span className="amt">{formatMoney(inv.extraTime)}</span></>)}
             {inv.samples > 0 && (<><span>Lab samples</span><span className="amt">{formatMoney(inv.samples)}</span></>)}
-            {inv.extras > 0 && (<><span>Other</span><span className="amt">{formatMoney(inv.extras)}</span></>)}
+            {inv.extras > 0 && (<><span>Materials and charges</span><span className="amt">{formatMoney(inv.extras)}</span></>)}
             <span>Total</span><span className="amt">{formatMoney(inv.total)}</span>
             <span>Deposit paid</span><span className="amt">−{formatMoney(inv.deposit)}</span>
-            <span className="tot">Balance due</span><span className="tot amt">{formatMoney(inv.balance)}</span>
+            <span className="tot">{inv.balance < 0 ? "Refund due" : "Balance due"}</span><span className="tot amt">{formatMoney(Math.abs(inv.balance))}</span>
           </div>
           {minutes === null && <p className="adm-muted">Tap Arrived and Left to add extra time.</p>}
           <form action={saveSection} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -131,7 +145,6 @@ export default function Drawers({ r, saved }: { r: Job; saved?: string }) {
               <Field label="Deposit invoice no." name="deposit_invoice_no" value={str(r.deposit_invoice_no)} />
               <Field label="Final invoice no." name="final_invoice_no" value={str(r.final_invoice_no)} />
             </div>
-            <Field label="Other charges ($)" name="extras_cents" value={dollars(r.extras_cents) === "0.00" ? "" : dollars(r.extras_cents)} inputMode="decimal" />
             <div className="adm-field">
               <label htmlFor="payment_method">Paid by</label>
               <select id="payment_method" name="payment_method" defaultValue={str(r.payment_method)}>

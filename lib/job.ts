@@ -55,7 +55,6 @@ const sections = {
   money: z.object({
     deposit_invoice_no: text(60),
     final_invoice_no: text(60),
-    extras_cents: dollars.transform((v) => v ?? 0),
     payment_method: z.enum(["", "card", "check", "cash", "ach", "other"]).transform((v) => (v === "" ? null : v)),
   }),
 } as const;

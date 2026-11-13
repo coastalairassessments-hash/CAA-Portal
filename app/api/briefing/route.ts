@@ -11,10 +11,13 @@ import { briefingPush } from "@/lib/pushText";
 import { dayBeforeEmail } from "@/lib/prep";
 import { invoiceReminderEmail, reminderDue, type OwedRow } from "@/lib/invoiceReminder";
 import { getInvoice } from "@/lib/qbSync";
+import { isStripeId } from "@/lib/stripePay";
+import { paymentState } from "@/lib/payState";
+import { balanceLink } from "@/lib/finalPay";
 
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
 const COLUMNS =
-  "id, status, source, booking_mode, issue, name, email, public_token, zip, phone, address, city, confirmed_date, confirmed_time, block_hours, deposit_cents, deposit_paid_at, reminded_for, arrived_at, left_at, lab_samples, extras_cents, final_paid_at, final_invoice_no, cancel_refund, refunded_at, qb_invoice_id, final_invoiced_at, invoice_reminders, invoice_reminded_at";
+  "id, status, source, booking_mode, issue, name, email, public_token, zip, phone, address, city, confirmed_date, confirmed_time, block_hours, deposit_cents, deposit_paid_at, reminded_for, arrived_at, left_at, lab_samples, extras_cents, trip_only, final_paid_at, final_invoice_no, cancel_refund, refunded_at, qb_invoice_id, final_invoiced_at, invoice_reminders, invoice_reminded_at";
 
 type RemindRow = {
   id: string; source: string; status: string; confirmed_date: string | null; confirmed_time: string | null;
@@ -44,14 +47,21 @@ async function remindTomorrow(db: SupabaseClient, data: unknown[]) {
 async function remindUnpaid(db: SupabaseClient, data: unknown[]) {
   const today = todayInNewYork();
   let count = 0;
-  for (const j of data as (OwedRow & { id: string; name: string; final_invoice_no: string | null })[]) {
+  for (const j of data as (OwedRow & { id: string; name: string; final_invoice_no: string | null; public_token?: string | null })[]) {
     const n = reminderDue(j, today);
     if (!n || !j.email || !j.qb_invoice_id) continue;
     let link: string | null = null;
     try {
-      const inv = await getInvoice(j.qb_invoice_id);
-      if (inv && inv.balance === 0) continue;
-      link = inv?.link ?? null;
+      if (isStripeId(j.qb_invoice_id)) {
+        // A card link: the booking page link always works, even after Stripe's page timed out.
+        const st = await paymentState(j.qb_invoice_id);
+        if (!st || st.paid) continue;
+        link = j.public_token ? balanceLink(j.public_token, "") : null;
+      } else {
+        const inv = await getInvoice(j.qb_invoice_id);
+        if (inv && inv.balance === 0) continue;
+        link = inv?.link ?? null;
+      }
     } catch {
       continue; // cannot confirm it is unpaid, so say nothing
     }

@@ -25,16 +25,18 @@ export type FinalInput = {
   samples: number | null;
   extrasCents: number;
   depositPaidCents: number | null;
+  // Not ready or no access: only the charges (the trip fee) are billed, not the first hour.
+  tripOnly?: boolean;
 };
 
 export function finalInvoice(i: FinalInput) {
-  const firstHour = firstHourCents(i.issue);
-  const quarters = i.minutes === null ? 0 : extraQuarterHours(i.minutes);
+  const firstHour = i.tripOnly ? 0 : firstHourCents(i.issue);
+  const quarters = i.tripOnly || i.minutes === null ? 0 : extraQuarterHours(i.minutes);
   const extraTime = quarters * QUARTER_HOUR_CENTS;
-  const samples = (i.samples ?? 0) * SAMPLE_CENTS;
+  const samples = i.tripOnly ? 0 : (i.samples ?? 0) * SAMPLE_CENTS;
   const total = firstHour + extraTime + samples + i.extrasCents;
   const deposit = i.depositPaidCents ?? 0;
-  return { firstHour, quarters, extraTime, samples, extras: i.extrasCents, total, deposit, balance: total - deposit };
+  return { firstHour, quarters, extraTime, samples, extras: i.extrasCents, total, deposit, balance: total - deposit, tripOnly: !!i.tripOnly };
 }
 
 export { depositCents };

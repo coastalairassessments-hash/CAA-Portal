@@ -18,6 +18,7 @@ export type DashRow = {
   left_at: string | null;
   lab_samples: number | null;
   extras_cents: number | null;
+  trip_only?: boolean | null;
   final_paid_at: string | null;
   final_invoice_no: string | null;
   cancel_refund: boolean | null;
@@ -52,6 +53,7 @@ function balanceCents(r: DashRow): number {
     samples: r.lab_samples,
     extrasCents: r.extras_cents ?? 0,
     depositPaidCents: paid,
+    tripOnly: !!r.trip_only,
   }).balance;
 }
 
@@ -77,7 +79,7 @@ export function money(rows: DashRow[], now: Date = new Date()) {
     .filter((r) => r.status === "confirmed" && r.final_paid_at && easternDay(r.final_paid_at).startsWith(month))
     .reduce((sum, r) => {
       const minutes = minutesOnSite(r.arrived_at, r.left_at);
-      return sum + finalInvoice({ issue: r.issue, minutes, samples: r.lab_samples, extrasCents: r.extras_cents ?? 0, depositPaidCents: null }).total;
+      return sum + finalInvoice({ issue: r.issue, minutes, samples: r.lab_samples, extrasCents: r.extras_cents ?? 0, depositPaidCents: null, tripOnly: !!r.trip_only }).total;
     }, 0);
 
   return { depositsWaiting, owed, paidThisMonth };

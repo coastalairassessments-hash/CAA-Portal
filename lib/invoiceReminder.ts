@@ -32,7 +32,7 @@ export function invoiceReminderEmail(
   payLink: string | null,
 ) {
   const first = row.name.trim().split(/\s+/)[0] || "there";
-  const inv = row.final_invoice_no ? ` ${row.final_invoice_no}` : "";
+  const inv = row.final_invoice_no && row.final_invoice_no !== "Card link" ? ` ${row.final_invoice_no}` : "";
   const open = number === 3 ? "Your invoice" + inv + " is still open." : "A quick note: invoice" + inv + " is still open.";
   return {
     subject: number === 1 ? "A reminder about your invoice" : "Your invoice is still open",

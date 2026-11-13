@@ -23,10 +23,10 @@ describe("job drawers", () => {
     expect(parseSection("lab", { lab_cost_cents: "abc" }).success).toBe(false);
     expect(parseSection("lab", { lab_sent_on: "Oct 5" }).success).toBe(false);
   });
-  it("money: extras default to 0, method validated", () => {
-    const ok = parseSection("money", { deposit_invoice_no: "1001", final_invoice_no: "", extras_cents: "", payment_method: "card" });
+  it("money: never touches the charges total, method validated", () => {
+    const ok = parseSection("money", { deposit_invoice_no: "1001", final_invoice_no: "", payment_method: "card" });
     expect(ok.success).toBe(true);
-    if (ok.success) expect((ok.data as Record<string, unknown>).extras_cents).toBe(0);
+    if (ok.success) expect("extras_cents" in (ok.data as Record<string, unknown>)).toBe(false);
     expect(parseSection("money", { payment_method: "bitcoin" }).success).toBe(false);
   });
   it("client: checkbox", () => {

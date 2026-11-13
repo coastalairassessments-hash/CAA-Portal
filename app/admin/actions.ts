@@ -37,6 +37,8 @@ import { visitFromEntry } from "@/lib/visitTime";
 import { createCheckout, expireCheckout, isStripeId, stripeConfigured } from "@/lib/stripePay";
 import { balanceLink, siteBase } from "@/lib/finalPay";
 import { paymentState } from "@/lib/payState";
+import { ensureTripFee, listCharges, removeTripFee } from "@/lib/chargeServer";
+import { balanceLines } from "@/lib/balanceText";
 import { finalInvoicePayload } from "@/lib/qbInvoice";
 import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, qbConnected, voidInvoice } from "@/lib/qbSync";
 import { createDeposit } from "@/lib/depositPay";
@@ -272,7 +274,7 @@ export async function saveVisitTimes(form: FormData): Promise<void> {
   const supabase = await adminClient();
   const id = String(form.get("id") ?? "");
   if (!supabase || !/^[0-9a-f-]{36}$/i.test(id)) redirect("/admin");
-  const { data: r } = await supabase.from("requests").select("status, confirmed_time, qb_invoice_id, final_paid_at").eq("id", id).single();
+  const { data: r } = await supabase.from("requests").select("status, confirmed_time, qb_invoice_id, final_paid_at, trip_only").eq("id", id).single();
   if (!r || r.status !== "confirmed") redirect(`/admin/${id}?error=save`);
   // Locked once paid, or once a QuickBooks invoice went out. A card link can still be updated and resent.
   // With card links on, an unpaid QuickBooks invoice can still be switched over, so its times stay editable.
@@ -280,8 +282,13 @@ export async function saveVisitTimes(form: FormData): Promise<void> {
   const text = (k: string) => String(form.get(k) ?? "");
   const v = visitFromEntry({ date: text("date"), arrive: text("arrive"), leave: text("leave"), hours: text("hours"), plannedTime: r.confirmed_time });
   if (!v.ok) redirect(`/admin/${id}?error=time&why=${encodeURIComponent(v.error)}`);
-  const { error } = await supabase.from("requests").update({ arrived_at: v.arrived_at, left_at: v.left_at }).eq("id", id);
+  const tripPresent = form.get("trip_present") === "1";
+  const trip = tripPresent ? form.get("trip_only") === "on" : r.trip_only === true;
+  const { error } = await supabase.from("requests").update({ arrived_at: v.arrived_at, left_at: v.left_at, trip_only: trip }).eq("id", id);
   if (error) redirect(`/admin/${id}?error=save`);
+  // Not ready or no access: the trip fee is the whole charge. Undoing it takes the fee back off.
+  if (trip) await ensureTripFee(supabase, id);
+  else if (r.trip_only) await removeTripFee(supabase, id);
   if (form.get("then") === "invoice") return sendFinalInvoice(form);
   redirect(`/admin/${id}?saved=time`);
 }
@@ -446,8 +453,10 @@ async function sendBalanceByCard(supabase: Awaited<ReturnType<typeof adminClient
     samples: r.lab_samples,
     extrasCents: r.extras_cents ?? 0,
     depositPaidCents: r.deposit_paid_at && typeof r.deposit_cents === "number" ? r.deposit_cents : null,
+    tripOnly: r.trip_only === true,
   });
   if (inv.balance <= 0) redirect(`/admin/${id}?error=nobalance`);
+  const charges = await listCharges(supabase!, id);
   let sent = false;
   try {
     // Replace whatever was open before, so the client only ever has one way to pay.
@@ -472,7 +481,11 @@ async function sendBalanceByCard(supabase: Awaited<ReturnType<typeof adminClient
       text: [
         `Hi ${first},`,
         "",
-        `Thank you for having us out. The balance for ${jobLabel(r)} is ${formatMoney(inv.balance)}.`,
+        r.trip_only === true
+          ? `Thank you for having us out. The property was not ready for the full visit, so this is the trip fee for ${jobLabel(r)}.`
+          : `Thank you for having us out. Here is the balance for ${jobLabel(r)}.`,
+        "",
+        ...balanceLines({ inv, tripOnly: r.trip_only === true, service: jobLabel(r), charges, legacySamples: typeof r.lab_samples === "number" ? r.lab_samples : 0 }),
         "",
         "Pay securely by card:",
         link,
@@ -519,6 +532,7 @@ export async function sendFinalInvoice(form: FormData): Promise<void> {
       samples: r.lab_samples,
       extrasCents: r.extras_cents ?? 0,
       depositPaidCents: r.deposit_paid_at && typeof r.deposit_cents === "number" ? r.deposit_cents : null,
+      tripOnly: r.trip_only === true,
     });
     const today = todayInNewYork();
     const payload = finalInvoicePayload({
