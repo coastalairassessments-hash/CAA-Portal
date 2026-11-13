@@ -275,7 +275,8 @@ export async function saveVisitTimes(form: FormData): Promise<void> {
   const { data: r } = await supabase.from("requests").select("status, confirmed_time, qb_invoice_id, final_paid_at").eq("id", id).single();
   if (!r || r.status !== "confirmed") redirect(`/admin/${id}?error=save`);
   // Locked once paid, or once a QuickBooks invoice went out. A card link can still be updated and resent.
-  if (r.final_paid_at || (r.qb_invoice_id && !isStripeId(r.qb_invoice_id))) redirect(`/admin/${id}?error=timeinvoiced`);
+  // With card links on, an unpaid QuickBooks invoice can still be switched over, so its times stay editable.
+  if (r.final_paid_at || (r.qb_invoice_id && !isStripeId(r.qb_invoice_id) && !stripeConfigured())) redirect(`/admin/${id}?error=timeinvoiced`);
   const text = (k: string) => String(form.get(k) ?? "");
   const v = visitFromEntry({ date: text("date"), arrive: text("arrive"), leave: text("leave"), hours: text("hours"), plannedTime: r.confirmed_time });
   if (!v.ok) redirect(`/admin/${id}?error=time&why=${encodeURIComponent(v.error)}`);
