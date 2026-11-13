@@ -64,7 +64,6 @@ async function Results({ searchParams }: Props) {
           </article>
         );
       })}
-      <Link className="adm-link" href="/admin/clients/import">Import clients from a file</Link>
     </>
   );
 }
