@@ -46,6 +46,20 @@ export default function Drawers({ r, saved }: { r: Job; saved?: string }) {
 
   return (
     <>
+      {booked && !r.left_at && (
+        <section className="adm-group" id="close">
+          <h2>I was there</h2>
+          <p className="adm-muted">Close the job in one tap. Change the hours if the visit ran different from the plan.</p>
+          <form action={saveVisitTimes} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <input type="hidden" name="id" value={r.id} />
+            <input type="hidden" name="date" value={str(r.confirmed_date)} />
+            <Field label="Hours on site" name="hours" value={String(typeof r.block_hours === "number" ? r.block_hours : 1)} inputMode="decimal" />
+            <button className="adm-btn primary wide" type="submit">I was there. Close the job</button>
+          </form>
+          <p className="adm-muted">It then waits under Owed until it is paid. You can fix the times or send the invoice from Money.</p>
+        </section>
+      )}
+
       {booked && (
         <details className="adm-group" open={!!(r.arrived_at || r.left_at) || undefined}>
           <summary>Time on site</summary>
@@ -94,26 +108,6 @@ export default function Drawers({ r, saved }: { r: Job; saved?: string }) {
               {inv.quarters > 0 ? `: first hour plus ${inv.quarters} quarter-hour${inv.quarters === 1 ? "" : "s"}` : ": within the first hour"}
             </p>
           )}
-        </details>
-      )}
-
-      {booked && (
-        <details className="adm-group">
-          <summary>Lab</summary>
-          {note("lab")}
-          <form action={saveSection} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <Field label="Lab" name="lab_name" value={str(r.lab_name)} />
-            <div className="adm-row">
-              <Field label="Samples" name="lab_samples" value={r.lab_samples == null ? "" : String(r.lab_samples)} inputMode="numeric" />
-              <Field label="Chain of custody no." name="lab_coc" value={str(r.lab_coc)} />
-            </div>
-            <div className="adm-row">
-              <Field label="Sent" name="lab_sent_on" value={str(r.lab_sent_on)} type="date" />
-              <Field label="Results back" name="lab_results_on" value={str(r.lab_results_on)} type="date" />
-            </div>
-            <Field label="Lab cost to you ($)" name="lab_cost_cents" value={dollars(r.lab_cost_cents)} inputMode="decimal" />
-            <SaveBar id={r.id} section="lab" />
-          </form>
         </details>
       )}
 

@@ -248,7 +248,7 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
         </details>
         <Drawers r={r} saved={typeof query.saved === "string" ? query.saved : undefined} />
         <Suspense fallback={null}>
-          <FieldNotes id={r.id} billedSamples={typeof r.lab_samples === "number" ? r.lab_samples : null} open={query.saved === "field"} />
+          <FieldNotes id={r.id} open={query.saved === "field"} />
         </Suspense>
         <Suspense fallback={null}>
           <ReferralBox id={r.id} code={typeof r.referral_code === "string" ? r.referral_code : null} />
@@ -297,6 +297,7 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
               className="adm-btn primary"
             />
           )}
+          {r.status === "confirmed" && !r.left_at && <a className="adm-btn" href="#close">I was there</a>}
           {r.status === "confirmed" && r.left_at && <a className="adm-btn primary" href="#money">Invoice</a>}
           {(r.status === "offered" || r.status === "confirmed") && <a className="adm-btn danger" href="#cancel">Cancel</a>}
         </div>
