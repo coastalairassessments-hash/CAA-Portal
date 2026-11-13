@@ -61,6 +61,7 @@ async function Results({ searchParams }: Props) {
               {c.phone ? <a className="adm-btn" href={smsLink(telDigits(c.phone), "")}>Text</a> : <span className="adm-btn off">Text</span>}
               <Link className="adm-btn primary" href={add}>Add job</Link>
             </div>
+            <Link className="adm-link" href={`/admin/links?name=${encodeURIComponent(c.name)}${c.email ? `&email=${encodeURIComponent(c.email)}` : ""}`}>Send a payment link</Link>
           </article>
         );
       })}
