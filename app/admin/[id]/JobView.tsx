@@ -109,6 +109,7 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
       {query.error === "stripe" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>The card link could not be made. Nothing was sent. Open More, tap Test deposit payments, then try again.</p>
       )}
+      {query.closed && <p className="adm-ok" style={{ marginBottom: 14 }}>Job saved and closed. Check the amount under Money, then send the balance.</p>}
       {query.error === "nobalance" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>Nothing is owed on this job, so there is no balance to send. If the deposit is more than the charges, the Money section shows the refund due.</p>
       )}

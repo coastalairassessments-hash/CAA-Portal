@@ -102,6 +102,14 @@ export default function AddForm({ contractors, defaultDate, defaultTime = "10:00
         <input id="address" name="address" type="text" autoComplete="off" placeholder="Street, city" value={address} onChange={(e) => setAddress(e.target.value)} required />
       </div>
       <div className="adm-field">
+        <label htmlFor="outcome">When is this job?</label>
+        <select id="outcome" name="outcome" defaultValue="">
+          <option value="">Still to come (put it on the schedule)</option>
+          <option value="done">Already done (close it and bill the time)</option>
+          <option value="trip">Already done, not ready or no access (bill the trip fee)</option>
+        </select>
+      </div>
+      <div className="adm-field">
         <label htmlFor="date">Date</label>
         <input id="date" name="date" type="date" defaultValue={defaultDate} required />
       </div>
@@ -131,11 +139,11 @@ export default function AddForm({ contractors, defaultDate, defaultTime = "10:00
           </select>
         </div>
       </div>
-      <p className="adm-muted">Over 2 hours blocks the whole day. 2 hours leaves 12:30 open. Latest start is 1:00 PM.</p>
+      <p className="adm-muted">For a job still to come: over 2 hours blocks the whole day, 2 hours leaves 12:30 open, latest start is 1:00 PM. For one already done, enter the date, when you started and the time on site. You then send the bill from the job.</p>
       <div className="adm-panel tint" style={{ gap: 4 }}><b>Billing</b><span className="adm-muted">No deposit. Invoice after the job, due in 7 days.</span></div>
       {state.error && <p className="adm-err" role="alert">{state.error}</p>}
       <button className="adm-btn primary wide" type="submit" disabled={pending}>
-        {pending ? "Adding..." : "Add to schedule"}
+        {pending ? "Saving..." : "Save job"}
       </button>
     </form>
   );

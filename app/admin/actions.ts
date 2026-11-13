@@ -340,6 +340,7 @@ export async function addContractorJob(_prev: ConfirmState, form: FormData): Pro
     reference: form.get("reference") ?? "",
     notes: form.get("notes") ?? "",
     invoiceNote: form.get("invoiceNote") ?? "",
+    outcome: form.get("outcome") ?? "",
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form." };
   const v = parsed.data;
@@ -393,6 +394,18 @@ export async function addContractorJob(_prev: ConfirmState, form: FormData): Pro
       return { error: "That time overlaps a job that is already held. Pick another time." };
     }
     return { error: `Could not save. (Ref: add-${error?.code ?? "unknown"})` };
+  }
+  // A job that already happened is closed right away, so the bill can go out.
+  if (v.outcome !== "") {
+    const visit = visitFromEntry({ date: v.date, arrive: v.time, leave: "", hours: String(v.hours), plannedTime: v.time });
+    if (!visit.ok) redirect(`/admin/${job.id}?error=time`);
+    const { error: closeErr } = await supabase
+      .from("requests")
+      .update({ arrived_at: visit.arrived_at, left_at: visit.left_at, trip_only: v.outcome === "trip" })
+      .eq("id", job.id);
+    if (closeErr) redirect(`/admin/${job.id}?error=save`);
+    if (v.outcome === "trip") await ensureTripFee(supabase, job.id);
+    redirect(`/admin/${job.id}?closed=1`);
   }
   redirect("/admin/today?added=1");
 }
