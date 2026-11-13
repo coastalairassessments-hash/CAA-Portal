@@ -99,6 +99,12 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
       {query.error === "qbconnect" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>QuickBooks is not connected. Connect it on the More screen.</p>
       )}
+      {query.error === "stripe" && (
+        <p className="adm-err" style={{ marginBottom: 14 }}>The card link could not be made. Nothing was sent. Open More, tap Test deposit payments, then try again.</p>
+      )}
+      {query.error === "nobalance" && (
+        <p className="adm-err" style={{ marginBottom: 14 }}>Nothing is owed on this job, so there is no balance to send.</p>
+      )}
       {query.error === "qb" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>QuickBooks did not accept the invoice. Nothing was sent. Try again.</p>
       )}
@@ -109,9 +115,9 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
         <p className="adm-err" style={{ marginBottom: 14 }}>The final invoice is already sent, so the times are locked.</p>
       )}
       {query.saved === "invoice-unsent" && (
-        <p className="adm-err" style={{ marginBottom: 14 }}>The invoice is in QuickBooks, but it could not be emailed. Send it from QuickBooks.</p>
+        <p className="adm-err" style={{ marginBottom: 14 }}>The payment link is ready, but the email could not be sent. Text or call the client and give them the link from their booking page.</p>
       )}
-      {query.error && !["taken", "check", "qb", "qbconnect", "time", "timeinvoiced"].includes(String(query.error)) && (
+      {query.error && !["taken", "check", "qb", "qbconnect", "time", "timeinvoiced", "stripe", "nobalance"].includes(String(query.error)) && (
         <p className="adm-err" style={{ marginBottom: 14 }}>Something did not save. Try again.</p>
       )}
 

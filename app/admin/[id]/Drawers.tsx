@@ -1,6 +1,7 @@
 import { durationLabel, finalInvoice, minutesOnSite } from "@/lib/billing";
 import { formatMoney } from "@/lib/pricing";
 import { formatStamp } from "@/lib/labels";
+import { isStripeId, stripeConfigured } from "@/lib/stripePay";
 import { markFinalPaid, saveSection, saveVisitTimes, sendFinalInvoice, stampTime } from "../actions";
 
 type Job = Record<string, unknown> & { id: string; issue: string; status: string };
@@ -144,16 +145,33 @@ export default function Drawers({ r, saved }: { r: Job; saved?: string }) {
             </div>
             <SaveBar id={r.id} section="money" />
           </form>
-          {r.qb_invoice_id ? (
-            <p className="adm-note">Final invoice {str(r.final_invoice_no) ? `#${str(r.final_invoice_no)} ` : ""}sent from QuickBooks.</p>
-          ) : (
-            <form action={sendFinalInvoice}>
-              <input type="hidden" name="id" value={r.id} />
-              <button className="adm-btn primary wide" type="submit" style={{ marginBottom: 0 }}>
-                Send final invoice ({formatMoney(inv.balance)})
-              </button>
-            </form>
-          )}
+          {(() => {
+            const card = stripeConfigured();
+            const paid = !!r.final_paid_at;
+            const viaCard = isStripeId(str(r.qb_invoice_id));
+            const sent = !!r.qb_invoice_id;
+            if (paid) return <p className="adm-note">Paid. The report is released.</p>;
+            if (sent && !card) {
+              return <p className="adm-note">Final invoice {str(r.final_invoice_no) ? `#${str(r.final_invoice_no)} ` : ""}sent from QuickBooks.</p>;
+            }
+            return (
+              <>
+                {sent && (
+                  <p className="adm-note">
+                    {viaCard ? "Card link sent. It confirms by itself when paid." : `QuickBooks invoice ${str(r.final_invoice_no) ? `#${str(r.final_invoice_no)} ` : ""}is open.`}
+                  </p>
+                )}
+                <form action={sendFinalInvoice}>
+                  <input type="hidden" name="id" value={r.id} />
+                  <button className="adm-btn primary wide" type="submit" style={{ marginBottom: 0 }}>
+                    {!sent
+                      ? card ? `Send balance by card link (${formatMoney(inv.balance)})` : `Send final invoice (${formatMoney(inv.balance)})`
+                      : viaCard ? `Update and resend (${formatMoney(inv.balance)})` : `Switch to card link (${formatMoney(inv.balance)})`}
+                  </button>
+                </form>
+              </>
+            );
+          })()}
           <form action={markFinalPaid}>
             <input type="hidden" name="id" value={r.id} />
             {r.final_paid_at ? (

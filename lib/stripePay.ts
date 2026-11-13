@@ -51,9 +51,14 @@ export async function createCheckout(o: Parameters<typeof checkoutForm>[0]): Pro
   return { id: b.id, url: b.url };
 }
 
-export async function getCheckout(id: string): Promise<{ paid: boolean; expired: boolean; url: string | null }> {
+export async function getCheckout(id: string): Promise<{ paid: boolean; expired: boolean; url: string | null; cents: number }> {
   const b = await call(`checkout/sessions/${encodeURIComponent(id)}`);
-  return { paid: b.payment_status === "paid", expired: b.status === "expired", url: typeof b.url === "string" ? b.url : null };
+  return {
+    paid: b.payment_status === "paid",
+    expired: b.status === "expired",
+    url: typeof b.url === "string" ? b.url : null,
+    cents: typeof b.amount_total === "number" ? b.amount_total : 0,
+  };
 }
 
 export async function checkoutPaid(id: string): Promise<{ paid: boolean; expired: boolean }> {

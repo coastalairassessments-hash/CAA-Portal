@@ -28,12 +28,14 @@ import { refundDue } from "@/lib/cancel";
 import { GOOGLE_REVIEW_URL, reviewEmail } from "@/lib/quicktexts";
 import { SITE_URL_FALLBACK, sendEmail } from "@/lib/notify";
 import { sendPush } from "@/lib/push";
-import { depositCents } from "@/lib/pricing";
+import { depositCents, formatMoney } from "@/lib/pricing";
 import { overlaps } from "@/lib/slots";
 import { isSection, parseSection } from "@/lib/job";
 import { issueForService, parseContractorJob } from "@/lib/contractorJob";
 import { finalInvoice, minutesOnSite } from "@/lib/billing";
 import { visitFromEntry } from "@/lib/visitTime";
+import { createCheckout, expireCheckout, isStripeId, stripeConfigured } from "@/lib/stripePay";
+import { balanceLink, siteBase } from "@/lib/finalPay";
 import { finalInvoicePayload } from "@/lib/qbInvoice";
 import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, qbConnected, voidInvoice } from "@/lib/qbSync";
 import { createDeposit } from "@/lib/depositPay";
@@ -244,9 +246,10 @@ export async function saveVisitTimes(form: FormData): Promise<void> {
   const supabase = await adminClient();
   const id = String(form.get("id") ?? "");
   if (!supabase || !/^[0-9a-f-]{36}$/i.test(id)) redirect("/admin");
-  const { data: r } = await supabase.from("requests").select("status, confirmed_time, qb_invoice_id").eq("id", id).single();
+  const { data: r } = await supabase.from("requests").select("status, confirmed_time, qb_invoice_id, final_paid_at").eq("id", id).single();
   if (!r || r.status !== "confirmed") redirect(`/admin/${id}?error=save`);
-  if (r.qb_invoice_id) redirect(`/admin/${id}?error=timeinvoiced`);
+  // Locked once paid, or once a QuickBooks invoice went out. A card link can still be updated and resent.
+  if (r.final_paid_at || (r.qb_invoice_id && !isStripeId(r.qb_invoice_id))) redirect(`/admin/${id}?error=timeinvoiced`);
   const text = (k: string) => String(form.get(k) ?? "");
   const v = visitFromEntry({ date: text("date"), arrive: text("arrive"), leave: text("leave"), hours: text("hours"), plannedTime: r.confirmed_time });
   if (!v.ok) redirect(`/admin/${id}?error=time&why=${encodeURIComponent(v.error)}`);
@@ -406,6 +409,66 @@ export async function markRefunded(form: FormData): Promise<void> {
 }
 
 
+// The balance by card link (Stripe). Also moves a job that had a QuickBooks invoice, and updates an unpaid link.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function sendBalanceByCard(supabase: Awaited<ReturnType<typeof adminClient>> & object, r: Record<string, any> & { issue: string }, id: string): Promise<void> {
+  if (r.final_paid_at) redirect(`/admin/${id}`);
+  const inv = finalInvoice({
+    issue: r.issue,
+    minutes: minutesOnSite(r.arrived_at, r.left_at),
+    samples: r.lab_samples,
+    extrasCents: r.extras_cents ?? 0,
+    depositPaidCents: r.deposit_paid_at && typeof r.deposit_cents === "number" ? r.deposit_cents : null,
+  });
+  if (inv.balance <= 0) redirect(`/admin/${id}?error=nobalance`);
+  let sent = false;
+  try {
+    // Replace whatever was open before, so the client only ever has one way to pay.
+    if (r.qb_invoice_id) {
+      if (isStripeId(r.qb_invoice_id)) await expireCheckout(r.qb_invoice_id);
+      else await voidInvoice(r.qb_invoice_id).catch(() => undefined);
+    }
+    const back = r.public_token ? `${siteBase()}/booking/${r.public_token}` : siteBase();
+    const made = await createCheckout({
+      cents: inv.balance,
+      description: `Balance for ${jobLabel(r)} - Coastal Air Assessments`,
+      email: r.email,
+      requestId: id,
+      successUrl: r.public_token ? `${back}/balance` : back,
+      cancelUrl: back,
+    });
+    const link = balanceLink(r.public_token, made.url);
+    const first = String(r.name).trim().split(/\s+/)[0];
+    const mail = await sendEmail({
+      to: r.email,
+      subject: "Your balance - Coastal Air Assessments",
+      text: [
+        `Hi ${first},`,
+        "",
+        `Thank you for having us out. The balance for ${jobLabel(r)} is ${formatMoney(inv.balance)}.`,
+        "",
+        "Pay securely by card:",
+        link,
+        "",
+        "Your report is released as soon as the balance is paid.",
+        "",
+        "Coastal Air Assessments",
+      ].join("\n"),
+    });
+    sent = mail.ok;
+    const { error } = await supabase!
+      .from("requests")
+      .update({ qb_invoice_id: made.id, final_invoice_no: "Card link", final_invoiced_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) console.error("[stripe] balance link made but not saved:", error.code);
+  } catch (e) {
+    if (e && typeof e === "object" && "digest" in e) throw e;
+    console.error("[stripe] balance link failed:", e instanceof Error ? e.message : e);
+    redirect(`/admin/${id}?error=stripe`);
+  }
+  redirect(`/admin/${id}?saved=${sent ? "invoice" : "invoice-unsent"}`);
+}
+
 // Create the final invoice in QuickBooks and email it. QuickBooks sends it; we keep the number.
 export async function sendFinalInvoice(form: FormData): Promise<void> {
   const supabase = await adminClient();
@@ -414,6 +477,7 @@ export async function sendFinalInvoice(form: FormData): Promise<void> {
 
   const { data: r } = await supabase.from("requests").select("*").eq("id", id).single();
   if (!r || r.status !== "confirmed") redirect(`/admin/${id}?error=save`);
+  if (stripeConfigured()) return sendBalanceByCard(supabase, r, id);
   if (r.qb_invoice_id) redirect(`/admin/${id}`);
 
   let sent = false;

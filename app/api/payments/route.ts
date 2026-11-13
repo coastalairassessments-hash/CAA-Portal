@@ -5,6 +5,7 @@ import { serviceDb } from "@/lib/bookingServer";
 import { SETTLE_COLUMNS, settleDeposit } from "@/lib/settle";
 import { sendReadyReports } from "@/lib/reportServer";
 import { qbHealth } from "@/lib/qbSync";
+import { settleFinalPayment } from "@/lib/finalPay";
 
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
 
@@ -31,8 +32,20 @@ export async function GET(req: Request) {
     });
     tally[r] = (tally[r] ?? 0) + 1;
   }
+  // Balances paid by card: record them and release the report.
+  const { data: owing } = await db
+    .from("requests")
+    .select("id, name, email, source, public_token, qb_invoice_id, final_paid_at")
+    .eq("status", "confirmed")
+    .like("qb_invoice_id", "cs_%")
+    .is("final_paid_at", null)
+    .limit(100);
+  let finals = 0;
+  for (const row of owing ?? []) {
+    if (await settleFinalPayment(db, row as never).catch(() => false)) finals++;
+  }
   // A light QuickBooks call every run keeps the connection renewed, so it never lapses from disuse.
   await qbHealth();
   const reports = await sendReadyReports(db).catch(() => 0);
-  return NextResponse.json({ ok: true, ...tally, reports });
+  return NextResponse.json({ ok: true, ...tally, reports, finals });
 }
