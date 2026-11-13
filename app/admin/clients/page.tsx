@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { supabaseForUser } from "@/lib/supabase/server";
 import { telDigits } from "@/lib/qbCustomers";
+import { mapsLink } from "@/lib/admin";
 import { smsLink } from "@/lib/confirm";
 
 export const metadata: Metadata = {
@@ -54,7 +55,7 @@ async function Results({ searchParams }: Props) {
         return (
           <article className="adm-card" key={c.id}>
             <h2>{c.name}</h2>
-            {c.address && <p className="adm-muted">{c.address}</p>}
+            {c.address && <p className="adm-muted"><a className="adm-link" href={mapsLink({ address: c.address })}>{c.address}</a></p>}
             {(c.phone || c.email) && <p className="adm-line">{[c.phone, c.email].filter(Boolean).join(" · ")}</p>}
             <div className="adm-actions three">
               {c.phone ? <a className="adm-btn" href={`tel:${telDigits(c.phone)}`}>Call</a> : <span className="adm-btn off">Call</span>}
