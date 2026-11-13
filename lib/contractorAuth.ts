@@ -46,6 +46,7 @@ export function parseContractorRequest(input: unknown, now: Date = new Date()) {
       contactName: z.string().trim().max(100).optional().default(""),
       contactPhone: z.string().trim().max(40).optional().default(""),
       note: z.string().trim().max(500).optional().default(""),
+      reference: z.string().trim().max(80).optional().default(""),
     })
     .safeParse(input);
 }

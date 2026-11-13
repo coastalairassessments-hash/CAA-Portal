@@ -62,7 +62,7 @@ async function Portal({ searchParams }: { searchParams: Promise<Q> }) {
   }
   const { data: jobs } = await db
     .from("requests")
-    .select("id, status, issue, address, confirmed_date, confirmed_time, final_paid_at, report_path, report_released_at")
+    .select("id, status, issue, address, confirmed_date, confirmed_time, final_paid_at, report_path, report_released_at, public_token, qb_invoice_id, left_at, reference")
     .eq("contractor_id", me.id)
     .order("confirmed_date", { ascending: false })
     .limit(30);
@@ -91,6 +91,8 @@ async function Portal({ searchParams }: { searchParams: Promise<Q> }) {
           <input id="contactName" type="text" name="contactName" maxLength={100} />
           <label htmlFor="contactPhone">Their phone (optional)</label>
           <input id="contactPhone" name="contactPhone" type="tel" maxLength={40} />
+          <label htmlFor="reference">Your PO or job number (optional, shows on the invoice)</label>
+          <input id="reference" type="text" name="reference" maxLength={80} />
           <label htmlFor="note">Anything we should know? (optional)</label>
           <textarea id="note" name="note" rows={3} maxLength={500} />
           <button className="btn" type="submit">Book this time</button>
@@ -109,6 +111,10 @@ async function Portal({ searchParams }: { searchParams: Promise<Q> }) {
                 <strong>{j.confirmed_date ? formatDateLabel(j.confirmed_date) : "Date pending"}</strong>
                 {j.confirmed_time ? ` at ${formatTime(String(j.confirmed_time).slice(0, 5))}` : ""} · {issueLabel(j.issue)} · {j.address}
                 {j.status === "cancelled" ? " (cancelled)" : ""}
+                {j.reference ? ` · Ref ${j.reference}` : ""}
+                {j.left_at && j.status !== "cancelled" && (j.final_paid_at
+                  ? <> · <a href={`/invoice/${j.public_token}`}>Invoice paid</a></>
+                  : j.qb_invoice_id ? <> · <a href={`/invoice/${j.public_token}`}>Invoice open, pay</a></> : " · Invoice coming")}
                 {rs === "ready" && <> · <a href={`/contractor/report/${j.id}`}>Report (PDF)</a></>}
                 {rs === "locked" && " · Report ready, unlocks when paid"}
               </li>

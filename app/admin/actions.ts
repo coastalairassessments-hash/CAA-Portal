@@ -44,7 +44,8 @@ import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, qbConne
 import { createDeposit } from "@/lib/depositPay";
 import { voidPayment } from "@/lib/payState";
 import { testDepositInvoice } from "@/lib/depositTest";
-import { addDays, todayInNewYork } from "@/lib/dates";
+import { addDays, formatDateLabel, todayInNewYork } from "@/lib/dates";
+import { dueDate, invoiceNumber } from "@/lib/invoiceNo";
 import { jobLabel } from "@/lib/labels";
 import { enRouteEmail } from "@/lib/enroute";
 import { confirmationWithCalendar } from "@/lib/confirmMail";
@@ -336,6 +337,7 @@ export async function addContractorJob(_prev: ConfirmState, form: FormData): Pro
     date: form.get("date"),
     time: form.get("time"),
     hours: form.get("hours"),
+    reference: form.get("reference") ?? "",
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form." };
   const v = parsed.data;
@@ -366,6 +368,7 @@ export async function addContractorJob(_prev: ConfirmState, form: FormData): Pro
     .insert({
       source: "contractor",
       contractor_id: contractorId,
+      reference: v.reference || null,
       status: "confirmed",
       issue: issueForService(v.service),
       name: contractorName,
@@ -464,30 +467,41 @@ async function sendBalanceByCard(supabase: Awaited<ReturnType<typeof adminClient
       if (isStripeId(r.qb_invoice_id)) await expireCheckout(r.qb_invoice_id);
       else await voidInvoice(r.qb_invoice_id).catch(() => undefined);
     }
-    const back = r.public_token ? `${siteBase()}/booking/${r.public_token}` : siteBase();
+    const contractor = r.source === "contractor";
+    let toEmail: string | null = r.email ?? null;
+    if (contractor) {
+      const { data: c } = await supabase!.from("contractors").select("email").eq("id", r.contractor_id).maybeSingle();
+      toEmail = c?.email ?? null;
+      if (!toEmail) redirect(`/admin/${id}?error=noemail`);
+    }
+    const number = invoiceNumber({ id, confirmed_date: r.confirmed_date });
+    const back = r.public_token ? `${siteBase()}/${contractor ? "invoice" : "booking"}/${r.public_token}` : siteBase();
     const made = await createCheckout({
       cents: inv.balance,
-      description: `Balance for ${jobLabel(r)} - Coastal Air Assessments`,
-      email: r.email,
+      description: contractor ? `Invoice ${number}, ${r.address} - Coastal Air Assessments` : `Balance for ${jobLabel(r)} - Coastal Air Assessments`,
+      email: toEmail ?? undefined,
       requestId: id,
-      successUrl: r.public_token ? `${back}/balance` : back,
+      successUrl: r.public_token ? `${siteBase()}/booking/${r.public_token}/balance` : back,
       cancelUrl: back,
     });
-    const link = balanceLink(r.public_token, made.url);
+    const link = contractor && r.public_token ? back : balanceLink(r.public_token, made.url);
     const first = String(r.name).trim().split(/\s+/)[0];
     const mail = await sendEmail({
-      to: r.email,
-      subject: "Your balance - Coastal Air Assessments",
+      to: toEmail ?? r.email,
+      subject: contractor ? `Invoice ${number} - Coastal Air Assessments` : "Your balance - Coastal Air Assessments",
       text: [
         `Hi ${first},`,
         "",
+        ...(contractor
+          ? [`Invoice ${number} for ${jobLabel(r)} at ${r.address}${r.reference ? ` (Ref ${r.reference})` : ""}. Due ${formatDateLabel(dueDate({ source: "contractor" }))}.`, ""]
+          : []),
         r.trip_only === true
           ? `Thank you for having us out. The property was not ready for the full visit, so this is the trip fee for ${jobLabel(r)}.`
           : `Thank you for having us out. Here is the balance for ${jobLabel(r)}.`,
         "",
         ...balanceLines({ inv, tripOnly: r.trip_only === true, service: jobLabel(r), charges, legacySamples: typeof r.lab_samples === "number" ? r.lab_samples : 0 }),
         "",
-        "Pay securely by card:",
+        contractor ? "View the invoice and pay by card:" : "Pay securely by card:",
         link,
         "",
         "Your report is released as soon as the balance is paid.",

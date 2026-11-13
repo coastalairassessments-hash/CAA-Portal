@@ -47,6 +47,7 @@ export async function scheduleJob(form: FormData): Promise<void> {
     contactName: form.get("contactName") ?? "",
     contactPhone: form.get("contactPhone") ?? "",
     note: form.get("note") ?? "",
+    reference: form.get("reference") ?? "",
   });
   if (!parsed.success) redirect(`/contractor?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check the form")}#schedule`);
   const v = parsed.data;
@@ -59,6 +60,7 @@ export async function scheduleJob(form: FormData): Promise<void> {
     .insert({
       source: "contractor",
       contractor_id: me.id,
+      reference: v.reference || null,
       status: "confirmed",
       issue: issueForService(v.service),
       name: me.name,

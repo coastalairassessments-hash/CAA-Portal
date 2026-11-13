@@ -40,6 +40,10 @@ export default function AddForm({ contractors, defaultDate, defaultTime = "10:00
         <label htmlFor="date">Date</label>
         <input id="date" name="date" type="date" defaultValue={defaultDate} required />
       </div>
+      <div className="adm-field">
+        <label htmlFor="reference">PO or reference number (optional)</label>
+        <input id="reference" name="reference" type="text" autoComplete="off" maxLength={80} />
+      </div>
       <div className="adm-row">
         <div className="adm-field">
           <label htmlFor="time">Start</label>

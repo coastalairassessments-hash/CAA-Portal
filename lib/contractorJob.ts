@@ -21,6 +21,7 @@ export function parseContractorJob(input: unknown, now: Date = new Date()) {
         .refine(isRealDate, "Pick a valid date")
         .refine((v) => v >= today, "Pick a date that is not in the past"),
       time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Pick a start time").refine((v) => v <= LATEST_START, "The latest start is 1:00 PM"),
+      reference: z.string().trim().max(80).optional().default(""),
       hours: z.coerce.number().int("Pick the hours").min(1, "Pick the hours").max(8, "Pick the hours"),
     })
     .refine((v) => v.contractorId !== "" || v.newName !== "", {

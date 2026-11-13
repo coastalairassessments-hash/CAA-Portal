@@ -9,11 +9,12 @@ import { jobLabel } from "@/lib/labels";
 export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
   await connection();
   const { token } = await params;
-  const back = new URL(`/booking/${token}`, request.url);
+  let back = new URL(`/booking/${token}`, request.url);
   const db = serviceDb();
   if (!db || !validToken(token)) return NextResponse.redirect(new URL("/", request.url), 303);
 
   const { data: r } = await db.from("requests").select("*").eq("public_token", token).maybeSingle();
+  if (r?.source === "contractor") back = new URL(`/invoice/${token}`, request.url);
   if (!r || r.final_paid_at || !isStripeId(r.qb_invoice_id)) return NextResponse.redirect(back, 303);
 
   try {
@@ -27,10 +28,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     const made = await createCheckout({
       cents: s.cents,
       description: `Balance for ${jobLabel(r)} - Coastal Air Assessments`,
-      email: r.email,
+      email: r.email ?? undefined,
       requestId: r.id,
       successUrl: `${siteBase()}/booking/${token}/balance`,
-      cancelUrl: `${siteBase()}/booking/${token}`,
+      cancelUrl: back.toString(),
     });
     await db.from("requests").update({ qb_invoice_id: made.id }).eq("id", r.id).is("final_paid_at", null);
     return NextResponse.redirect(made.url, 303);

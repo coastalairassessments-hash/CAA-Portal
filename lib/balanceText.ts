@@ -5,19 +5,24 @@ import { formatMoney } from "./pricing";
 
 type Inv = ReturnType<typeof finalInvoice>;
 
-export function balanceLines(o: { inv: Inv; tripOnly: boolean; service: string; charges: Charge[]; legacySamples: number }): string[] {
+export type BalanceRow = { label: string; amount: string; strong?: boolean };
+
+export function balanceRows(o: { inv: Inv; tripOnly: boolean; service: string; charges: Charge[]; legacySamples: number }): BalanceRow[] {
   const { inv } = o;
-  const lines: string[] = [];
+  const rows: BalanceRow[] = [];
   if (!o.tripOnly) {
-    lines.push(`${o.service}, first hour: ${formatMoney(inv.firstHour)}`);
-    if (inv.quarters > 0) lines.push(`Extra time (${inv.quarters} x ${formatMoney(QUARTER_HOUR_CENTS)}): ${formatMoney(inv.extraTime)}`);
-    if (o.legacySamples > 0) lines.push(`Lab samples (${o.legacySamples} x ${formatMoney(SAMPLE_CENTS)}): ${formatMoney(o.legacySamples * SAMPLE_CENTS)}`);
+    rows.push({ label: `${o.service}, first hour`, amount: formatMoney(inv.firstHour) });
+    if (inv.quarters > 0) rows.push({ label: `Extra time (${inv.quarters} x ${formatMoney(QUARTER_HOUR_CENTS)})`, amount: formatMoney(inv.extraTime) });
+    if (o.legacySamples > 0) rows.push({ label: `Lab samples (${o.legacySamples} x ${formatMoney(SAMPLE_CENTS)})`, amount: formatMoney(o.legacySamples * SAMPLE_CENTS) });
   }
   for (const c of o.charges) {
-    lines.push(c.qty === 1 ? `${c.description}: ${formatMoney(chargeCents(c))}` : `${c.description} (${c.qty} x ${formatMoney(c.unit_cents)}): ${formatMoney(chargeCents(c))}`);
+    rows.push({ label: c.qty === 1 ? c.description : `${c.description} (${c.qty} x ${formatMoney(c.unit_cents)})`, amount: formatMoney(chargeCents(c)) });
   }
-  lines.push(`Total: ${formatMoney(inv.total)}`);
-  if (inv.deposit > 0) lines.push(`Deposit paid: -${formatMoney(inv.deposit)}`);
-  lines.push(`Balance due: ${formatMoney(inv.balance)}`);
-  return lines;
+  rows.push({ label: "Total", amount: formatMoney(inv.total), strong: true });
+  if (inv.deposit > 0) rows.push({ label: "Deposit paid", amount: `-${formatMoney(inv.deposit)}` });
+  rows.push({ label: "Balance due", amount: formatMoney(inv.balance), strong: true });
+  return rows;
 }
+
+// The same lines as plain text, for emails.
+export const balanceLines = (o: Parameters<typeof balanceRows>[0]): string[] => balanceRows(o).map((r) => `${r.label}: ${r.amount}`);

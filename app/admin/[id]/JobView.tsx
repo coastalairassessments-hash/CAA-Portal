@@ -112,6 +112,9 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
       {query.error === "nobalance" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>Nothing is owed on this job, so there is no balance to send. If the deposit is more than the charges, the Money section shows the refund due.</p>
       )}
+      {query.error === "noemail" && (
+        <p className="adm-err" style={{ marginBottom: 14 }}>This contractor has no email on file, so the invoice was not sent. Add their email on the contractor record, then send it again.</p>
+      )}
       {query.error === "qb" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>QuickBooks did not accept the invoice. Nothing was sent. Try again.</p>
       )}
@@ -124,7 +127,7 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
       {query.saved === "invoice-unsent" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>The payment link is ready, but the email could not be sent. Text or call the client and give them the link from their booking page.</p>
       )}
-      {query.error && !["taken", "check", "qb", "qbconnect", "time", "timeinvoiced", "stripe", "nobalance", "nodelete", "charge"].includes(String(query.error)) && (
+      {query.error && !["taken", "check", "qb", "qbconnect", "time", "timeinvoiced", "stripe", "nobalance", "noemail", "nodelete", "charge"].includes(String(query.error)) && (
         <p className="adm-err" style={{ marginBottom: 14 }}>Something did not save. Try again.</p>
       )}
 
