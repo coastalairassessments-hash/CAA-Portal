@@ -8,7 +8,7 @@ export default function AddForm({ contractors, defaultDate, defaultTime = "10:00
   const [state, action, pending] = useActionState<ConfirmState, FormData>(addContractorJob, { error: null });
   return (
     <form action={action} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <Link className="adm-link" href="/admin/clients">Find a client in QuickBooks</Link>
+      <Link className="adm-link" href="/admin/clients">Find a client</Link>
       {contractors.length > 0 && (
         <div className="adm-field">
           <label htmlFor="contractorId">Contractor</label>

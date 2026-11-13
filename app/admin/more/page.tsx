@@ -107,7 +107,7 @@ export default function MorePage({ searchParams }: { searchParams: Promise<Recor
         <Link className="adm-btn wide" href="/admin/texts">Quick texts</Link>
         <Link className="adm-btn wide" href="/admin/contractors">Contractor logins</Link>
         <Link className="adm-btn wide" href="/admin/referrals">Referral partners</Link>
-        <Link className="adm-btn wide" href="/admin/clients">Find a client (QuickBooks)</Link>
+        <Link className="adm-btn wide" href="/admin/clients">Find a client</Link>
         <a className="adm-btn wide" href="/request">Public request page</a>
         <a className="adm-btn wide" href="/terms">Terms clients agree to</a>
         <a className="adm-btn wide" href="/policy">Booking policy</a>

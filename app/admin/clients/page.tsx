@@ -4,8 +4,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { supabaseForUser } from "@/lib/supabase/server";
-import { qbFetch } from "@/lib/qbStore";
-import { customerQuery, mapCustomers, telDigits, type Client } from "@/lib/qbCustomers";
+import { telDigits } from "@/lib/qbCustomers";
 import { smsLink } from "@/lib/confirm";
 
 export const metadata: Metadata = {
@@ -25,32 +24,31 @@ async function Results({ searchParams }: Props) {
 
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q : "";
-  const query = customerQuery(q);
-
+  const term = q.trim().replace(/[,()%_\\*]/g, " ").replace(/\s+/g, " ").slice(0, 60).trim();
+  const digits = term.replace(/\D/g, "");
+  type Client = { id: string; name: string; phone: string | null; email: string | null; address: string | null };
   let clients: Client[] = [];
   let problem = "";
-  if (query) {
-    try {
-      clients = mapCustomers(await qbFetch(`/query?query=${encodeURIComponent(query)}&minorversion=70`));
-    } catch (e) {
-      problem = e instanceof Error && e.message.includes("not connected")
-        ? "QuickBooks is not connected. Connect it on the More screen."
-        : "Could not reach QuickBooks. Try again in a moment.";
-    }
+  if (term.length >= 2) {
+    const parts = [`name.ilike.%${term}%`, `email.ilike.%${term}%`, `address.ilike.%${term}%`];
+    if (digits.length >= 3) parts.push(`phone_digits.ilike.%${digits}%`);
+    const { data, error } = await supabase.from("clients").select("id, name, phone, email, address").or(parts.join(",")).order("name").limit(25);
+    if (error) problem = error.code === "42P01" ? "The client list is not set up yet. Run the 0025 SQL in Supabase." : "Could not search. Try again.";
+    clients = (data ?? []) as Client[];
   }
 
   return (
     <>
       <form method="get" style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
         <div className="adm-field">
-          <label htmlFor="q">Search QuickBooks clients</label>
-          <input id="q" name="q" type="search" defaultValue={q} placeholder="Name or company" autoComplete="off" />
+          <label htmlFor="q">Search clients</label>
+          <input id="q" name="q" type="search" defaultValue={q} placeholder="Name, phone, email or address" autoComplete="off" />
         </div>
         <button className="adm-btn primary wide" type="submit">Search</button>
       </form>
       {problem && <p className="adm-err" role="alert">{problem}</p>}
-      {!problem && q && !query && <p className="adm-muted">Type at least 2 letters.</p>}
-      {!problem && query && clients.length === 0 && <p className="adm-empty">No clients found.</p>}
+      {!problem && q && term.length < 2 && <p className="adm-muted">Type at least 2 letters.</p>}
+      {!problem && term.length >= 2 && clients.length === 0 && <p className="adm-empty">No clients found.</p>}
       {clients.map((c) => {
         const add = `/admin/add?name=${encodeURIComponent(c.name)}${c.address ? `&address=${encodeURIComponent(c.address)}` : ""}`;
         return (
@@ -66,6 +64,7 @@ async function Results({ searchParams }: Props) {
           </article>
         );
       })}
+      <Link className="adm-link" href="/admin/clients/import">Import clients from a file</Link>
     </>
   );
 }
