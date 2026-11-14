@@ -14,6 +14,7 @@ import { depositCents, firstHourCents, formatMoney } from "@/lib/pricing";
 import { googleCalendarLink } from "@/lib/calendar";
 import { cancelBooking, cancelJob, clearEmailFailed, declineRequest, deleteRequest, markDepositReceived, markRefunded, sendFinalInvoice } from "../actions";
 import { finalInvoice, minutesOnSite } from "@/lib/billing";
+import { isStripeId } from "@/lib/stripePay";
 import { hoursUntil, refundDue } from "@/lib/cancel";
 import { STAGES, stageDone } from "@/lib/stage";
 import { clientTypeLabel, intakeLines } from "@/lib/intake";
@@ -346,7 +347,7 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
               depositPaidCents: typeof r.deposit_cents === "number" ? r.deposit_cents : null,
               tripOnly: r.trip_only === true,
             });
-            const sent = !!r.qb_invoice_id;
+            const sent = isStripeId(typeof r.qb_invoice_id === "string" ? r.qb_invoice_id : null);
             return (
               <form action={sendFinalInvoice} style={{ display: "contents" }}>
                 <input type="hidden" name="id" value={r.id} />
