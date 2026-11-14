@@ -12,7 +12,8 @@ import { confirmText, offerText, smsLink } from "@/lib/confirm";
 import { GOOGLE_REVIEW_URL, depositReminderText, reviewText } from "@/lib/quicktexts";
 import { depositCents, firstHourCents, formatMoney } from "@/lib/pricing";
 import { googleCalendarLink } from "@/lib/calendar";
-import { cancelBooking, cancelJob, clearEmailFailed, declineRequest, deleteRequest, markDepositReceived, markRefunded } from "../actions";
+import { cancelBooking, cancelJob, clearEmailFailed, declineRequest, deleteRequest, markDepositReceived, markRefunded, sendFinalInvoice } from "../actions";
+import { finalInvoice, minutesOnSite } from "@/lib/billing";
 import { hoursUntil, refundDue } from "@/lib/cancel";
 import { STAGES, stageDone } from "@/lib/stage";
 import { clientTypeLabel, intakeLines } from "@/lib/intake";
@@ -333,7 +334,24 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
             />
           )}
           {r.status === "confirmed" && !r.left_at && <a className="adm-btn" href="#close">I was there</a>}
-          {r.status === "confirmed" && r.left_at && <a className="adm-btn primary" href="#money">Invoice</a>}
+          {r.status === "confirmed" && r.left_at && !r.final_paid_at && (() => {
+            const inv = finalInvoice({
+              issue: r.issue,
+              minutes: minutesOnSite(r.arrived_at ?? null, r.left_at ?? null),
+              samples: typeof r.lab_samples === "number" ? r.lab_samples : null,
+              extrasCents: typeof r.extras_cents === "number" ? r.extras_cents : 0,
+              depositPaidCents: typeof r.deposit_cents === "number" ? r.deposit_cents : null,
+              tripOnly: r.trip_only === true,
+            });
+            const sent = !!r.qb_invoice_id;
+            return (
+              <form action={sendFinalInvoice} style={{ display: "contents" }}>
+                <input type="hidden" name="id" value={r.id} />
+                <button className="adm-btn primary" type="submit">{sent ? "Resend" : "Send"} {formatMoney(Math.max(inv.balance, 0))}</button>
+              </form>
+            );
+          })()}
+          {r.status === "confirmed" && r.left_at && r.final_paid_at && <span className="adm-btn off">Paid</span>}
           {(r.status === "offered" || r.status === "confirmed") && <a className="adm-btn danger" href="#cancel">Cancel</a>}
         </div>
       )}
