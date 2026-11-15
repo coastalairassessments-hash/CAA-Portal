@@ -1,3 +1,4 @@
+import { PRV_NOTICE } from "./policy";
 import { INSTASCOPE_EMAIL_LINE } from "./instascope";
 import { prepLines } from "./prep";
 import { LATEST_START } from "./slots";
@@ -31,6 +32,7 @@ export type ConfirmRow = {
   city: string;
   zip: string;
   public_token?: string | null;
+  issue?: string | null;
 };
 export type Booking = { date: string; time: string; hours: number };
 
@@ -60,6 +62,7 @@ export function confirmEmail(row: ConfirmRow, b: Booking, siteUrl = "https://boo
       INSTASCOPE_EMAIL_LINE,
       "- We tell you what we are seeing as we go, and take samples only if they help answer your question.",
       "- Your written report follows within days. You pay the balance after the visit.",
+      ...(row.issue === "post_remediation" ? ["", `Post-remediation verification: ${PRV_NOTICE}`] : []),
       "",
       ...prepLines(),
       "To cancel or reschedule, use your booking page below, or call or text " + PHONE + ". More than 24 hours before your visit, your deposit is refunded in full and rescheduling is free.",

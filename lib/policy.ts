@@ -1,7 +1,7 @@
 // The Booking and Payment Policy, exactly as clients agree to it. This is separate from the
 // insurance Terms. A wording change means a new version: bump POLICY_VERSION and update the
 // fingerprint in policy.test.ts. Old agreements stay tied to the version the client saw.
-export const POLICY_VERSION = "v1-2026-10";
+export const POLICY_VERSION = "v2-2026-11";
 export const POLICY_TITLE = "Booking and Payment Policy";
 
 export const POLICY_INTRO =
@@ -33,4 +33,13 @@ export const POLICY_SECTIONS: { n: number; title: string; text: string }[] = [
     title: "Cancel or reschedule",
     text: "Cancel more than 24 hours before your visit for a full refund of your deposit. Within 24 hours of your visit, the deposit is not refunded. Rescheduling more than 24 hours ahead is free. Within 24 hours it counts as a cancellation.",
   },
+  {
+    n: 6,
+    title: "Post-remediation verification (PRV)",
+    text: "A PRV is charged in full whatever the result. If the area does not meet industry guidelines, that is a fail, and the visit is still billed and is not refunded. The fee covers our time and the assessment, not a passing result.",
+  },
 ];
+
+// One plain sentence shown wherever a homeowner chooses a PRV.
+export const PRV_NOTICE =
+  "A PRV is charged in full whatever the result. If the area does not meet industry guidelines, the visit is still billed and is not refunded.";

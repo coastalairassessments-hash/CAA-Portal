@@ -17,12 +17,12 @@ const EXCLUSION_VIOLATION = "23P01";
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
 
 export const SETTLE_COLUMNS =
-  "id, status, booking_mode, offered_at, qb_deposit_invoice_id, name, email, phone, address, city, zip, public_token, confirmed_date, confirmed_time, block_hours";
+  "id, status, booking_mode, offered_at, qb_deposit_invoice_id, name, email, phone, address, city, zip, public_token, confirmed_date, confirmed_time, block_hours, issue";
 
 type Row = {
   id: string; status: string; booking_mode: string | null; offered_at: string | null; qb_deposit_invoice_id: string | null;
   name: string; email: string; phone: string; address: string; city: string; zip: string; public_token: string | null;
-  confirmed_date: string | null; confirmed_time: string | null; block_hours: number | null;
+  confirmed_date: string | null; confirmed_time: string | null; block_hours: number | null; issue?: string | null;
 };
 
 export type SettleResult = "paid" | "waiting" | "taken" | "abandoned" | "skip";

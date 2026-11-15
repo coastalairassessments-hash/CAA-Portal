@@ -10,11 +10,12 @@ import { classifyZip } from "@/lib/zones";
 import { HOW_HEARD, isLongVisit } from "@/lib/request";
 import { CLIENT_TYPES, PROPERTY_TYPES, WATER_WHEN, YES_NO, asksCompany, isMultiUnit, isOrg, needsQuote } from "@/lib/intake";
 import { depositCents, firstHourCents, formatMoney } from "@/lib/pricing";
+import { PRV_NOTICE } from "@/lib/policy";
 
 const ISSUES = [
   { value: "musty_smell", label: "Musty smell", hint: "Odor or suspected mold" },
   { value: "water_damage", label: "Water damage", hint: "A leak, flood or storm intrusion" },
-  { value: "post_remediation", label: "Post-remediation verification (PRV)", hint: "Confirm a mold cleanup worked" },
+  { value: "post_remediation", label: "Post-remediation verification (PRV)", hint: "Confirm a mold cleanup worked. Charged in full even if it does not pass" },
   { value: "air_quality", label: "Air quality concern", hint: "Allergies, odors or general testing" },
   { value: "consultation", label: "Consultation", hint: "One hour on site, no written report" },
   { value: "other", label: "Something else", hint: "You can explain in the notes" },
@@ -351,6 +352,7 @@ export default function RequestFlow({ dates, held, again, refCode }: { dates: st
                     : `${issueLabel} from ${formatMoney(firstHourCents(issue))} for the first hour. Deposit to hold your time: ${formatMoney(depositCents(issue))}.`}
                 </p>
               )}
+              {issue === "post_remediation" && <p className="price-line"><strong>PRV results:</strong> {PRV_NOTICE}</p>}
               <p>
                 {instantFlow
                   ? "You pay the deposit on the next screen, and your time is held while you do. Cancel more than 24 hours ahead for a full refund."
