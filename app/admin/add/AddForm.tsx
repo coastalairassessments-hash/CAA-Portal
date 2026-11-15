@@ -1,10 +1,18 @@
 "use client";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { addContractorJob, type ConfirmState } from "../actions";
-import { SERVICES } from "@/lib/contractorJob";
+import { SERVICES, issueForService } from "@/lib/contractorJob";
+import { finalInvoice } from "@/lib/billing";
+import { formatMoney } from "@/lib/pricing";
 
 type Hit = { name: string; address: string; phone: string | null; kind: "client" | "job" };
-type Contractor = { id: string; name: string };
+type Contractor = { id: string; name: string; hasEmail: boolean };
+type Outcome = "" | "done" | "trip";
+const CHOICES: { value: Outcome; title: string; sub: string }[] = [
+  { value: "", title: "Schedule a visit", sub: "Put a future job on the calendar" },
+  { value: "done", title: "Bill a visit that happened", sub: "Close it and bill the time on site" },
+  { value: "trip", title: "Bill a trip fee", sub: "Not ready, no access or containment breached" },
+];
 
 const list: React.CSSProperties = { listStyle: "none", padding: 0, margin: "6px 0 0", display: "flex", flexDirection: "column", gap: 6 };
 const item: React.CSSProperties = { width: "100%", justifyContent: "flex-start", textAlign: "left", flexDirection: "column", alignItems: "flex-start", gap: 2, padding: 10 };
@@ -13,6 +21,10 @@ export default function AddForm({ contractors, defaultDate, defaultTime = "10:00
   const [state, action, pending] = useActionState<ConfirmState, FormData>(addContractorJob, { error: null });
   const [name, setName] = useState(initialName);
   const [address, setAddress] = useState(initialAddress);
+  const [outcome, setOutcome] = useState<Outcome>("");
+  const [service, setService] = useState<"prv" | "assessment">("prv");
+  const [hours, setHours] = useState(2);
+  const [email, setEmail] = useState("");
   const [focus, setFocus] = useState<"name" | "addr" | null>(null);
   const [nameHits, setNameHits] = useState<Hit[]>([]);
   const [addrHits, setAddrHits] = useState<Hit[]>([]);
@@ -64,6 +76,18 @@ export default function AddForm({ contractors, defaultDate, defaultTime = "10:00
   return (
     <form action={action} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <input type="hidden" name="contractorId" value={chosen?.id ?? ""} />
+      <input type="hidden" name="outcome" value={outcome} />
+      <div className="adm-field">
+        <label>What are you adding?</label>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }} role="radiogroup" aria-label="What are you adding?">
+          {CHOICES.map((c) => (
+            <button key={c.value || "later"} type="button" role="radio" aria-checked={outcome === c.value} className={`adm-btn${outcome === c.value ? " primary" : ""}`} style={item} onClick={() => setOutcome(c.value)}>
+              <b>{c.title}</b>
+              <span style={{ opacity: 0.8, fontSize: 13 }}>{c.sub}</span>
+            </button>
+          ))}
+        </div>
+      </div>
       <input type="hidden" name="newName" value={chosen ? "" : name.trim()} />
 
       <div className="adm-field">
@@ -98,20 +122,18 @@ export default function AddForm({ contractors, defaultDate, defaultTime = "10:00
         {address.trim().length > 2 && name.trim() && !addrKnown && <p className="adm-muted">New property. It is saved to {chosen ? `${chosen.name}'s` : "this contractor's"} list when you save.</p>}
       </div>
 
+      {outcome !== "" && !chosen?.hasEmail && (
+        <div className="adm-field">
+          <label htmlFor="email">Contractor email (the invoice goes here)</label>
+          <input id="email" name="email" type="email" autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="billing@company.com" />
+        </div>
+      )}
       <div className="adm-field">
         <label htmlFor="service">Service</label>
-        <select id="service" name="service" defaultValue="prv">
+        <select id="service" name="service" value={service} onChange={(e) => setService(e.target.value as "prv" | "assessment")}>
           {SERVICES.map((s) => (
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
-        </select>
-      </div>
-      <div className="adm-field">
-        <label htmlFor="outcome">When is this job?</label>
-        <select id="outcome" name="outcome" defaultValue="">
-          <option value="">Still to come (put it on the schedule)</option>
-          <option value="done">Already done (close it and bill the time)</option>
-          <option value="trip">Already done, not ready or no access (bill the trip fee)</option>
         </select>
       </div>
       <div className="adm-field">
@@ -132,12 +154,12 @@ export default function AddForm({ contractors, defaultDate, defaultTime = "10:00
       </div>
       <div className="adm-row">
         <div className="adm-field">
-          <label htmlFor="time">Start</label>
+          <label htmlFor="time">{outcome === "" ? "Start" : "Arrived"}</label>
           <input id="time" name="time" type="time" step={900} defaultValue={defaultTime} required />
         </div>
         <div className="adm-field">
-          <label htmlFor="hours">Time on site</label>
-          <select id="hours" name="hours" defaultValue="2">
+          <label htmlFor="hours">{outcome === "" ? "Time to hold" : "Time on site"}</label>
+          <select id="hours" name="hours" value={hours} onChange={(e) => setHours(Number(e.target.value))}>
             {[1, 2, 3, 4, 5, 6, 7, 8].map((h) => (
               <option key={h} value={h}>{h === 1 ? "1 hour" : `${h} hours`}</option>
             ))}
@@ -145,11 +167,20 @@ export default function AddForm({ contractors, defaultDate, defaultTime = "10:00
         </div>
       </div>
       <p className="adm-muted">For a job still to come: over 2 hours blocks the whole day, 2 hours leaves 12:30 open, latest start is 1:00 PM. For one already done, enter the date, when you started and the time on site. You then send the bill from the job.</p>
+      {outcome !== "" && (() => {
+        const inv = finalInvoice({ issue: issueForService(service), minutes: hours * 60, samples: null, extrasCents: outcome === "trip" ? 35000 : 0, depositPaidCents: null, tripOnly: outcome === "trip" });
+        return <div className="adm-panel tint" style={{ gap: 4 }}><b>Invoice: {formatMoney(inv.total)}</b><span className="adm-muted">{outcome === "trip" ? "Trip fee instead of the full price." : `${service === "prv" ? "PRV" : "Assessment"} first hour, plus extra time over one hour.`} Add materials later from the job if needed.</span></div>;
+      })()}
       <div className="adm-panel tint" style={{ gap: 4 }}><b>Billing</b><span className="adm-muted">No deposit. Invoice after the job, due in 7 days.</span></div>
       {state.error && <p className="adm-err" role="alert">{state.error}</p>}
-      <button className="adm-btn primary wide" type="submit" disabled={pending}>
-        {pending ? "Saving..." : "Save job"}
-      </button>
+      {outcome === "" ? (
+        <button className="adm-btn primary wide" type="submit" disabled={pending}>{pending ? "Saving..." : "Add to schedule"}</button>
+      ) : (
+        <>
+          <button className="adm-btn primary wide" type="submit" name="send" value="1" disabled={pending}>{pending ? "Sending..." : "Save and send invoice"}</button>
+          <button className="adm-btn wide" type="submit" disabled={pending}>Save without sending</button>
+        </>
+      )}
     </form>
   );
 }

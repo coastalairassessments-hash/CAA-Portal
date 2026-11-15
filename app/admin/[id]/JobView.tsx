@@ -127,6 +127,8 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
       {query.error === "timeinvoiced" && (
         <p className="adm-err" style={{ marginBottom: 14 }}>The final invoice is already sent, so the times are locked.</p>
       )}
+      {query.saved === "paid" && <p className="adm-ok" style={{ marginBottom: 14 }}>Marked paid. Any open card link was closed, and the report is released.</p>}
+      {query.saved === "unpaid" && <p className="adm-ok" style={{ marginBottom: 14 }}>Moved back to unpaid.</p>}
       {query.saved === "invoice" && (
         <p className="adm-ok" style={{ marginBottom: 14 }}>Sent. The client has been emailed the balance with a card link{typeof r.email === "string" && r.email ? ` (${r.email})` : ""}. This job moves to Paid on its own when they pay.</p>
       )}

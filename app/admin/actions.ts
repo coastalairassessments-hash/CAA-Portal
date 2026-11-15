@@ -302,7 +302,11 @@ export async function markFinalPaid(form: FormData): Promise<void> {
   const clearing = !!form.get("clear");
 
   const { data: row } = await supabase
-    .from("requests").select("name, email, source, final_paid_at").eq("id", id).single();
+    .from("requests").select("name, email, source, final_paid_at, qb_invoice_id").eq("id", id).single();
+  // Paid another way (cash, check): close any card page that is still open so the client cannot pay twice.
+  if (!clearing && row && !row.final_paid_at && isStripeId(row.qb_invoice_id)) {
+    await expireCheckout(row.qb_invoice_id as string).catch(() => undefined);
+  }
   const { error } = await supabase
     .from("requests")
     .update({ final_paid_at: clearing ? null : new Date().toISOString() })
@@ -321,7 +325,7 @@ export async function markFinalPaid(form: FormData): Promise<void> {
     if (!sent.ok) console.error(`[review] email not sent: ${sent.reason}`);
     redirect(`/admin/${id}?email=${sent.ok ? "sent" : "failed"}`);
   }
-  redirect(`/admin/${id}`);
+  redirect(`/admin/${id}?saved=${clearing ? "unpaid" : "paid"}`);
 }
 
 // ---- Contractor jobs ----
@@ -341,26 +345,38 @@ export async function addContractorJob(_prev: ConfirmState, form: FormData): Pro
     notes: form.get("notes") ?? "",
     invoiceNote: form.get("invoiceNote") ?? "",
     outcome: form.get("outcome") ?? "",
+    email: form.get("email") ?? "",
+    send: form.get("send") ?? "",
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form." };
   const v = parsed.data;
+  const sending = v.send === "1" && v.outcome !== "";
 
   // Find or create the contractor.
   let contractorId = v.contractorId;
   let contractorName = "";
   if (contractorId) {
-    const { data } = await supabase.from("contractors").select("name").eq("id", contractorId).single();
+    const { data } = await supabase.from("contractors").select("name, email").eq("id", contractorId).single();
     if (!data) return { error: "Could not find that contractor." };
     contractorName = data.name;
+    if (v.email && !data.email) {
+      const { error: mailErr } = await supabase.from("contractors").update({ email: v.email }).eq("id", contractorId);
+      if (mailErr) return { error: mailErr.code === "23505" ? "That email already belongs to another contractor." : `Could not save the email. (Ref: contractor-${mailErr.code ?? "unknown"})` };
+    } else if (sending && !data.email) {
+      return { error: "Enter the contractor's email so the invoice can be sent." };
+    }
   } else {
     const name = v.newName;
-    const { data: found } = await supabase.from("contractors").select("id, name").ilike("name", name).maybeSingle();
+    const { data: found } = await supabase.from("contractors").select("id, name, email").ilike("name", name).maybeSingle();
     if (found) {
       contractorId = found.id;
       contractorName = found.name;
+      if (v.email && !found.email) await supabase.from("contractors").update({ email: v.email }).eq("id", found.id);
+      else if (sending && !found.email) return { error: "Enter the contractor's email so the invoice can be sent." };
     } else {
-      const { data: made, error: makeErr } = await supabase.from("contractors").insert({ name }).select("id, name").single();
-      if (makeErr || !made) return { error: `Could not save the contractor. (Ref: contractor-${makeErr?.code ?? "unknown"})` };
+      if (sending && !v.email) return { error: "Enter the contractor's email so the invoice can be sent." };
+      const { data: made, error: makeErr } = await supabase.from("contractors").insert(v.email ? { name, email: v.email } : { name }).select("id, name").single();
+      if (makeErr || !made) return { error: makeErr?.code === "23505" ? "That email already belongs to another contractor. Pick them from the list." : `Could not save the contractor. (Ref: contractor-${makeErr?.code ?? "unknown"})` };
       contractorId = made.id;
       contractorName = made.name;
     }
@@ -405,6 +421,10 @@ export async function addContractorJob(_prev: ConfirmState, form: FormData): Pro
       .eq("id", job.id);
     if (closeErr) redirect(`/admin/${job.id}?error=save`);
     if (v.outcome === "trip") await ensureTripFee(supabase, job.id);
+    if (sending) {
+      const { data: fresh } = await supabase.from("requests").select("*").eq("id", job.id).single();
+      if (fresh) await sendBalanceByCard(supabase, fresh as Record<string, any> & { issue: string }, job.id); // eslint-disable-line @typescript-eslint/no-explicit-any
+    }
     redirect(`/admin/${job.id}?closed=1`);
   }
   redirect("/admin/today?added=1");
@@ -414,6 +434,9 @@ export async function cancelJob(form: FormData): Promise<void> {
   const supabase = await adminClient();
   const id = String(form.get("id") ?? "");
   if (!supabase || !/^[0-9a-f-]{36}$/i.test(id)) redirect("/admin");
+  const { data: r } = await supabase.from("requests").select("qb_invoice_id, final_paid_at").eq("id", id).maybeSingle();
+  if (r?.final_paid_at) redirect(`/admin/${id}?error=nodelete`);
+  if (r && isStripeId(r.qb_invoice_id)) await expireCheckout(r.qb_invoice_id as string).catch(() => undefined);
   const { error } = await supabase.from("requests").update({ status: "cancelled" }).eq("id", id);
   redirect(error ? `/admin/${id}?error=save` : "/admin/today");
 }

@@ -6,6 +6,7 @@ type Row = Record<string, unknown>;
 const tables: Record<string, Row[]> = {};
 const mail: { to: string; subject: string; text: string }[] = [];
 const stripeCalls: { cents: number; email?: string }[] = [];
+const expired: string[] = [];
 
 function from(name: string) {
   const rows = () => (tables[name] ??= []);
@@ -43,7 +44,7 @@ vi.mock("@/lib/stripePay", () => ({
   stripeConfigured: () => true,
   isStripeId: (id?: string | null) => !!id && id.startsWith("cs_"),
   createCheckout: async (o: { cents: number; email?: string }) => { stripeCalls.push(o); return { id: "cs_test_1", url: "https://stripe.example/pay" }; },
-  expireCheckout: async () => undefined,
+  expireCheckout: async (id: string) => { expired.push(id); },
 }));
 vi.mock("@/lib/finalPay", () => ({ siteBase: () => "https://book.example.com", balanceLink: (t: string) => `https://book.example.com/booking/${t}/balance` }));
 
@@ -58,7 +59,7 @@ async function send(id: string): Promise<string> {
 const ID = "11111111-1111-4111-8111-111111111111";
 beforeEach(() => {
   for (const k of Object.keys(tables)) delete tables[k];
-  mail.length = 0; stripeCalls.length = 0;
+  mail.length = 0; stripeCalls.length = 0; expired.length = 0;
   tables.requests = [{
     id: ID, status: "confirmed", source: "client", issue: "air_quality", name: "Pat Client", email: "pat@example.com",
     address: "1 Main St", public_token: "a".repeat(32), confirmed_date: "2026-11-10",
@@ -122,5 +123,131 @@ describe("add a job that already happened", () => {
     expect(row.arrived_at && row.left_at).toBeTruthy();
     expect(tables.job_charges).toEqual([expect.objectContaining({ kind: "trip", unit_cents: 35000 })]);
     expect(tables.contractors[0]).toMatchObject({ name: "Acme Restoration" });
+  });
+});
+
+describe("save and send invoice from Add", () => {
+  const fill = (extra: Record<string, string>) => {
+    const f = new FormData();
+    Object.entries({ newName: "Bayside Remediation", service: "prv", address: "5 Harbor Rd, Jupiter", date: "2026-11-13", time: "10:00", hours: "1", outcome: "done", reference: "", notes: "", invoiceNote: "", ...extra }).forEach(([k, v]) => f.set(k, v));
+    return f;
+  };
+  const run = async (f: FormData) => {
+    const { addContractorJob } = await import("@/app/admin/actions");
+    try { const r = await addContractorJob({ error: null }, f); return { error: r.error, to: "" }; } catch (e) { return { error: null, to: String((e as { digest?: string }).digest ?? e) }; }
+  };
+  beforeEach(() => { tables.contractors = []; tables.requests = []; tables.job_charges = []; });
+
+  it("saves, closes and emails the contractor the invoice in one step", async () => {
+    const r = await run(fill({ send: "1", email: "Billing@Bayside.com" }));
+    expect(r.to).toMatch(/saved=invoice/);
+    expect(tables.contractors[0]).toMatchObject({ name: "Bayside Remediation", email: "billing@bayside.com" });
+    expect(mail).toHaveLength(1);
+    expect(mail[0].to).toBe("billing@bayside.com");
+    expect(mail[0].subject).toContain("Invoice CAA-20261113");
+    expect(stripeCalls[0].cents).toBeGreaterThan(0);
+    expect(tables.requests[0].qb_invoice_id).toBe("cs_test_1");
+  });
+
+  it("asks for the email instead of saving half a job", async () => {
+    const r = await run(fill({ send: "1" }));
+    expect(r.error).toContain("email");
+    expect(tables.requests).toHaveLength(0);
+    expect(mail).toHaveLength(0);
+  });
+
+  it("can save closed without sending", async () => {
+    const r = await run(fill({}));
+    expect(r.to).toMatch(/closed=1/);
+    expect(mail).toHaveLength(0);
+    expect(tables.requests[0].left_at).toBeTruthy();
+  });
+});
+
+describe("the other buttons on a job", () => {
+  const go = async (name: "markFinalPaid" | "cancelJob" | "saveVisitTimes", fields: Record<string, string>) => {
+    const actions = await import("@/app/admin/actions");
+    const f = new FormData();
+    Object.entries(fields).forEach(([k, v]) => f.set(k, v));
+    try { await actions[name](f); } catch (e) { return String((e as { digest?: string }).digest ?? e); }
+    return "no redirect";
+  };
+
+  it("I was there: closes the job with the hours entered", async () => {
+    Object.assign(tables.requests[0], { arrived_at: null, left_at: null, confirmed_time: "12:30" });
+    const to = await go("saveVisitTimes", { id: ID, date: "2026-11-10", hours: "1.5", trip_present: "1" });
+    expect(to).toContain("saved=time");
+    expect(tables.requests[0].arrived_at && tables.requests[0].left_at).toBeTruthy();
+    expect(tables.requests[0].trip_only).toBe(false);
+  });
+
+  it("I was there with the trip box ticked adds the trip fee", async () => {
+    Object.assign(tables.requests[0], { arrived_at: null, left_at: null, confirmed_time: "12:30" });
+    await go("saveVisitTimes", { id: ID, date: "2026-11-10", hours: "1", trip_present: "1", trip_only: "on" });
+    expect(tables.requests[0].trip_only).toBe(true);
+    expect(tables.job_charges).toEqual([expect.objectContaining({ kind: "trip" })]);
+  });
+
+  it("marking paid closes an open card page and confirms", async () => {
+    tables.requests[0].qb_invoice_id = "cs_open_1";
+    const to = await go("markFinalPaid", { id: ID });
+    expect(to).toContain("saved=paid");
+    expect(tables.requests[0].final_paid_at).toBeTruthy();
+    expect(expired).toEqual(["cs_open_1"]);
+  });
+
+  it("cancelling a contractor job closes its open card page", async () => {
+    tables.requests[0].qb_invoice_id = "cs_open_2";
+    const to = await go("cancelJob", { id: ID });
+    expect(to).toContain("/admin/today");
+    expect(tables.requests[0].status).toBe("cancelled");
+    expect(expired).toEqual(["cs_open_2"]);
+  });
+
+  it("will not cancel a job that is already paid", async () => {
+    tables.requests[0].final_paid_at = "2026-11-12T00:00:00Z";
+    expect(await go("cancelJob", { id: ID })).toContain("error=nodelete");
+    expect(tables.requests[0].status).toBe("confirmed");
+  });
+});
+
+describe("payment links", () => {
+  const LID = "22222222-2222-4222-8222-222222222222";
+  const call = async (name: "sendSavedLink" | "sendPaymentLink" | "deletePaymentLink", fields: Record<string, string>) => {
+    const actions = await import("@/app/admin/links/actions");
+    const f = new FormData();
+    Object.entries(fields).forEach(([k, v]) => f.set(k, v));
+    try { await actions[name](f); } catch (e) { return String((e as { digest?: string }).digest ?? e); }
+    return "no redirect";
+  };
+  beforeEach(() => {
+    tables.payment_links = [{ id: LID, token: "b".repeat(32), name: "Laura Baltadano", email: null, description: "Invoice #12995", amount_cents: 23500, stripe_id: null, sent_at: null, paid_at: null }];
+  });
+
+  it("a saved link needs an email, then sends with the right amount", async () => {
+    expect(await call("sendSavedLink", { id: LID, email: "" })).toContain("error=");
+    expect(mail).toHaveLength(0);
+    expect(await call("sendSavedLink", { id: LID, email: "Laura@Example.com" })).toContain("sent=1");
+    expect(mail[0].to).toBe("laura@example.com");
+    expect(mail[0].text).toContain("$235.00");
+    expect(mail[0].text).toContain(`/pay/${"b".repeat(32)}`);
+    expect(stripeCalls[0].cents).toBe(23500);
+    expect(tables.payment_links[0]).toMatchObject({ stripe_id: "cs_test_1", email: "laura@example.com" });
+    expect(tables.payment_links[0].sent_at).toBeTruthy();
+  });
+
+  it("save without sending keeps it as a draft", async () => {
+    tables.payment_links = [];
+    const to = await call("sendPaymentLink", { name: "New Client", email: "", description: "Old balance", amount: "100", then: "draft" });
+    expect(to).toContain("saved=1");
+    expect(mail).toHaveLength(0);
+    expect(tables.payment_links[0]).toMatchObject({ name: "New Client", amount_cents: 10000 });
+  });
+
+  it("cancelling an unpaid link closes its card page", async () => {
+    Object.assign(tables.payment_links[0], { stripe_id: "cs_open_3", sent_at: "2026-11-14T00:00:00Z" });
+    await call("deletePaymentLink", { id: LID });
+    expect(expired).toEqual(["cs_open_3"]);
+    expect(tables.payment_links).toHaveLength(0);
   });
 });

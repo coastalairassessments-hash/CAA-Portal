@@ -25,6 +25,9 @@ export function parseContractorJob(input: unknown, now: Date = new Date()) {
       hours: z.coerce.number().int("Pick the hours").min(1, "Pick the hours").max(8, "Pick the hours"),
       // "" = still to come. "done" = already happened, bill the time. "trip" = already happened, not ready, bill the trip fee.
       outcome: z.enum(["", "done", "trip"]).optional().default(""),
+      // The contractor's email, needed to send an invoice. "send" = send the invoice as soon as the job is saved.
+      email: z.union([z.literal(""), z.string().trim().toLowerCase().email("Enter a valid email").max(200)]).optional().default(""),
+      send: z.enum(["", "1"]).optional().default(""),
     })
     .refine((v) => v.contractorId !== "" || v.newName !== "", {
       message: "Pick a contractor or type a new name",
