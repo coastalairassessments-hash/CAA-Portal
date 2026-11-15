@@ -7,7 +7,8 @@ describe("invoice number and due date", () => {
     expect(invoiceNumber({ id: "ab12cdef-0000-0000-0000-000000000000", confirmed_date: "2026-11-17" })).toBe("CAA-20261117-AB12");
   });
   it("gives contractors 7 days", () => {
-    expect(dueDate({ source: "contractor", final_invoiced_at: "2026-11-17T15:00:00Z" })).toBe("2026-11-24");
+    expect(dueDate({ source: "contractor", final_invoiced_at: "2026-11-17T15:00:00Z" })).toBe("2026-12-02");
+    expect(dueDate({ source: "contractor", final_invoiced_at: "2026-11-17T15:00:00Z", trip_only: true })).toBe("2026-11-17");
     expect(dueDate({ source: "instant", final_invoiced_at: "2026-11-17T15:00:00Z" })).toBe("2026-11-17");
   });
   it("accepts an optional reference", () => {

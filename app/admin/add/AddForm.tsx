@@ -6,7 +6,7 @@ import { finalInvoice } from "@/lib/billing";
 import { formatMoney } from "@/lib/pricing";
 
 type Hit = { name: string; address: string; phone: string | null; kind: "client" | "job" };
-type Contractor = { id: string; name: string; hasEmail: boolean };
+type Contractor = { id: string; name: string; hasEmail: boolean; accepted?: boolean; tripOwedCents?: number; tripOwedDate?: string };
 type Outcome = "" | "done" | "trip";
 const CHOICES: { value: Outcome; title: string; sub: string }[] = [
   { value: "", title: "Schedule a visit", sub: "Put a future job on the calendar" },
@@ -103,6 +103,10 @@ export default function AddForm({ contractors, defaultDate, defaultTime = "10:00
             ))}
           </ul>
         )}
+        {chosen && (chosen.tripOwedCents ?? 0) > 0 && (
+          <p className="adm-err" role="alert">Unpaid trip fee {formatMoney(chosen.tripOwedCents!)}{chosen.tripOwedDate ? ` from ${chosen.tripOwedDate}` : ""}. Collect it before this visit.</p>
+        )}
+        {chosen && !chosen.accepted && <p className="adm-muted">Has not accepted the billing terms yet. Send them from Office, Contractors.</p>}
         {name.trim() && !chosen && <p className="adm-muted">New contractor. They are added to your list when you save.</p>}
       </div>
 

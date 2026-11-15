@@ -39,6 +39,7 @@ import { balanceLink, siteBase } from "@/lib/finalPay";
 import { paymentState } from "@/lib/payState";
 import { ensureTripFee, listCharges, removeTripFee } from "@/lib/chargeServer";
 import { balanceLines } from "@/lib/balanceText";
+import { CONTRACTOR_INVOICE_LINE, TRIP_INVOICE_LINE } from "@/lib/contractorTerms";
 import { finalInvoicePayload } from "@/lib/qbInvoice";
 import { createInvoice, emailInvoice, ensureCustomer, ensureServiceItem, qbConnected, voidInvoice } from "@/lib/qbSync";
 import { createDeposit } from "@/lib/depositPay";
@@ -533,7 +534,7 @@ async function sendBalanceByCard(supabase: Awaited<ReturnType<typeof adminClient
         `Hi ${first},`,
         "",
         ...(contractor
-          ? [`Invoice ${number} for ${jobLabel(r)} at ${r.address}${r.reference ? ` (Ref ${r.reference})` : ""}. Due ${formatDateLabel(dueDate({ source: "contractor" }))}.`, ""]
+          ? [`Invoice ${number} for ${jobLabel(r)} at ${r.address}${r.reference ? ` (Ref ${r.reference})` : ""}. Due ${formatDateLabel(dueDate({ source: "contractor", trip_only: r.trip_only === true }))}.`, r.trip_only === true ? TRIP_INVOICE_LINE : CONTRACTOR_INVOICE_LINE, ""]
           : []),
         r.trip_only === true
           ? `Thank you for having us out. The property was not ready for the full visit, so this is the trip fee for ${jobLabel(r)}.`

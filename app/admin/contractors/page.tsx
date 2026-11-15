@@ -4,7 +4,8 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { supabaseForUser } from "@/lib/supabase/server";
 import { SITE_URL_FALLBACK } from "@/lib/notify";
-import { saveContractor, sendLink, setPortalAccess } from "../contractorActions";
+import { saveContractor, sendLink, sendTerms, setPortalAccess } from "../contractorActions";
+import { CONTRACTOR_TERMS_VERSION } from "@/lib/contractorTerms";
 
 export const metadata: Metadata = { title: "Contractors | Coastal Air Assessments", robots: { index: false, follow: false } };
 
@@ -13,12 +14,14 @@ async function Contractors({ searchParams }: { searchParams: Promise<Record<stri
   const q = await searchParams;
   const site = (process.env.SITE_URL?.trim() || SITE_URL_FALLBACK).replace(/\/+$/, "");
   const supabase = await supabaseForUser();
-  const { data, error } = await supabase.from("contractors").select("id, name, email, phone, portal_active").order("name").limit(500);
+  const { data, error } = await supabase.from("contractors").select("id, name, email, phone, portal_active, terms_accepted_at, terms_version, terms_sent_at").order("name").limit(500);
   return (
     <>
-      {error && <p className="adm-err">Contractor login is not set up yet. Run the 0022 SQL in Supabase.</p>}
+      {error && <p className="adm-err">Not set up yet. Run the 0022 and 0029 SQL in Supabase.</p>}
       {q.error && <p className="adm-err">That did not save. Check the email and try again.</p>}
       {q.saved && <p className="adm-ok">Saved.</p>}
+      {q.termssent && <p className="adm-ok">Terms emailed.</p>}
+      {q.noemail && <p className="adm-err">Add an email for that contractor first.</p>}
       {q.link && <p className="adm-ok">Sign-in link sent, if the contractor has an email on file.</p>}
       <p className="adm-muted">Contractors sign in at {site}/contractor with an emailed link. Only the emails you add here can sign in.</p>
 
@@ -37,7 +40,7 @@ async function Contractors({ searchParams }: { searchParams: Promise<Record<stri
 
       {(data ?? []).map((c) => (
         <details className="adm-group" key={c.id}>
-          <summary>{c.name} <span className="v">{c.email ? (c.portal_active ? "Can sign in" : "Access off") : "No email yet"}</span></summary>
+          <summary>{c.name} <span className="v">{c.terms_version === CONTRACTOR_TERMS_VERSION && c.terms_accepted_at ? "Terms accepted" : c.terms_sent_at ? "Terms sent" : "Terms not accepted"}</span></summary>
           <form action={saveContractor} className="adm-field">
             <input type="hidden" name="id" value={c.id} />
             <input type="hidden" name="name" value={c.name} />
@@ -47,6 +50,12 @@ async function Contractors({ searchParams }: { searchParams: Promise<Record<stri
             <input id={`p-${c.id}`} name="phone" type="tel" defaultValue={c.phone ?? ""} />
             <button className="adm-btn primary wide" type="submit">Save</button>
           </form>
+          {c.email && (
+            <form action={sendTerms}>
+              <input type="hidden" name="id" value={c.id} />
+              <button className="adm-btn wide" type="submit">{c.terms_accepted_at ? "Resend the terms" : "Send the billing terms"}</button>
+            </form>
+          )}
           {c.email && (
             <form action={sendLink}>
               <input type="hidden" name="id" value={c.id} />

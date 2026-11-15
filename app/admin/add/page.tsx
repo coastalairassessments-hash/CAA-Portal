@@ -95,7 +95,7 @@ export default function AddHub() {
       <section className="adm-group adm-menu">
         <h2>Clients and contractors</h2>
         <Link className="adm-btn wide" href="/admin/clients">Client list, call, text, map</Link>
-        <Link className="adm-btn wide" href="/admin/contractors">Contractors and their logins</Link>
+        <Link className="adm-btn wide" href="/admin/contractors">Add a contractor, send billing terms</Link>
         <Link className="adm-btn wide" href="/admin/payments">Payments received</Link>
       </section>
     </main>

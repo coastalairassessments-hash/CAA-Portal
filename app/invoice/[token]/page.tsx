@@ -11,6 +11,7 @@ import { formatMoney } from "@/lib/pricing";
 import { formatDateLabel } from "@/lib/dates";
 import { jobLabel } from "@/lib/labels";
 import { dueDate, invoiceNumber } from "@/lib/invoiceNo";
+import { CONTRACTOR_INVOICE_LINE, TRIP_INVOICE_LINE } from "@/lib/contractorTerms";
 import { isStripeId } from "@/lib/stripePay";
 import { PHONE } from "@/lib/business";
 import PrintButton from "./PrintButton";
@@ -57,6 +58,11 @@ async function Invoice({ params }: { params: Promise<{ token: string }> }) {
       <p className="bk-lead">
         {paid ? "Paid. Thank you." : `Due ${formatDateLabel(dueDate(r))}.`}
       </p>
+      {r.source === "contractor" && !paid && (
+        <p className="muted">
+          {r.trip_only ? TRIP_INVOICE_LINE : `${charges.some((c) => c.kind === "trip") ? `${TRIP_INVOICE_LINE} ` : ""}${CONTRACTOR_INVOICE_LINE}`}
+        </p>
+      )}
       <dl className="bk-facts">
         <div><dt>Bill to</dt><dd>{r.source === "contractor" ? r.name : `${r.name}`}</dd></div>
         <div><dt>Job</dt><dd>{jobLabel(r)}<br />{r.address}{r.city ? `, ${r.city}` : ""}</dd></div>

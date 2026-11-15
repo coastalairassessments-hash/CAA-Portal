@@ -5,6 +5,7 @@ import { serviceDb } from "@/lib/bookingServer";
 import { SETTLE_COLUMNS, settleDeposit } from "@/lib/settle";
 import { sendReadyReports } from "@/lib/reportServer";
 import { settleFinalPayment } from "@/lib/finalPay";
+import { sweepContractorFees } from "@/lib/lateFee";
 
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
 
@@ -44,5 +45,6 @@ export async function GET(req: Request) {
     if (await settleFinalPayment(db, row as never).catch(() => false)) finals++;
   }
   const reports = await sendReadyReports(db).catch(() => 0);
-  return NextResponse.json({ ok: true, ...tally, reports, finals });
+  const fees = await sweepContractorFees(db).catch(() => ({ reminded: 0, fees: 0 }));
+  return NextResponse.json({ ok: true, ...tally, reports, finals, ...fees });
 }

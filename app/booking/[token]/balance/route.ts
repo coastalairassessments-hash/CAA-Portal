@@ -5,6 +5,7 @@ import { serviceDb, validToken } from "@/lib/bookingServer";
 import { createCheckout, getCheckout, isStripeId } from "@/lib/stripePay";
 import { settleFinalPayment, siteBase } from "@/lib/finalPay";
 import { jobLabel } from "@/lib/labels";
+import { finalInvoice, minutesOnSite } from "@/lib/billing";
 
 export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
   await connection();
@@ -25,8 +26,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     }
     if (!s.expired && s.url) return NextResponse.redirect(s.url, 303);
     // Timed out: one fresh page for the same amount replaces it.
+    // Price it from the job as it is now, so a charge added after the first link was made is included.
+    const now = finalInvoice({
+      issue: r.issue,
+      minutes: minutesOnSite(r.arrived_at, r.left_at),
+      samples: r.lab_samples,
+      extrasCents: r.extras_cents ?? 0,
+      depositPaidCents: r.deposit_paid_at && typeof r.deposit_cents === "number" ? r.deposit_cents : null,
+      tripOnly: r.trip_only === true,
+    }).balance;
     const made = await createCheckout({
-      cents: s.cents,
+      cents: now > 0 ? now : s.cents,
       description: `Balance for ${jobLabel(r)} - Coastal Air Assessments`,
       email: r.email ?? undefined,
       requestId: r.id,

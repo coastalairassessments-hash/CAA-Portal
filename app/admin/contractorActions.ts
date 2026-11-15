@@ -5,6 +5,8 @@ import { supabaseForUser } from "@/lib/supabase/server";
 import { serviceDb } from "@/lib/bookingServer";
 import { parseEmail } from "@/lib/contractorAuth";
 import { sendLoginLink } from "@/lib/contractorServer";
+import { sendEmail, SITE_URL_FALLBACK } from "@/lib/notify";
+import { CONTRACTOR_TERMS_TITLE } from "@/lib/contractorTerms";
 
 async function adminClient() {
   const supabase = await supabaseForUser();
@@ -49,4 +51,28 @@ export async function sendLink(form: FormData): Promise<void> {
   const db = serviceDb();
   if (db && c?.email) await sendLoginLink(db, c.email).catch(() => undefined);
   back("link");
+}
+
+// Emails the contractor the billing terms with a one-tap "I agree" page.
+export async function sendTerms(form: FormData): Promise<void> {
+  const supabase = await adminClient();
+  const id = String(form.get("id") ?? "");
+  if (!supabase || !validId(id)) redirect("/admin");
+  const { data: c } = await supabase.from("contractors").select("name, email, terms_token").eq("id", id).maybeSingle();
+  if (!c?.email) return back("noemail");
+  const site = (process.env.SITE_URL?.trim() || SITE_URL_FALLBACK).replace(/\/+$/, "");
+  const sent = await sendEmail({
+    to: c.email,
+    subject: `${CONTRACTOR_TERMS_TITLE} - Coastal Air Assessments`,
+    text: [
+      `Hi ${c.name.trim().split(/\s+/)[0]},`,
+      "",
+      "Here are our billing terms for the work we do for you: invoices are due net 15 days, and trip fees are due on receipt. Please read and tap I agree:",
+      `${site}/contractor/terms/${c.terms_token}`,
+      "",
+      "Coastal Air Assessments",
+    ].join("\n"),
+  });
+  if (sent.ok) await supabase.from("contractors").update({ terms_sent_at: new Date().toISOString() }).eq("id", id);
+  back(sent.ok ? "termssent" : "error");
 }
