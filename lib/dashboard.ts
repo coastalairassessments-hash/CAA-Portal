@@ -44,7 +44,7 @@ export function needsYou(rows: DashRow[]) {
   };
 }
 
-function balanceCents(r: DashRow): number {
+export function balanceCents(r: DashRow): number {
   const minutes = minutesOnSite(r.arrived_at, r.left_at);
   const paid = r.source === "client" && r.deposit_paid_at ? (r.deposit_cents ?? depositCents(r.issue)) : null;
   return finalInvoice({

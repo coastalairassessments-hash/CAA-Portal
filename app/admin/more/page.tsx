@@ -92,7 +92,7 @@ export default function MorePage() {
         <Link className="adm-btn wide" href="/admin?tab=owed">Who owes me</Link>
         <Link className="adm-btn wide" href="/admin/links">Send a payment link</Link>
         <Link className="adm-btn wide" href="/admin/payments">Payments received</Link>
-        <Link className="adm-btn wide" href="/admin/add">Add a contractor job</Link>
+        <Link className="adm-btn wide" href="/admin/add">Add a job or send an invoice</Link>
       </section>
       <section className="adm-group adm-menu">
         <h2>People</h2>

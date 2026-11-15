@@ -51,7 +51,7 @@ async function Results({ searchParams }: Props) {
       {!problem && q && term.length < 2 && <p className="adm-muted">Type at least 2 letters.</p>}
       {!problem && term.length >= 2 && clients.length === 0 && <p className="adm-empty">No clients found.</p>}
       {clients.map((c) => {
-        const add = `/admin/add?name=${encodeURIComponent(c.name)}${c.address ? `&address=${encodeURIComponent(c.address)}` : ""}`;
+        const add = `/admin/add/job?name=${encodeURIComponent(c.name)}${c.address ? `&address=${encodeURIComponent(c.address)}` : ""}`;
         return (
           <article className="adm-card" key={c.id}>
             <h2>{c.name}</h2>

@@ -17,11 +17,11 @@ const CHOICES: { value: Outcome; title: string; sub: string }[] = [
 const list: React.CSSProperties = { listStyle: "none", padding: 0, margin: "6px 0 0", display: "flex", flexDirection: "column", gap: 6 };
 const item: React.CSSProperties = { width: "100%", justifyContent: "flex-start", textAlign: "left", flexDirection: "column", alignItems: "flex-start", gap: 2, padding: 10 };
 
-export default function AddForm({ contractors, defaultDate, defaultTime = "10:00", initialName = "", initialAddress = "" }: { contractors: Contractor[]; defaultDate: string; defaultTime?: string; initialName?: string; initialAddress?: string }) {
+export default function AddForm({ contractors, defaultDate, defaultTime = "10:00", initialName = "", initialAddress = "", initialOutcome = "" }: { contractors: Contractor[]; defaultDate: string; defaultTime?: string; initialName?: string; initialAddress?: string; initialOutcome?: Outcome }) {
   const [state, action, pending] = useActionState<ConfirmState, FormData>(addContractorJob, { error: null });
   const [name, setName] = useState(initialName);
   const [address, setAddress] = useState(initialAddress);
-  const [outcome, setOutcome] = useState<Outcome>("");
+  const [outcome, setOutcome] = useState<Outcome>(initialOutcome);
   const [service, setService] = useState<"prv" | "assessment">("prv");
   const [hours, setHours] = useState(2);
   const [email, setEmail] = useState("");

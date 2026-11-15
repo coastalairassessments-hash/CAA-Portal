@@ -20,7 +20,7 @@ export default function TabBar({ counts }: { counts: NavCounts }) {
   const items = [
     { key: "home", label: "Today", href: "/admin/today", count: counts.today, active: path === "/admin/today" },
     { key: "week", label: "Week", href: "/admin/week", count: 0, active: path === "/admin/week" },
-    { key: "add", label: "Add", href: "/admin/add", count: 0, active: path === "/admin/add" },
+    { key: "add", label: "Add", href: "/admin/add", count: 0, active: path.startsWith("/admin/add") },
     { key: "clients", label: "Clients", href: "/admin", count: counts.requests, active: onList },
     { key: "more", label: "Office", href: "/admin/more", count: 0, active: path === "/admin/more" },
   ] as const;

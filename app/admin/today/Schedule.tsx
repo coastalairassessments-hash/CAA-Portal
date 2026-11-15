@@ -147,7 +147,7 @@ function Sheet({ pick, view, onClose }: { pick: Pick; view: View; onClose: () =>
       <div className="sheet" role="dialog" aria-modal="true" aria-label={title} ref={ref} onClick={(e) => e.stopPropagation()}>
         <h3>{title}</h3>
         {pick.time && (
-          <Link className="adm-btn primary wide" href={`/admin/add?date=${pick.date}&time=${pick.time}`}>Add a job here</Link>
+          <Link className="adm-btn primary wide" href={`/admin/add/job?date=${pick.date}&time=${pick.time}`}>Add a job here</Link>
         )}
         {pick.time && (
           <form action={closeSlot}>
