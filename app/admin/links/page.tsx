@@ -6,6 +6,7 @@ import { connection } from "next/server";
 import { supabaseForUser } from "@/lib/supabase/server";
 import { getCheckout, isStripeId } from "@/lib/stripePay";
 import { formatMoney } from "@/lib/pricing";
+import { recordPayment } from "@/lib/ledger";
 import { deletePaymentLink, sendPaymentLink, sendSavedLink } from "./actions";
 
 export const metadata: Metadata = {
@@ -31,9 +32,11 @@ async function Body({ searchParams }: { searchParams: Promise<Q> }) {
   await Promise.all(
     list.filter((r) => !r.paid_at && isStripeId(r.stripe_id)).map(async (r) => {
       try {
-        if ((await getCheckout(r.stripe_id)).paid) {
+        const s = await getCheckout(r.stripe_id);
+        if (s.paid) {
           r.paid_at = new Date().toISOString();
           await supabase.from("payment_links").update({ paid_at: r.paid_at }).eq("id", r.id).is("paid_at", null);
+          await recordPayment(supabase, { stripeId: r.stripe_id, kind: "link", cents: s.cents, name: r.name, linkId: r.id });
         }
       } catch { /* shows as unpaid until the next visit */ }
     }),

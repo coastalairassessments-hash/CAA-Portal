@@ -1,6 +1,7 @@
 // SERVER ONLY. The balance after a visit, paid by card on a Stripe page.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCheckout, isStripeId } from "./stripePay";
+import { recordPayment } from "./ledger";
 import { sendReadyReports } from "./reportServer";
 import { sendEmail, SITE_URL_FALLBACK } from "./notify";
 import { GOOGLE_REVIEW_URL, reviewEmail } from "./quicktexts";
@@ -26,6 +27,7 @@ export async function settleFinalPayment(db: SupabaseClient, r: Row): Promise<bo
     .is("final_paid_at", null)
     .select("id");
   if (!data?.length) return false; // someone else already recorded it
+  await recordPayment(db, { stripeId: r.qb_invoice_id!, kind: "balance", cents: s.cents, name: r.name, requestId: r.id });
   await sendReadyReports(db, r.id).catch(() => 0);
   if (r.source === "client" && r.email && GOOGLE_REVIEW_URL) {
     const sent = await sendEmail({ to: r.email, ...reviewEmail(r, GOOGLE_REVIEW_URL, siteBase()) });

@@ -3,6 +3,7 @@ import { NextResponse, connection } from "next/server";
 import { serviceDb, validToken } from "@/lib/bookingServer";
 import { createCheckout, getCheckout, isStripeId } from "@/lib/stripePay";
 import { siteBase } from "@/lib/finalPay";
+import { recordPayment } from "@/lib/ledger";
 
 export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
   await connection();
@@ -20,6 +21,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
       const s = await getCheckout(r.stripe_id);
       if (s.paid) {
         await db.from("payment_links").update({ paid_at: new Date().toISOString() }).eq("id", r.id).is("paid_at", null);
+        await recordPayment(db, { stripeId: r.stripe_id, kind: "link", cents: s.cents, name: r.name, linkId: r.id });
         return NextResponse.redirect(done, 303);
       }
       if (!s.expired && s.url) return NextResponse.redirect(s.url, 303);

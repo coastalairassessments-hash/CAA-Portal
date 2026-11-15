@@ -1,6 +1,7 @@
 // SERVER ONLY. Notices that a client paid their deposit, and books the time. Safe to run again and again.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { paymentState, voidPayment } from "./payState";
+import { recordPayment } from "./ledger";
 import { SITE_URL_FALLBACK } from "./notify";
 import { sendLogged } from "./mailLog";
 import { sendPush } from "./push";
@@ -76,6 +77,7 @@ export async function settleDeposit(db: SupabaseClient, r: Row, now: Date = new 
   }
   if (!data?.length) return "skip"; // someone else already settled it
 
+  if (inv.cents) await recordPayment(db, { stripeId: r.qb_deposit_invoice_id, kind: "deposit", cents: inv.cents, name: r.name, requestId: r.id });
   const site = clean(process.env.SITE_URL) || SITE_URL_FALLBACK;
   const sent = await sendLogged(db, r.id, { to: r.email, ...confirmationWithCalendar(r, r.id, slot, site) });
   if (!sent.ok) console.error(`[settle] confirmation not sent: ${sent.reason}`);

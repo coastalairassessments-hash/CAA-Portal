@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { connectionExpired, getConnection } from "@/lib/qbStore";
-import { qbHealth } from "@/lib/qbSync";
 import { stripeConfigured, stripeHealth } from "@/lib/stripePay";
 import { redirect } from "next/navigation";
 import { supabaseForUser } from "@/lib/supabase/server";
@@ -16,13 +14,6 @@ import DepositCheck from "./DepositCheck";
 export const metadata: Metadata = {
   title: "Office | Coastal Air Assessments",
   robots: { index: false, follow: false },
-};
-
-const QB_NOTE: Record<string, string> = {
-  connected: "QuickBooks is connected.",
-  denied: "QuickBooks was not connected. You can try again.",
-  failed: "QuickBooks connection failed. Try again.",
-  missing: "QuickBooks keys are missing in Netlify.",
 };
 
 async function Payments() {
@@ -38,49 +29,10 @@ async function Payments() {
         <p className="adm-err">
           {set
             ? "Stripe is not answering, so clients cannot pay deposits. Tap Test deposit payments to see why."
-            : "Stripe is not set up yet, so deposits go through QuickBooks."}
+            : "Stripe is not set up yet, so clients cannot pay by card."}
         </p>
       )}
       <DepositCheck />
-    </section>
-  );
-}
-
-async function QuickBooks({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  await connection();
-  const q = await searchParams;
-  const why = typeof q.why === "string" ? q.why.slice(0, 160) : "";
-  const note = typeof q.qb === "string" ? QB_NOTE[q.qb] + (why ? ` Reason: ${why}` : "") : undefined;
-  let linked = false;
-  let expired = false;
-  let health: Awaited<ReturnType<typeof qbHealth>> | null = null;
-  try {
-    const conn = await getConnection();
-    linked = !!conn;
-    expired = !!conn && connectionExpired(conn);
-    if (conn && !expired) health = await qbHealth();
-  } catch {
-    linked = false;
-  }
-  return (
-    <section className="adm-group">
-      <h2>QuickBooks</h2>
-      <p className="adm-muted">Only used for final invoices. Clients are never held up by it.</p>
-      {note && <p className="adm-ok">{note}</p>}
-      {health?.ok ? (
-        <p className="adm-ok">Working. Linked to {health.company}.</p>
-      ) : (
-        <>
-          <p className="adm-err">
-            {expired || linked
-              ? "Not connected right now. Reconnect before sending a final invoice."
-              : "Not connected yet. Connect before sending a final invoice."}
-          </p>
-          <a className="adm-btn wide" href="/api/qb/connect">
-            {linked ? "Reconnect QuickBooks" : "Connect QuickBooks"}
-          </a>
-        </>
-      )}
     </section>
   );
 }
@@ -125,7 +77,7 @@ async function Hub() {
   );
 }
 
-export default function MorePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+export default function MorePage() {
   return (
     <main className="adm-wrap">
       <header className="adm-top">
@@ -139,6 +91,7 @@ export default function MorePage({ searchParams }: { searchParams: Promise<Recor
         <h2>Money</h2>
         <Link className="adm-btn wide" href="/admin?tab=owed">Who owes me</Link>
         <Link className="adm-btn wide" href="/admin/links">Send a payment link</Link>
+        <Link className="adm-btn wide" href="/admin/payments">Payments received</Link>
         <Link className="adm-btn wide" href="/admin/add">Add a contractor job</Link>
       </section>
       <section className="adm-group adm-menu">
@@ -154,7 +107,7 @@ export default function MorePage({ searchParams }: { searchParams: Promise<Recor
       </section>
 
       <Suspense fallback={null}>
-        <Settings searchParams={searchParams} />
+        <Settings />
       </Suspense>
       <form action={logout}>
         <button className="adm-btn wide" type="submit">Sign out</button>
@@ -163,19 +116,15 @@ export default function MorePage({ searchParams }: { searchParams: Promise<Recor
   );
 }
 
-async function Settings({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const q = await searchParams;
+async function Settings() {
   return (
-      <details className="adm-group" open={typeof q.qb === "string"}>
+      <details className="adm-group" open={false}>
         <summary><h2 style={{ display: "inline" }}>Settings and status</h2></summary>
         <Suspense fallback={null}>
           <Alerts />
         </Suspense>
         <Suspense fallback={null}>
           <Payments />
-        </Suspense>
-        <Suspense fallback={null}>
-          <QuickBooks searchParams={searchParams} />
         </Suspense>
         <div className="adm-menu">
           <a className="adm-btn wide" href="/request">Public request page</a>

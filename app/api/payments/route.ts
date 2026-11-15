@@ -4,7 +4,6 @@ import { NextResponse, connection } from "next/server";
 import { serviceDb } from "@/lib/bookingServer";
 import { SETTLE_COLUMNS, settleDeposit } from "@/lib/settle";
 import { sendReadyReports } from "@/lib/reportServer";
-import { qbHealth } from "@/lib/qbSync";
 import { settleFinalPayment } from "@/lib/finalPay";
 
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
@@ -44,8 +43,6 @@ export async function GET(req: Request) {
   for (const row of owing ?? []) {
     if (await settleFinalPayment(db, row as never).catch(() => false)) finals++;
   }
-  // A light QuickBooks call every run keeps the connection renewed, so it never lapses from disuse.
-  await qbHealth();
   const reports = await sendReadyReports(db).catch(() => 0);
   return NextResponse.json({ ok: true, ...tally, reports, finals });
 }
