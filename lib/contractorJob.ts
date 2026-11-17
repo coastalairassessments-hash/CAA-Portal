@@ -28,11 +28,16 @@ export function parseContractorJob(input: unknown, now: Date = new Date()) {
       // The contractor's email, needed to send an invoice. "send" = send the invoice as soon as the job is saved.
       email: z.union([z.literal(""), z.string().trim().toLowerCase().email("Enter a valid email").max(200)]).optional().default(""),
       send: z.enum(["", "1"]).optional().default(""),
+      // A contractor (billed net 15) or a homeowner you add yourself (card link, no deposit). A homeowner has a name, optional phone.
+      kind: z.enum(["contractor", "homeowner"]).optional().default("contractor"),
+      phone: z.string().trim().max(40).optional().default(""),
     })
-    .refine((v) => v.contractorId !== "" || v.newName !== "", {
+    .refine((v) => v.kind === "homeowner" || v.contractorId !== "" || v.newName !== "", {
       message: "Pick a contractor or type a new name",
       path: ["newName"],
     })
+    .refine((v) => v.kind !== "homeowner" || v.newName.length >= 2, { message: "Enter the client's name", path: ["newName"] })
+    .refine((v) => v.kind !== "homeowner" || v.phone === "" || /\d{3}\D*\d{3}\D*\d{4}/.test(v.phone), { message: "Enter a 10 digit phone number", path: ["phone"] })
     .refine((v) => (v.outcome === "" ? v.date >= today : v.date <= today && v.date >= oldest), {
       message: "For a job still to come pick today or later. For a job that already happened pick a date in the last 4 months.",
       path: ["date"],

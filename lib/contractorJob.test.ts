@@ -31,4 +31,19 @@ describe("parseContractorJob", () => {
     expect(issueForService("prv")).toBe("post_remediation");
     expect(issueForService("assessment")).toBe("air_quality");
   });
+  it("accepts a homeowner with a name and optional phone", () => {
+    const h = { ...good, kind: "homeowner", newName: "Laura Baltadano", phone: "(772) 555-0142", email: "laura@example.com" };
+    const r = parseContractorJob(h, NOW);
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.kind).toBe("homeowner");
+    expect(parseContractorJob({ ...h, phone: "" }, NOW).success).toBe(true);
+  });
+  it("rejects a homeowner with no name or a short phone", () => {
+    expect(parseContractorJob({ ...good, kind: "homeowner", newName: "" }, NOW).success).toBe(false);
+    expect(parseContractorJob({ ...good, kind: "homeowner", newName: "Laura B", phone: "555-01" }, NOW).success).toBe(false);
+  });
+  it("defaults to a contractor", () => {
+    const r = parseContractorJob(good, NOW);
+    if (r.success) expect(r.data.kind).toBe("contractor");
+  });
 });

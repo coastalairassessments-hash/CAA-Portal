@@ -51,7 +51,7 @@ async function Results({ searchParams }: Props) {
       {!problem && q && term.length < 2 && <p className="adm-muted">Type at least 2 letters.</p>}
       {!problem && term.length >= 2 && clients.length === 0 && <p className="adm-empty">No clients found.</p>}
       {clients.map((c) => {
-        const add = `/admin/add/job?name=${encodeURIComponent(c.name)}${c.address ? `&address=${encodeURIComponent(c.address)}` : ""}`;
+        const add = `/admin/add/job?kind=homeowner&name=${encodeURIComponent(c.name)}${c.address ? `&address=${encodeURIComponent(c.address)}` : ""}${c.phone ? `&phone=${encodeURIComponent(c.phone)}` : ""}${c.email ? `&email=${encodeURIComponent(c.email)}` : ""}`;
         return (
           <article className="adm-card" key={c.id}>
             <h2>{c.name}</h2>
@@ -75,6 +75,7 @@ export default function ClientsPage(props: Props) {
     <main className="adm-wrap">
       <header className="adm-top">
         <h1 className="adm-title">Clients</h1>
+        <Link className="adm-link" href="/admin/clients/new">Add client</Link>
       </header>
       <Suspense fallback={<p className="adm-empty">Loading...</p>}>
         <Results {...props} />

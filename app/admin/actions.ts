@@ -52,6 +52,7 @@ import { enRouteEmail } from "@/lib/enroute";
 import { confirmationWithCalendar } from "@/lib/confirmMail";
 import { serviceDb } from "@/lib/bookingServer";
 import { sendReadyReports } from "@/lib/reportServer";
+import { cleanPhone } from "@/lib/clientImport";
 
 export type ConfirmState = { error: string | null };
 
@@ -348,10 +349,13 @@ export async function addContractorJob(_prev: ConfirmState, form: FormData): Pro
     outcome: form.get("outcome") ?? "",
     email: form.get("email") ?? "",
     send: form.get("send") ?? "",
+    kind: form.get("kind") ?? "contractor",
+    phone: form.get("phone") ?? "",
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form." };
   const v = parsed.data;
   const sending = v.send === "1" && v.outcome !== "";
+  if (v.kind === "homeowner") return addHomeownerJob(supabase, v, sending);
 
   // Find or create the contractor.
   let contractorId = v.contractorId;
@@ -420,6 +424,59 @@ export async function addContractorJob(_prev: ConfirmState, form: FormData): Pro
       .from("requests")
       .update({ arrived_at: visit.arrived_at, left_at: visit.left_at, trip_only: v.outcome === "trip" })
       .eq("id", job.id);
+    if (closeErr) redirect(`/admin/${job.id}?error=save`);
+    if (v.outcome === "trip") await ensureTripFee(supabase, job.id);
+    if (sending) {
+      const { data: fresh } = await supabase.from("requests").select("*").eq("id", job.id).single();
+      if (fresh) await sendBalanceByCard(supabase, fresh as Record<string, any> & { issue: string }, job.id); // eslint-disable-line @typescript-eslint/no-explicit-any
+    }
+    redirect(`/admin/${job.id}?closed=1`);
+  }
+  redirect("/admin/today?added=1");
+}
+
+// A homeowner you add yourself (phoned in, or a past visit): a normal client job with no deposit. Billing is the same card link a booked client gets.
+async function addHomeownerJob(
+  supabase: NonNullable<Awaited<ReturnType<typeof adminClient>>>,
+  v: { newName: string; service: "prv" | "assessment"; address: string; date: string; time: string; hours: number; notes: string; invoiceNote: string; outcome: "" | "done" | "trip"; email: string; phone: string },
+  sending: boolean,
+): Promise<ConfirmState> {
+  if (sending && !v.email) return { error: "Enter the client's email so the bill can be sent." };
+  const ph = v.phone ? cleanPhone(v.phone) : null;
+  const { data: job, error } = await supabase
+    .from("requests")
+    .insert({
+      source: "client",
+      notes: v.notes,
+      invoice_note: v.invoiceNote || null,
+      status: "confirmed",
+      issue: issueForService(v.service),
+      name: v.newName,
+      phone: ph ? `+1${ph.digits}` : null,
+      email: v.email || null,
+      address: v.address,
+      preferred_date: v.date,
+      preferred_time: "10:00",
+      text_consent: false,
+      area: "core",
+      confirmed_date: v.date,
+      confirmed_time: v.time,
+      block_hours: v.hours,
+      confirmed_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  if (error || !job) {
+    if (error?.code === EXCLUSION_VIOLATION) return { error: "That time overlaps a job that is already held. Pick another time." };
+    return { error: `Could not save. (Ref: add-${error?.code ?? "unknown"})` };
+  }
+  // Keep them in the client list so they come up next time.
+  const key = `${v.newName.toLowerCase().replace(/\s+/g, " ")}|${v.email || ph?.digits || ""}`;
+  await supabase.from("clients").upsert({ key, name: v.newName, phone: ph?.phone ?? null, phone_digits: ph?.digits ?? null, email: v.email || null, address: v.address, source: "app" }, { onConflict: "key", ignoreDuplicates: true });
+  if (v.outcome !== "") {
+    const visit = visitFromEntry({ date: v.date, arrive: v.time, leave: "", hours: String(v.hours), plannedTime: v.time });
+    if (!visit.ok) redirect(`/admin/${job.id}?error=time`);
+    const { error: closeErr } = await supabase.from("requests").update({ arrived_at: visit.arrived_at, left_at: visit.left_at, trip_only: v.outcome === "trip" }).eq("id", job.id);
     if (closeErr) redirect(`/admin/${job.id}?error=save`);
     if (v.outcome === "trip") await ensureTripFee(supabase, job.id);
     if (sending) {
@@ -514,6 +571,8 @@ async function sendBalanceByCard(supabase: Awaited<ReturnType<typeof adminClient
       const { data: c } = await supabase!.from("contractors").select("email").eq("id", r.contractor_id).maybeSingle();
       toEmail = c?.email ?? null;
       if (!toEmail) redirect(`/admin/${id}?error=noemail`);
+    } else if (!toEmail) {
+      redirect(`/admin/${id}?error=noemail`);
     }
     const number = invoiceNumber({ id, confirmed_date: r.confirmed_date });
     const back = r.public_token ? `${siteBase()}/${contractor ? "invoice" : "booking"}/${r.public_token}` : siteBase();

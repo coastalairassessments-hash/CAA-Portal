@@ -35,7 +35,7 @@ async function Loader({ searchParams }: { searchParams: Promise<Record<string, s
   }
   const sp = await searchParams;
   const pick = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string).slice(0, 200) : "");
-  return <AddForm contractors={(data ?? []).map((c) => ({ id: c.id, name: c.name, hasEmail: !!c.email, accepted: c.terms_version === CONTRACTOR_TERMS_VERSION && !!c.terms_accepted_at, tripOwedCents: owed.get(c.id)?.cents ?? 0, tripOwedDate: owed.get(c.id)?.date ?? "" }))} defaultDate={/^\d{4}-\d{2}-\d{2}$/.test(pick("date")) ? pick("date") : todayInNewYork()} defaultTime={/^(10:00|12:30)$/.test(pick("time")) ? pick("time") : "10:00"} initialOutcome={pick("mode") === "done" ? "done" : pick("mode") === "trip" ? "trip" : ""} initialName={pick("name")} initialAddress={pick("address")} />;
+  return <AddForm contractors={(data ?? []).map((c) => ({ id: c.id, name: c.name, hasEmail: !!c.email, accepted: c.terms_version === CONTRACTOR_TERMS_VERSION && !!c.terms_accepted_at, tripOwedCents: owed.get(c.id)?.cents ?? 0, tripOwedDate: owed.get(c.id)?.date ?? "" }))} defaultDate={/^\d{4}-\d{2}-\d{2}$/.test(pick("date")) ? pick("date") : todayInNewYork()} defaultTime={/^(10:00|12:30)$/.test(pick("time")) ? pick("time") : "10:00"} initialOutcome={pick("mode") === "done" ? "done" : pick("mode") === "trip" ? "trip" : ""} initialName={pick("name")} initialAddress={pick("address")} initialKind={pick("kind") === "homeowner" ? "homeowner" : "contractor"} initialPhone={pick("phone")} initialEmail={pick("email")} />;
 }
 
 export default function AddPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
