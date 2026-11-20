@@ -33,7 +33,7 @@ import { overlaps } from "@/lib/slots";
 import { isSection, parseSection } from "@/lib/job";
 import { issueForService, parseContractorJob } from "@/lib/contractorJob";
 import { finalInvoice, minutesOnSite } from "@/lib/billing";
-import { visitFromEntry } from "@/lib/visitTime";
+import { hoursForEntry, visitFromEntry } from "@/lib/visitTime";
 import { createCheckout, expireCheckout, isStripeId, stripeConfigured } from "@/lib/stripePay";
 import { balanceLink, siteBase } from "@/lib/finalPay";
 import { paymentState } from "@/lib/payState";
@@ -283,7 +283,7 @@ export async function saveVisitTimes(form: FormData): Promise<void> {
   // With card links on, an unpaid QuickBooks invoice can still be switched over, so its times stay editable.
   if (r.final_paid_at || (r.qb_invoice_id && !isStripeId(r.qb_invoice_id) && !stripeConfigured())) redirect(`/admin/${id}?error=timeinvoiced`);
   const text = (k: string) => String(form.get(k) ?? "");
-  const v = visitFromEntry({ date: text("date"), arrive: text("arrive"), leave: text("leave"), hours: text("hours"), plannedTime: r.confirmed_time });
+  const v = visitFromEntry({ date: text("date"), arrive: text("arrive"), leave: text("leave"), hours: hoursForEntry(form.get("prefer_times") === "1", text("leave"), text("hours")), plannedTime: r.confirmed_time });
   if (!v.ok) redirect(`/admin/${id}?error=time&why=${encodeURIComponent(v.error)}`);
   const tripPresent = form.get("trip_present") === "1";
   const trip = tripPresent ? form.get("trip_only") === "on" : r.trip_only === true;

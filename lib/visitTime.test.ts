@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { newYorkToDate, visitFromEntry } from "./visitTime";
+import { hoursForEntry, newYorkToDate, visitFromEntry } from "./visitTime";
 import { minutesOnSite } from "./billing";
 
 describe("visit times by hand", () => {
@@ -23,5 +23,17 @@ describe("visit times by hand", () => {
     expect(visitFromEntry({ date: "2026-11-10", arrive: "12:00", leave: "", hours: "", plannedTime: null }).ok).toBe(false);
     expect(visitFromEntry({ date: "2026-11-10", arrive: "", leave: "", hours: "30", plannedTime: "10:00" }).ok).toBe(false);
     expect(visitFromEntry({ date: "", arrive: "", leave: "", hours: "2", plannedTime: null }).ok).toBe(false);
+  });
+});
+
+describe("hoursForEntry", () => {
+  it("lets typed clock times win over the pre-filled hours", () => {
+    expect(hoursForEntry(true, "12:50", "2")).toBe("");
+    const r = visitFromEntry({ date: "2026-11-10", arrive: "10:05", leave: "12:50", hours: hoursForEntry(true, "12:50", "2"), plannedTime: "10:00" });
+    expect(r.ok && r.left_at).toBe(new Date("2026-11-10T17:50:00Z").toISOString());
+  });
+  it("keeps the hours when no Left time is typed, or on the other form", () => {
+    expect(hoursForEntry(true, "", "2")).toBe("2");
+    expect(hoursForEntry(false, "12:50", "2")).toBe("2");
   });
 });

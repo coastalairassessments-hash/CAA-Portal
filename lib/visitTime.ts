@@ -46,3 +46,6 @@ export function visitFromEntry(e: VisitEntry): VisitResult {
   if (left.getTime() - arrived.getTime() > 16 * 3600_000) return { ok: false, error: "That visit is longer than 16 hours. Check the times." };
   return { ok: true, arrived_at: arrived.toISOString(), left_at: left.toISOString() };
 }
+
+// On the "I was there" panel the hours box is pre-filled with the plan. If you also typed a Left time, your clock times win.
+export const hoursForEntry = (preferTimes: boolean, leave: string, hours: string): string => (preferTimes && leave.trim() ? "" : hours);

@@ -52,19 +52,25 @@ export default function Drawers({ r, saved, chargesSlot }: { r: Job; saved?: str
       {booked && !r.left_at && (
         <section className="adm-group" id="close">
           <h2>I was there</h2>
-          <p className="adm-muted">Close the job in one tap. Change the hours if the visit ran different from the plan.</p>
+          <p className="adm-muted">Close the job in one tap. If the visit ran different from the plan, enter when you arrived and left, or the total hours.</p>
           <form action={saveVisitTimes} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <input type="hidden" name="id" value={r.id} />
-            <input type="hidden" name="date" value={str(r.confirmed_date)} />
-            <Field label="Hours on site" name="hours" value={String(typeof r.block_hours === "number" ? r.block_hours : 1)} inputMode="decimal" />
+            <input type="hidden" name="prefer_times" value="1" />
+            <Field label="Visit date" name="date" type="date" value={str(r.confirmed_date)} />
+            <div className="adm-row">
+              <Field label="Arrived" name="arrive" type="time" value={str(r.arrived_at) ? nyTime(str(r.arrived_at)) : str(r.confirmed_time).slice(0, 5)} />
+              <Field label="Left (optional)" name="leave" type="time" value="" />
+            </div>
+            <Field label="Hours on site (used when Left is blank)" name="hours" value={String(typeof r.block_hours === "number" ? r.block_hours : 1)} inputMode="decimal" />
             <input type="hidden" name="trip_present" value="1" />
             <label className="adm-line" style={{ display: "flex", gap: 10, alignItems: "center", minHeight: 44 }}>
               <input type="checkbox" name="trip_only" defaultChecked={r.trip_only === true} />
               Not ready or no access: bill the trip fee instead of the full price
             </label>
             <button className="adm-btn primary wide" type="submit">I was there. Close the job</button>
+            <button className="adm-btn wide" type="submit" name="then" value="invoice">Close the job and send the invoice</button>
           </form>
-          <p className="adm-muted">It then waits under Owed until it is paid. You can fix the times or send the invoice from Money.</p>
+          <p className="adm-muted">Closed jobs wait under Owed until paid. You can edit the times later under Time on site.</p>
         </section>
       )}
 
@@ -92,8 +98,8 @@ export default function Drawers({ r, saved, chargesSlot }: { r: Job; saved?: str
             ))}
           </div>
           {note("time")}
-          <details className="adm-sub">
-            <summary>Enter or fix the times by hand</summary>
+          <details className="adm-sub" open={!!(r.arrived_at || r.left_at) || undefined}>
+            <summary>Edit times on site</summary>
             <form action={saveVisitTimes} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <input type="hidden" name="id" value={r.id} />
               <Field label="Visit date" name="date" type="date" value={str(r.confirmed_date)} />
@@ -108,9 +114,9 @@ export default function Drawers({ r, saved, chargesSlot }: { r: Job; saved?: str
                 Not ready or no access: bill the trip fee instead of the full price
               </label>
               <button className="adm-btn wide" type="submit">Save times</button>
-              {!r.qb_invoice_id && (
+              {!r.final_paid_at && (
                 <button className="adm-btn primary wide" type="submit" name="then" value="invoice">
-                  Save times and invoice the balance
+                  {r.qb_invoice_id ? "Save times and resend the updated invoice" : "Save times and invoice the balance"}
                 </button>
               )}
             </form>
