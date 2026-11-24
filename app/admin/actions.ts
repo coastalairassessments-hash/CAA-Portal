@@ -405,7 +405,7 @@ export async function addContractorJob(_prev: ConfirmState, form: FormData): Pro
       area: "core",
       confirmed_date: v.date,
       confirmed_time: v.time,
-      block_hours: v.hours,
+      block_hours: Math.max(1, Math.ceil(v.hours)),
       confirmed_at: new Date().toISOString(),
     })
     .select("id")
@@ -461,7 +461,7 @@ async function addHomeownerJob(
       area: "core",
       confirmed_date: v.date,
       confirmed_time: v.time,
-      block_hours: v.hours,
+      block_hours: Math.max(1, Math.ceil(v.hours)),
       confirmed_at: new Date().toISOString(),
     })
     .select("id")
@@ -578,7 +578,7 @@ async function sendBalanceByCard(supabase: Awaited<ReturnType<typeof adminClient
     const back = r.public_token ? `${siteBase()}/${contractor ? "invoice" : "booking"}/${r.public_token}` : siteBase();
     const made = await createCheckout({
       cents: inv.balance,
-      description: contractor ? `Invoice ${number}, ${r.address} - Coastal Air Assessments` : `Balance for ${jobLabel(r)} - Coastal Air Assessments`,
+      description: contractor ? `Invoice ${number}, ${r.address} - Coastal Air Assessments` : `Balance for ${jobLabel(r)}, visit ${formatDateLabel(r.arrived_at ? todayInNewYork(new Date(r.arrived_at)) : r.confirmed_date)} - Coastal Air Assessments`,
       email: toEmail ?? undefined,
       requestId: id,
       successUrl: r.public_token ? `${siteBase()}/booking/${r.public_token}/balance` : back,
@@ -600,7 +600,7 @@ async function sendBalanceByCard(supabase: Awaited<ReturnType<typeof adminClient
           : `Thank you for having us out. Here is the balance for ${jobLabel(r)}.`,
         "",
         ...(contractor && r.invoice_note ? [String(r.invoice_note), ""] : []),
-        ...balanceLines({ inv, tripOnly: r.trip_only === true, service: jobLabel(r), charges, legacySamples: typeof r.lab_samples === "number" ? r.lab_samples : 0 }),
+        ...balanceLines({ inv, tripOnly: r.trip_only === true, service: jobLabel(r), charges, legacySamples: typeof r.lab_samples === "number" ? r.lab_samples : 0, visit: { dateLabel: formatDateLabel(r.arrived_at ? todayInNewYork(new Date(r.arrived_at)) : r.confirmed_date), minutes: minutesOnSite(r.arrived_at, r.left_at) } }),
         "",
         contractor ? "View the invoice and pay by card:" : "Pay securely by card:",
         link,

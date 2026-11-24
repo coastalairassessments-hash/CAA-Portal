@@ -22,7 +22,7 @@ export function parseContractorJob(input: unknown, now: Date = new Date()) {
       notes: z.string().trim().max(1000).optional().default(""),
       invoiceNote: z.string().trim().max(500).optional().default(""),
       reference: z.string().trim().max(80).optional().default(""),
-      hours: z.coerce.number().int("Pick the hours").min(1, "Pick the hours").max(8, "Pick the hours"),
+      hours: z.coerce.number().min(0.25, "Pick the hours").max(8, "Pick the hours").refine((h) => Math.abs(h * 4 - Math.round(h * 4)) < 1e-9, "Pick the hours"),
       // "" = still to come. "done" = already happened, bill the time. "trip" = already happened, not ready, bill the trip fee.
       outcome: z.enum(["", "done", "trip"]).optional().default(""),
       // The contractor's email, needed to send an invoice. "send" = send the invoice as soon as the job is saved.
@@ -36,6 +36,8 @@ export function parseContractorJob(input: unknown, now: Date = new Date()) {
       message: "Pick a contractor or type a new name",
       path: ["newName"],
     })
+    // A visit still to come holds whole hours. One already done can be any quarter hour, such as 1.5 or 2.25.
+    .refine((v) => v.outcome !== "" || Number.isInteger(v.hours), { message: "Pick the hours", path: ["hours"] })
     .refine((v) => v.kind !== "homeowner" || v.newName.length >= 2, { message: "Enter the client's name", path: ["newName"] })
     .refine((v) => v.kind !== "homeowner" || v.phone === "" || /\d{3}\D*\d{3}\D*\d{4}/.test(v.phone), { message: "Enter a 10 digit phone number", path: ["phone"] })
     .refine((v) => (v.outcome === "" ? v.date >= today : v.date <= today && v.date >= oldest), {

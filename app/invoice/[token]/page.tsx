@@ -8,7 +8,7 @@ import { listCharges } from "@/lib/chargeServer";
 import { balanceRows } from "@/lib/balanceText";
 import { finalInvoice, minutesOnSite, durationLabel } from "@/lib/billing";
 import { formatMoney } from "@/lib/pricing";
-import { formatDateLabel } from "@/lib/dates";
+import { formatDateLabel, todayInNewYork } from "@/lib/dates";
 import { jobLabel } from "@/lib/labels";
 import { dueDate, invoiceNumber } from "@/lib/invoiceNo";
 import { CONTRACTOR_INVOICE_LINE, TRIP_INVOICE_LINE } from "@/lib/contractorTerms";
@@ -48,7 +48,7 @@ async function Invoice({ params }: { params: Promise<{ token: string }> }) {
     depositPaidCents: r.deposit_paid_at && typeof r.deposit_cents === "number" ? r.deposit_cents : null,
     tripOnly: r.trip_only === true,
   });
-  const rows = balanceRows({ inv, tripOnly: r.trip_only === true, service: jobLabel(r), charges, legacySamples: typeof r.lab_samples === "number" ? r.lab_samples : 0 });
+  const rows = balanceRows({ inv, tripOnly: r.trip_only === true, service: jobLabel(r), charges, legacySamples: typeof r.lab_samples === "number" ? r.lab_samples : 0, visit: { dateLabel: formatDateLabel(r.arrived_at ? todayInNewYork(new Date(r.arrived_at)) : r.confirmed_date), minutes: minutesOnSite(r.arrived_at, r.left_at) } });
   const paid = !!r.final_paid_at;
   const canPay = !paid && isStripeId(r.qb_invoice_id) && inv.balance > 0;
 

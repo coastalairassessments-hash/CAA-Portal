@@ -6,6 +6,7 @@ import { connection } from "next/server";
 import { supabaseForUser } from "@/lib/supabase/server";
 import { balanceCents, type DashRow } from "@/lib/dashboard";
 import { formatMoney } from "@/lib/pricing";
+import { formatDateLabel, todayInNewYork } from "@/lib/dates";
 import { isStripeId } from "@/lib/stripePay";
 import { sendFinalInvoice } from "../actions";
 
@@ -20,6 +21,39 @@ const COLUMNS =
 type Owed = DashRow & { address: string | null; qb_invoice_id: string | null };
 
 // Visits that are finished but not paid: the ones waiting for an invoice.
+async function PastVisits() {
+  await connection();
+  const supabase = await supabaseForUser();
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) redirect("/admin/login");
+  const { data: isAdmin } = await supabase.rpc("is_admin");
+  if (!isAdmin) redirect("/admin");
+  // Visits that came and went with no times entered, so nothing can be billed yet.
+  const { data } = await supabase
+    .from("requests")
+    .select("id, name, address, confirmed_date")
+    .eq("status", "confirmed")
+    .is("left_at", null)
+    .lt("confirmed_date", todayInNewYork())
+    .order("confirmed_date", { ascending: false })
+    .limit(8);
+  const rows = (data ?? []) as { id: string; name: string; address: string | null; confirmed_date: string }[];
+  if (rows.length === 0) return null;
+  return (
+    <section className="adm-group">
+      <h2>Visits to close out</h2>
+      <p className="adm-muted">These visits are done but have no times yet. Enter the real times, then send the bill, even days later.</p>
+      {rows.map((r) => (
+        <article className="adm-card" key={r.id}>
+          <h2>{r.name} · {formatDateLabel(r.confirmed_date)}</h2>
+          {r.address && <p className="adm-muted">{r.address}</p>}
+          <Link className="adm-btn primary wide" href={`/admin/${r.id}#close`}>Enter times and bill</Link>
+        </article>
+      ))}
+    </section>
+  );
+}
+
 async function ReadyToBill() {
   await connection();
   const supabase = await supabaseForUser();
@@ -89,6 +123,7 @@ export default function AddHub() {
       </section>
 
       <Suspense fallback={<p className="adm-empty">Loading...</p>}>
+        <PastVisits />
         <ReadyToBill />
       </Suspense>
 

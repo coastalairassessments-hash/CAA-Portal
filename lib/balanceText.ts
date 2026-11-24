@@ -1,5 +1,5 @@
 // The itemized lines on a client's balance, in plain words. Pure.
-import { SAMPLE_CENTS, QUARTER_HOUR_CENTS, type finalInvoice } from "./billing";
+import { SAMPLE_CENTS, durationLabel, type finalInvoice } from "./billing";
 import { chargeCents, type Charge } from "./charges";
 import { formatMoney } from "./pricing";
 
@@ -7,12 +7,17 @@ type Inv = ReturnType<typeof finalInvoice>;
 
 export type BalanceRow = { label: string; amount: string; strong?: boolean };
 
-export function balanceRows(o: { inv: Inv; tripOnly: boolean; service: string; charges: Charge[]; legacySamples: number }): BalanceRow[] {
+// visit: the day of service and the minutes on site, so a bill sent days later still says what it covers.
+export function balanceRows(o: { inv: Inv; tripOnly: boolean; service: string; charges: Charge[]; legacySamples: number; visit?: { dateLabel: string; minutes: number | null } }): BalanceRow[] {
   const { inv } = o;
   const rows: BalanceRow[] = [];
+  if (o.visit) {
+    rows.push({ label: "Date of visit", amount: o.visit.dateLabel });
+    if (!o.tripOnly && o.visit.minutes !== null) rows.push({ label: "Time on site", amount: durationLabel(o.visit.minutes) });
+  }
   if (!o.tripOnly) {
     rows.push({ label: `${o.service}, first hour`, amount: formatMoney(inv.firstHour) });
-    if (inv.quarters > 0) rows.push({ label: `Extra time (${inv.quarters} x ${formatMoney(QUARTER_HOUR_CENTS)})`, amount: formatMoney(inv.extraTime) });
+    if (inv.quarters > 0) rows.push({ label: `Additional time, ${durationLabel(inv.quarters * 15)} at $195 an hour`, amount: formatMoney(inv.extraTime) });
     if (o.legacySamples > 0) rows.push({ label: `Lab samples (${o.legacySamples} x ${formatMoney(SAMPLE_CENTS)})`, amount: formatMoney(o.legacySamples * SAMPLE_CENTS) });
   }
   for (const c of o.charges) {

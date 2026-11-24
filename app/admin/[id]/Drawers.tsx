@@ -137,8 +137,9 @@ export default function Drawers({ r, saved, chargesSlot }: { r: Job; saved?: str
           <summary>Money{depositPaid !== null && <span className="v">{formatMoney(depositPaid)} deposit paid</span>}</summary>
           {note("money")}
           <div className="adm-table">
+            {!inv.tripOnly && minutes !== null && (<><span>Time on site</span><span className="amt">{durationLabel(minutes)}</span></>)}
             {!inv.tripOnly && (<><span>First hour</span><span className="amt">{formatMoney(inv.firstHour)}</span></>)}
-            {inv.quarters > 0 && (<><span>Extra time ({inv.quarters} × $48.75)</span><span className="amt">{formatMoney(inv.extraTime)}</span></>)}
+            {inv.quarters > 0 && (<><span>Additional time ({durationLabel(inv.quarters * 15)} at $195/hr)</span><span className="amt">{formatMoney(inv.extraTime)}</span></>)}
             {inv.samples > 0 && (<><span>Lab samples</span><span className="amt">{formatMoney(inv.samples)}</span></>)}
             {inv.extras > 0 && (<><span>Materials and charges</span><span className="amt">{formatMoney(inv.extras)}</span></>)}
             <span>Total</span><span className="amt">{formatMoney(inv.total)}</span>

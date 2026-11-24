@@ -2,7 +2,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { addContractorJob, type ConfirmState } from "../actions";
 import { SERVICES, issueForService } from "@/lib/contractorJob";
-import { finalInvoice } from "@/lib/billing";
+import { durationLabel, finalInvoice } from "@/lib/billing";
 import { formatMoney } from "@/lib/pricing";
 
 type Hit = { name: string; address: string; phone: string | null; kind: "client" | "job" };
@@ -25,10 +25,12 @@ export default function AddForm({ contractors, defaultDate, defaultTime = "10:00
   const [outcome, setOutcome] = useState<Outcome>(initialOutcome);
   const [service, setService] = useState<"prv" | "assessment">("prv");
   const [hours, setHours] = useState(2);
+  // A visit still to come holds whole hours. One already done can be any quarter hour.
   const [email, setEmail] = useState(initialEmail);
   const [kind, setKind] = useState<Kind>(initialKind);
   const [phone, setPhone] = useState(initialPhone);
   const home = kind === "homeowner";
+  const shownHours = outcome === "" ? Math.max(1, Math.ceil(hours)) : hours;
   const [focus, setFocus] = useState<"name" | "addr" | null>(null);
   const [nameHits, setNameHits] = useState<Hit[]>([]);
   const [addrHits, setAddrHits] = useState<Hit[]>([]);
@@ -189,16 +191,16 @@ export default function AddForm({ contractors, defaultDate, defaultTime = "10:00
         </div>
         <div className="adm-field">
           <label htmlFor="hours">{outcome === "" ? "Time to hold" : "Time on site"}</label>
-          <select id="hours" name="hours" value={hours} onChange={(e) => setHours(Number(e.target.value))}>
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((h) => (
-              <option key={h} value={h}>{h === 1 ? "1 hour" : `${h} hours`}</option>
+          <select id="hours" name="hours" value={shownHours} onChange={(e) => setHours(Number(e.target.value))}>
+            {(outcome === "" ? [1, 2, 3, 4, 5, 6, 7, 8] : Array.from({ length: 32 }, (_, i) => (i + 1) / 4)).map((h) => (
+              <option key={h} value={h}>{durationLabel(Math.round(h * 60))}</option>
             ))}
           </select>
         </div>
       </div>
       <p className="adm-muted">For a job still to come: over 2 hours blocks the whole day, 2 hours leaves 12:30 open, latest start is 1:00 PM. For one already done, enter the date, when you started and the time on site. You then send the bill from the job.</p>
       {outcome !== "" && (() => {
-        const inv = finalInvoice({ issue: issueForService(service), minutes: hours * 60, samples: null, extrasCents: outcome === "trip" ? 35000 : 0, depositPaidCents: null, tripOnly: outcome === "trip" });
+        const inv = finalInvoice({ issue: issueForService(service), minutes: shownHours * 60, samples: null, extrasCents: outcome === "trip" ? 35000 : 0, depositPaidCents: null, tripOnly: outcome === "trip" });
         return <div className="adm-panel tint" style={{ gap: 4 }}><b>Invoice: {formatMoney(inv.total)}</b><span className="adm-muted">{outcome === "trip" ? "Trip fee instead of the full price." : `${service === "prv" ? "PRV" : "Assessment"} first hour, plus extra time over one hour.`} Add materials later from the job if needed.</span></div>;
       })()}
       <div className="adm-panel tint" style={{ gap: 4 }}><b>Billing</b><span className="adm-muted">{home ? "No deposit. After the job the client gets a card link to pay the bill. A visit ending in a fail is still charged." : "No deposit. Invoice after the job, due in 15 days."}</span></div>

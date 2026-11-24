@@ -47,3 +47,17 @@ describe("parseContractorJob", () => {
     if (r.success) expect(r.data.kind).toBe("contractor");
   });
 });
+
+describe("quarter-hour visits", () => {
+  const base = { contractorId: "", newName: "Acme", service: "prv", address: "12 Main St", date: "2026-10-20", time: "10:00", outcome: "done", hours: "2.5" };
+  it("accepts 1.5, 2.25 and 2.5 hours for a visit already done", () => {
+    for (const h of ["0.25", "1.5", "2.25", "2.5", "8"]) expect(parseContractorJob({ ...base, hours: h }, NOW).success).toBe(true);
+  });
+  it("rejects odd fractions, zero and over 8", () => {
+    for (const h of ["1.1", "0", "8.25"]) expect(parseContractorJob({ ...base, hours: h }, NOW).success).toBe(false);
+  });
+  it("still holds whole hours for a visit to come", () => {
+    expect(parseContractorJob({ ...base, outcome: "", date: "2026-12-01", hours: "2.5" }, NOW).success).toBe(false);
+    expect(parseContractorJob({ ...base, outcome: "", date: "2026-12-01", hours: "2" }, NOW).success).toBe(true);
+  });
+});
