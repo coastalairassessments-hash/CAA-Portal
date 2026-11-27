@@ -5,6 +5,7 @@ import { onMyWayText, runningLateText, smsLink } from "@/lib/confirm";
 import { type DashRow, type money, type needsYou, type pipeline } from "@/lib/dashboard";
 import { formatMoney } from "@/lib/pricing";
 import { progress } from "@/lib/stage";
+import { formatDateLabel } from "@/lib/dates";
 import { stampTime } from "../actions";
 import OfflineStamp, { type EtaText } from "../OfflineStamp";
 import { bookingUrl } from "@/lib/links";
@@ -184,6 +185,29 @@ export function Pipeline({ p }: { p: ReturnType<typeof pipeline> }) {
           <Link key={s.label} href={s.href} className="adm-need">
             <span className="n dark">{s.n}</span>
             <span className="l">{s.label}</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// Visits booked beyond the weeks the schedule draws, so nobody booked far ahead is out of sight.
+export function Later({ rows }: { rows: Job[] }) {
+  if (rows.length === 0) return null;
+  return (
+    <section>
+      <h2 className="adm-sub">Later</h2>
+      <div className="adm-needs">
+        {rows.map((r) => (
+          <Link key={r.id} href={`/admin/${r.id}`} className="adm-need">
+            <span className="l">
+              <strong>{r.name}</strong>
+              <span className="adm-muted" style={{ display: "block" }}>
+                {formatDateLabel(r.confirmed_date!)} at {formatTime(r.confirmed_time!)} · {jobLabel(r)}
+              </span>
+            </span>
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
           </Link>
         ))}
