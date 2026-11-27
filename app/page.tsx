@@ -171,7 +171,7 @@ export default function Home() {
             <h2 id="protect-heading">Your protection</h2>
             <ul>
               <li>Licensed Florida mold assessor, MRSA2944.</li>
-              <li>Cancel more than 24 hours ahead and your deposit is refunded in full.</li>
+              <li>Cancel more than 24 hours ahead and your deposit is refunded in full. Within 24 hours, reschedule once for free or cancel with a $250 fee.</li>
               <li>Rescheduling is free.</li>
               <li>Payments are processed securely through QuickBooks. We never see your card.</li>
               <li>Samples go to an independent accredited lab.</li>
@@ -231,7 +231,7 @@ export default function Home() {
               <summary>What if I need to cancel or reschedule?</summary>
               <p>
                 Cancel more than 24 hours before your visit and your deposit is refunded in full.
-                You can also reschedule at no charge. Within 24 hours the deposit is not refunded. The details are in our{" "}
+                You can also reschedule at no charge. Within 24 hours you can reschedule once for free, or cancel with a $250 cancellation fee and the rest of your deposit is refunded. The details are in our{" "}
                 <Link href="/policy">booking policy</Link>.
               </p>
             </details>

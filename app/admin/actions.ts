@@ -24,7 +24,7 @@ export async function logout() {
 
 // ---- Offer, deposit, decline ----
 import { cancelEmail, confirmEmail, declineEmail, offerEmail, parseConfirm, takenEmail } from "@/lib/confirm";
-import { refundDue } from "@/lib/cancel";
+import { hoursUntil } from "@/lib/cancel";
 import { GOOGLE_REVIEW_URL, reviewEmail } from "@/lib/quicktexts";
 import { SITE_URL_FALLBACK, sendEmail } from "@/lib/notify";
 import { sendPush } from "@/lib/push";
@@ -507,18 +507,28 @@ export async function cancelBooking(form: FormData): Promise<void> {
 
   const { data: row } = await supabase
     .from("requests")
-    .select(`${CLIENT_COLUMNS}, source, status, confirmed_date, confirmed_time, block_hours`)
+    .select(`${CLIENT_COLUMNS}, source, status, confirmed_date, confirmed_time, block_hours, deposit_cents, issue, policy_version`)
     .eq("id", id).single();
   if (!row || row.source !== "client" || !["offered", "confirmed"].includes(row.status)) {
     redirect(`/admin/${id}?error=save`);
   }
   const slot = { date: row.confirmed_date as string, time: row.confirmed_time as string, hours: row.block_hours as number };
   const paid = row.status === "confirmed";
-  const refund = paid ? refundDue(slot.date, slot.time) : false;
+  // When we cancel, the client always gets everything back.
+  const refund = paid;
 
   const { error } = await supabase
     .from("requests")
-    .update({ status: "cancelled", cancelled_at: new Date().toISOString(), cancel_refund: paid ? refund : null })
+    .update({
+      status: "cancelled",
+      cancelled_at: new Date().toISOString(),
+      cancel_refund: paid ? true : null,
+      cancel_option: paid ? "inspector" : "unpaid",
+      cancel_fee_cents: paid ? 0 : null,
+      cancel_refund_cents: paid ? (row.deposit_cents ?? depositCents(row.issue)) : null,
+      cancel_policy_version: row.policy_version ?? null,
+      cancel_hours_before: hoursUntil(slot.date, slot.time),
+    })
     .eq("id", id);
   if (error) redirect(`/admin/${id}?error=save`);
 

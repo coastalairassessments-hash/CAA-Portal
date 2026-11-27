@@ -1,7 +1,8 @@
 "use server";
 import { redirect } from "next/navigation";
 import { bookingByToken, serviceDb, validToken } from "@/lib/bookingServer";
-import { refundDue } from "@/lib/cancel";
+import { cancelOutcome, policyAllowsLateOptions } from "@/lib/cancel";
+import { depositCents } from "@/lib/pricing";
 import { cancelEmail } from "@/lib/confirm";
 import { sendEmail } from "@/lib/notify";
 import { sendPush } from "@/lib/push";
@@ -9,7 +10,8 @@ import { SETTLE_COLUMNS, settleDeposit } from "@/lib/settle";
 import { voidPayment } from "@/lib/payState";
 import { formatDateLabel } from "@/lib/dates";
 import { formatTime } from "@/lib/labels";
-import { canMove, movedEmail } from "@/lib/reschedule";
+import { formatMoney } from "@/lib/pricing";
+import { canLateMove, canMove, movedEmail } from "@/lib/reschedule";
 import { MAX_CLIENT_PHOTOS, MAX_PHOTO_BYTES, clientPhotoPath, isClientPhoto } from "@/lib/fieldNotes";
 import { heldSlots } from "@/lib/availabilityServer";
 import { overlaps } from "@/lib/slots";
@@ -29,15 +31,34 @@ export async function cancelMyBooking(form: FormData): Promise<void> {
     r = (await bookingByToken(token)) ?? r;
   }
   if (!["new", "offered", "confirmed"].includes(r.status) || r.left_at) redirect(`/booking/${token}`);
+  // Once we are on the way or on site, a cancel is a phone call.
+  if (r.en_route_at || r.arrived_at) redirect(`/booking/${token}?error=1`);
 
   const date = (r.confirmed_date ?? r.preferred_date) as string;
   const time = String(r.confirmed_time ?? r.preferred_time).slice(0, 5);
   const paid = r.status === "confirmed";
-  const refund = paid ? refundDue(date, time) : false;
+  const deposit = r.deposit_cents ?? depositCents(r.issue);
+  const outcome = cancelOutcome(date, time, deposit, r.policy_version);
+  // Inside 24 hours under the current policy, they must first see the choice, and tick that they accept the fee.
+  if (paid && outcome.window === "late" && policyAllowsLateOptions(r.policy_version) && form.get("accept") !== "on") {
+    redirect(`/booking/${token}?late=1`);
+  }
+  const refund = paid ? outcome.refundCents > 0 : false;
+  const now = new Date().toISOString();
 
   const { error } = await db
     .from("requests")
-    .update({ status: "cancelled", cancelled_at: new Date().toISOString(), cancel_refund: paid ? refund : null })
+    .update({
+      status: "cancelled",
+      cancelled_at: now,
+      cancel_refund: paid ? refund : null,
+      cancel_option: !paid ? "unpaid" : outcome.window === "free" ? "free" : "late_fee",
+      cancel_hours_before: outcome.hoursBefore,
+      cancel_fee_cents: paid ? outcome.feeCents : null,
+      cancel_refund_cents: paid ? outcome.refundCents : null,
+      cancel_policy_version: r.policy_version ?? null,
+      cancel_confirmed_at: paid && outcome.window === "late" ? now : null,
+    })
     .eq("id", r.id)
     .in("status", ["new", "offered", "confirmed"]);
   if (error) redirect(`/booking/${token}?error=1`);
@@ -49,11 +70,11 @@ export async function cancelMyBooking(form: FormData): Promise<void> {
   }
 
   const slot = { date, time, hours: Number(r.block_hours ?? 1) };
-  const sent = await sendEmail({ to: r.email, ...cancelEmail(r as never, slot, refund, paid) });
+  const sent = await sendEmail({ to: r.email, ...cancelEmail(r as never, slot, refund, paid, paid ? { feeCents: outcome.feeCents, refundCents: outcome.refundCents } : undefined) });
   if (!sent.ok) console.error(`[client-cancel] email not sent: ${sent.reason}`);
 
   // Tell Cory. A phone alert first; email if no phone is set up.
-  const what = `${r.name} cancelled ${formatDateLabel(date)} at ${formatTime(time)}${paid ? (refund ? " (refund due)" : " (inside 24 hours, deposit kept)") : ""}`;
+  const what = `${r.name} cancelled ${formatDateLabel(date)} at ${formatTime(time)}${paid ? (outcome.window === "free" ? " (full refund due)" : ` (inside 24 hours: keep ${formatMoney(outcome.feeCents)}, refund ${formatMoney(outcome.refundCents)})`) : ""}`;
   const phones = await sendPush({ title: "Booking cancelled", body: what, url: `/admin/${r.id}` });
   const to = process.env.ALERT_EMAIL?.trim();
   if (!phones && to) await sendEmail({ to, subject: "Booking cancelled", text: what });
@@ -66,7 +87,8 @@ export async function rescheduleMyBooking(form: FormData): Promise<void> {
   if (!validToken(token)) redirect("/");
   const r = await bookingByToken(token);
   const db = serviceDb();
-  if (!r || !db || !canMove(r as never)) redirect(`/booking/${token}`);
+  const late = !!r && !!db && !canMove(r as never) && canLateMove(r as never);
+  if (!r || !db || !(canMove(r as never) || late)) redirect(`/booking/${token}`);
   const [date = "", time = ""] = String(form.get("slot") ?? "").split("|");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !["10:00", "12:30"].includes(time)) redirect(`/booking/${token}?error=1`);
 
@@ -75,13 +97,23 @@ export async function rescheduleMyBooking(form: FormData): Promise<void> {
   const next = { date, time, hours };
   const others = (await heldSlots(todayInNewYork())).filter((h) => !(h.date === cur.date && h.time === cur.time));
   if (others.some((h) => overlaps(h, next))) redirect(`/booking/${token}?error=taken`);
+  // The new time must itself be more than 24 hours out.
   if (!canMove({ ...r, confirmed_date: date, confirmed_time: time } as never)) redirect(`/booking/${token}?error=1`);
 
-  const { error } = await db
+  let q = db
     .from("requests")
-    .update({ confirmed_date: date, confirmed_time: time, reminded_for: null })
+    .update({
+      confirmed_date: date,
+      confirmed_time: time,
+      reminded_for: null,
+      ...(late ? { late_reschedules: (r.late_reschedules ?? 0) + 1, late_reschedule_at: new Date().toISOString() } : {}),
+    })
     .eq("id", r.id)
     .eq("status", "confirmed");
+  // The one free late move is spent once, even if the button is pressed twice.
+  if (late) q = q.eq("late_reschedules", r.late_reschedules ?? 0);
+  const { data: moved, error } = await q.select("id");
+  if (!error && late && (moved ?? []).length === 0) redirect(`/booking/${token}?error=1`);
   if (error) redirect(`/booking/${token}?error=${error.code === "23P01" ? "taken" : "1"}`);
 
   const sent = await sendEmail({ to: r.email, ...movedEmail(r as never, r.id, next) });

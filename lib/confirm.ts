@@ -1,4 +1,4 @@
-import { PRV_NOTICE } from "./policy";
+import { CANCEL_RULE_SHORT, PRV_NOTICE } from "./policy";
 import { INSTASCOPE_EMAIL_LINE } from "./instascope";
 import { prepLines } from "./prep";
 import { LATEST_START } from "./slots";
@@ -65,7 +65,7 @@ export function confirmEmail(row: ConfirmRow, b: Booking, siteUrl = "https://boo
       ...(row.issue === "post_remediation" ? ["", `Post-remediation verification: ${PRV_NOTICE}`] : []),
       "",
       ...prepLines(),
-      "To cancel or reschedule, use your booking page below, or call or text " + PHONE + ". More than 24 hours before your visit, your deposit is refunded in full and rescheduling is free.",
+      "To cancel or reschedule, use your booking page below, or call or text " + PHONE + ". " + CANCEL_RULE_SHORT,
       "",
       ...bookingLine(row, siteUrl),
       `Terms you agreed to: ${siteUrl.replace(/\/+$/, "")}/terms`,
@@ -97,7 +97,7 @@ export function offerEmail(row: ConfirmRow, b: Booking, deposit: number, siteUrl
       "2. The date is held when the deposit is received. If two people ask for the same time, the first deposit holds it.",
       "3. You pay the balance after the visit. Your written report follows within days.",
       "",
-      "Cancel more than 24 hours ahead and your deposit is refunded in full. Rescheduling is free.",
+      CANCEL_RULE_SHORT,
       `Need a different time? Reply to this email, or call or text ${PHONE}.`,
       "",
       ...bookingLine(row, siteUrl),
@@ -181,12 +181,21 @@ export function runningLateText(row: { name: string }, minutes = 15): string {
 }
 
 // Sent when a booking is cancelled. Says plainly whether the deposit comes back.
-export function cancelEmail(row: ConfirmRow, b: Booking, refund: boolean, paid: boolean) {
+export function cancelEmail(
+  row: ConfirmRow,
+  b: Booking,
+  refund: boolean,
+  paid: boolean,
+  amounts?: { feeCents: number; refundCents: number },
+) {
+  const fee = amounts && amounts.feeCents > 0 ? amounts : null;
   const money = !paid
     ? ""
-    : refund
-      ? "Your deposit will be refunded in full. It can take a few business days to appear."
-      : "Because this is within 24 hours of the visit, the deposit is not refunded, as described in the booking policy.";
+    : fee
+      ? `Because this is within 24 hours of the visit, the booking policy you accepted applies a ${formatMoney(fee.feeCents)} cancellation fee. ${formatMoney(fee.refundCents)} of your deposit will be refunded. It can take a few business days to appear.`
+      : refund
+        ? "Your deposit will be refunded in full. It can take a few business days to appear."
+        : "Because this is within 24 hours of the visit, the deposit is not refunded, as described in the booking policy.";
   return {
     subject: `Your visit is cancelled: ${whenOf(b)}`,
     text: [

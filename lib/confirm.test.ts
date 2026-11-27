@@ -109,3 +109,12 @@ describe("sendEmail", () => {
     expect(r).toEqual({ ok: false, reason: "network" });
   });
 });
+
+describe("cancelEmail with the late fee", () => {
+  it("states the fee and the refunded amount", async () => {
+    const { cancelEmail } = await import("./confirm");
+    const e = cancelEmail({ name: "Pat Lee", address: "1 A St", city: "Stuart", zip: "34994", email: "p@x.com", phone: "1" } as never, { date: "2026-10-27", time: "10:00", hours: 1 }, true, true, { feeCents: 25000, refundCents: 26375 });
+    expect(e.text).toContain("$250.00 cancellation fee");
+    expect(e.text).toContain("$263.75");
+  });
+});

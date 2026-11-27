@@ -1,7 +1,7 @@
 // The Booking and Payment Policy, exactly as clients agree to it. This is separate from the
 // insurance Terms. A wording change means a new version: bump POLICY_VERSION and update the
 // fingerprint in policy.test.ts. Old agreements stay tied to the version the client saw.
-export const POLICY_VERSION = "v2-2026-11";
+export const POLICY_VERSION = "v3-2026-11";
 export const POLICY_TITLE = "Booking and Payment Policy";
 
 export const POLICY_INTRO =
@@ -31,7 +31,7 @@ export const POLICY_SECTIONS: { n: number; title: string; text: string }[] = [
   {
     n: 5,
     title: "Cancel or reschedule",
-    text: "Cancel more than 24 hours before your visit for a full refund of your deposit. Within 24 hours of your visit, the deposit is not refunded. Rescheduling more than 24 hours ahead is free. Within 24 hours it counts as a cancellation.",
+    text: "Cancel more than 24 hours before your visit for a full refund of your deposit, and reschedule for free. Within 24 hours of your visit you can reschedule once, free, and your deposit carries over. Or you can cancel and a $250 cancellation fee applies: we keep $250 of your deposit and refund the rest. If we cancel, you get a full refund.",
   },
   {
     n: 6,
@@ -43,3 +43,11 @@ export const POLICY_SECTIONS: { n: number; title: string; text: string }[] = [
 // One plain sentence shown wherever a homeowner chooses a PRV.
 export const PRV_NOTICE =
   "A PRV is charged in full whatever the result. If the area does not meet industry guidelines, the visit is still billed and is not refunded.";
+
+// The cancel rule of the version a booking was accepted under, kept word for word so a dispute can be answered.
+export const POLICY_V2_CANCEL_TEXT =
+  "Cancel more than 24 hours before your visit for a full refund of your deposit. Within 24 hours of your visit, the deposit is not refunded. Rescheduling more than 24 hours ahead is free. Within 24 hours it counts as a cancellation.";
+
+// The one short statement of the rule, shown at scheduling, at the deposit, on the booking page and in emails.
+export const CANCEL_RULE_SHORT =
+  "Cancel or reschedule more than 24 hours ahead and your deposit is refunded in full. Within 24 hours, you can reschedule once for free, or cancel with a $250 cancellation fee and the rest of your deposit refunded.";

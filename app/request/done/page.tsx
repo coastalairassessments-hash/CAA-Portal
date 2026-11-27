@@ -20,7 +20,7 @@ export default function DonePage() {
         <ol className="how">
           <li><strong>We confirm</strong> and send a secure deposit link.</li>
           <li><strong>Your deposit locks the time.</strong> 75% of the first hour. If two people ask for the same time, the first deposit gets it.</li>
-          <li><strong>Cancel more than 24 hours ahead</strong> and the deposit is refunded.</li>
+          <li><strong>Cancel more than 24 hours ahead</strong> and the deposit is refunded. Within 24 hours, reschedule once for free, or cancel with a $250 fee and the rest is refunded.</li>
         </ol>
         <p style={{ marginTop: "1.75rem" }}>
           <Link href="/" className="btn btn-quiet">

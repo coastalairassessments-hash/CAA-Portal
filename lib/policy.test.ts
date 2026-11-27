@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { POLICY_INTRO, POLICY_SECTIONS, POLICY_VERSION } from "./policy";
 
 // If this fails, the policy wording changed. Add a new version instead of editing in place.
-const V2_FINGERPRINT = "cc7f46658b745bde3b971238e2bda9f71f946b46730cc6f4c4cbe816b1b019f3";
+const V3_FINGERPRINT = "fbec6a5f0bcafe59d62b0b3c3efd047223551a1f390083dd66ece8a88999d3eb";
 
 describe("booking policy", () => {
   it("has six sections in order", () => {
@@ -11,7 +11,7 @@ describe("booking policy", () => {
   });
   it("matches the locked fingerprint for its version", () => {
     const hash = createHash("sha256").update(JSON.stringify({ POLICY_INTRO, POLICY_SECTIONS })).digest("hex");
-    expect({ version: POLICY_VERSION, hash }).toEqual({ version: "v2-2026-11", hash: V2_FINGERPRINT });
+    expect({ version: POLICY_VERSION, hash }).toEqual({ version: "v3-2026-11", hash: V3_FINGERPRINT });
   });
   it("states the prices and rules the app uses", () => {
     const all = JSON.stringify(POLICY_SECTIONS);
@@ -19,7 +19,8 @@ describe("booking policy", () => {
     expect(all).toContain("75%");
     expect(all).toContain("$85");
     expect(all).toContain("24 hours");
-    expect(all).toContain("not refunded");
+    expect(all).toContain("$250");
+    expect(all).toContain("reschedule once");
   });
 });
 
