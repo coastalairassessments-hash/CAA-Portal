@@ -1,5 +1,6 @@
 import { SIGNOFF } from "./business";
 import { rebookUrl } from "./links";
+import { feedbackUrl } from "./feedback";
 // Ready-to-send texts. Cory taps one, Messages opens with it written, he picks who gets it.
 // Paste your Google review link between the quotes to turn on review texts and emails.
 export const GOOGLE_REVIEW_URL = "https://g.page/r/CR_el8247giREBM/review";
@@ -34,12 +35,15 @@ export function depositReminderText(
   return `Hi ${firstName(row.name)}, this is Coastal Air Assessments. A reminder that your ${depositLabel} deposit holds ${whenLabel}. The first deposit holds the date. Your invoice was emailed to you.`;
 }
 
-export function reviewText(row: { name: string }, reviewUrl: string): string {
+// With a feedback link, the client rates us first; a happy rating then leads to the Google review.
+export function reviewText(row: { name: string }, reviewUrl: string, feedbackLink?: string | null): string {
+  if (feedbackLink) return `Thank you, ${firstName(row.name)}. How did we do? One tap: ${feedbackLink}`;
   return `Thank you, ${firstName(row.name)}. If we were helpful, a Google review means a lot to a small business: ${reviewUrl}`;
 }
 
 export function reviewEmail(row: { name: string; public_token?: string | null }, reviewUrl: string, siteUrl?: string) {
   const again = siteUrl ? rebookUrl(row, siteUrl) : null;
+  const rate = siteUrl ? feedbackUrl(row, siteUrl) : null;
   return {
     subject: "Thank you from Coastal Air Assessments",
     text: [
@@ -47,8 +51,9 @@ export function reviewEmail(row: { name: string; public_token?: string | null },
       "",
       "Thank you for choosing Coastal Air Assessments.",
       "",
-      "If we were helpful, a short Google review helps other homeowners find us:",
-      reviewUrl,
+      ...(rate
+        ? ["How did we do? One tap tells us:", rate]
+        : ["If we were helpful, a short Google review helps other homeowners find us:", reviewUrl]),
       "",
       ...(again ? ["Need another property assessed? We already have your details, so you only add the address:", again, ""] : []),
       ...SIGNOFF,

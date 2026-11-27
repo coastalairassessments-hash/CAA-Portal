@@ -26,6 +26,7 @@ export async function logout() {
 import { cancelEmail, confirmEmail, declineEmail, offerEmail, parseConfirm, takenEmail } from "@/lib/confirm";
 import { hoursUntil } from "@/lib/cancel";
 import { GOOGLE_REVIEW_URL, reviewEmail } from "@/lib/quicktexts";
+import { MAX_SUMMARY, visitSummaryEmail } from "@/lib/visitSummary";
 import { SITE_URL_FALLBACK, sendEmail } from "@/lib/notify";
 import { sendPush } from "@/lib/push";
 import { depositCents, formatMoney } from "@/lib/pricing";
@@ -270,6 +271,23 @@ export async function stampTime(form: FormData): Promise<void> {
   }
   if (form.get("back") === "today") redirect("/admin/today");
   redirect(`/admin/${id}${error ? "?error=save" : ""}`);
+}
+
+// After the visit: Cory's plain-words note goes to the client the same day, with what happens next.
+export async function sendVisitSummary(form: FormData): Promise<void> {
+  const supabase = await adminClient();
+  const id = String(form.get("id") ?? "");
+  const note = String(form.get("note") ?? "").trim().slice(0, MAX_SUMMARY);
+  if (!supabase || !/^[0-9a-f-]{36}$/i.test(id) || note.length < 10) redirect(`/admin/${id}?error=save`);
+  const { data: row } = await supabase.from("requests").select("name, email, source, status, left_at, public_token").eq("id", id).single();
+  if (!row || row.source !== "client" || row.status !== "confirmed" || !row.left_at || !row.email) redirect(`/admin/${id}?error=save`);
+  const sent = await sendEmail({ to: row.email, ...visitSummaryEmail(row, note, siteUrl()) });
+  if (!sent.ok) {
+    console.error(`[visit-summary] email not sent: ${sent.reason}`);
+    redirect(`/admin/${id}?email=failed`);
+  }
+  const { error } = await supabase.from("requests").update({ visit_summary: note, visit_summary_sent_at: new Date().toISOString() }).eq("id", id);
+  redirect(`/admin/${id}${error ? "?error=save" : "?email=sent"}`);
 }
 
 // Enter the visit by hand (back at the office, or a forgotten tap). "Save and invoice" also sends the final invoice.

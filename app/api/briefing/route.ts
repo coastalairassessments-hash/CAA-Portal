@@ -14,10 +14,11 @@ import { getInvoice } from "@/lib/qbSync";
 import { isStripeId } from "@/lib/stripePay";
 import { paymentState } from "@/lib/payState";
 import { balanceLink } from "@/lib/finalPay";
+import { depositNudgeDue, depositNudgeEmail, type NudgeRow } from "@/lib/depositNudge";
 
 const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
 const COLUMNS =
-  "id, status, source, booking_mode, issue, name, email, public_token, zip, phone, address, city, confirmed_date, confirmed_time, block_hours, deposit_cents, deposit_paid_at, reminded_for, arrived_at, left_at, lab_samples, extras_cents, trip_only, final_paid_at, final_invoice_no, cancel_refund, refunded_at, qb_invoice_id, final_invoiced_at, invoice_reminders, invoice_reminded_at";
+  "id, status, source, booking_mode, issue, name, email, public_token, zip, phone, address, city, confirmed_date, confirmed_time, block_hours, deposit_cents, deposit_paid_at, reminded_for, arrived_at, left_at, lab_samples, extras_cents, trip_only, final_paid_at, final_invoice_no, cancel_refund, refunded_at, qb_invoice_id, final_invoiced_at, invoice_reminders, invoice_reminded_at, offered_at, deposit_reminded_at, qb_deposit_invoice_id";
 
 type RemindRow = {
   id: string; source: string; status: string; confirmed_date: string | null; confirmed_time: string | null;
@@ -73,6 +74,20 @@ async function remindUnpaid(db: SupabaseClient, data: unknown[]) {
   return { count };
 }
 
+// An offered time with no deposit after a day gets one gentle email. deposit_reminded_at makes a retry harmless.
+async function nudgeDeposits(db: SupabaseClient, data: unknown[]) {
+  const site = clean(process.env.SITE_URL) || SITE_URL_FALLBACK;
+  let count = 0;
+  for (const j of data as (NudgeRow & { id: string; name: string; public_token?: string | null; confirmed_date: string; confirmed_time: string })[]) {
+    if (!depositNudgeDue(j)) continue;
+    const res = await sendLogged(db, j.id, { to: j.email as string, ...depositNudgeEmail(j, site) });
+    if (!res.ok) continue;
+    await db.from("requests").update({ deposit_reminded_at: new Date().toISOString() }).eq("id", j.id).eq("status", "offered");
+    count++;
+  }
+  return { count };
+}
+
 export async function GET(req: Request) {
   await connection();
   const secret = clean(process.env.IP_HASH_SALT);
@@ -103,7 +118,8 @@ export async function GET(req: Request) {
   if (mode === "remind") {
     const day = await remindTomorrow(db, data ?? []);
     const owed = await remindUnpaid(db, data ?? []);
-    return NextResponse.json({ ok: true, ...day, unpaidReminders: owed.count });
+    const deps = await nudgeDeposits(db, data ?? []);
+    return NextResponse.json({ ok: true, ...day, unpaidReminders: owed.count, depositNudges: deps.count });
   }
   const date = mode === "today" ? todayInNewYork() : addDays(todayInNewYork(), 1);
   const jobs = rows.filter((r) => r.status === "confirmed" && r.confirmed_date === date && r.confirmed_time);

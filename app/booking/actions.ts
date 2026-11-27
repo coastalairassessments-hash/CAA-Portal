@@ -16,6 +16,7 @@ import { MAX_CLIENT_PHOTOS, MAX_PHOTO_BYTES, clientPhotoPath, isClientPhoto } fr
 import { heldSlots } from "@/lib/availabilityServer";
 import { overlaps } from "@/lib/slots";
 import { todayInNewYork } from "@/lib/dates";
+import { validRating } from "@/lib/feedback";
 
 // A client cancels their own booking. Same rule as the policy: refund if more than 24 hours ahead.
 export async function cancelMyBooking(form: FormData): Promise<void> {
@@ -145,4 +146,44 @@ export async function addClientPhoto(form: FormData): Promise<{ ok: boolean; err
     return { ok: false };
   }
   return { ok: true };
+}
+
+// The client rates their visit with one tap. Only the first rating counts, and only after the visit.
+export async function rateVisit(form: FormData): Promise<void> {
+  const token = String(form.get("token") ?? "");
+  if (!validToken(token)) redirect("/");
+  const rating = Number(form.get("rating"));
+  const r = await bookingByToken(token);
+  const db = serviceDb();
+  if (!r || !db || !validRating(rating) || !r.left_at) redirect(`/booking/${token}/feedback`);
+  const { data: saved } = await db
+    .from("requests")
+    .update({ feedback_rating: rating, feedback_at: new Date().toISOString() })
+    .eq("id", r.id)
+    .is("feedback_rating", null)
+    .select("id");
+  // A low rating comes straight to Cory, privately, so he can make it right.
+  if ((saved ?? []).length > 0 && rating <= 3) {
+    const what = `${r.name} rated their visit ${rating} of 5. Worth a call.`;
+    const phones = await sendPush({ title: "Low rating", body: what, url: `/admin/${r.id}` });
+    const to = process.env.ALERT_EMAIL?.trim();
+    if (!phones && to) await sendEmail({ to, subject: "Low rating", text: what });
+  }
+  redirect(`/booking/${token}/feedback`);
+}
+
+// A client who rated us low says what we could do better. Private; only Cory sees it.
+export async function sendFeedbackNote(form: FormData): Promise<void> {
+  const token = String(form.get("token") ?? "");
+  if (!validToken(token)) redirect("/");
+  const note = String(form.get("note") ?? "").trim().slice(0, 1000);
+  const r = await bookingByToken(token);
+  const db = serviceDb();
+  if (!r || !db || note.length < 2 || typeof r.feedback_rating !== "number" || r.feedback_rating > 3) redirect(`/booking/${token}/feedback`);
+  await db.from("requests").update({ feedback_note: note }).eq("id", r.id).is("feedback_note", null);
+  const what = `${r.name} left feedback after rating ${r.feedback_rating} of 5: ${note.slice(0, 200)}`;
+  const phones = await sendPush({ title: "Client feedback", body: what, url: `/admin/${r.id}` });
+  const to = process.env.ALERT_EMAIL?.trim();
+  if (!phones && to) await sendEmail({ to, subject: "Client feedback", text: what });
+  redirect(`/booking/${token}/feedback?thanks=1`);
 }
