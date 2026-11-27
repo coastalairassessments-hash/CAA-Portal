@@ -58,3 +58,17 @@ describe("visit summary email", () => {
     expect(t).toContain("report is released once the final invoice is paid");
   });
 });
+
+import { arrivalClock, onMyWayEtaText } from "./eta";
+describe("on my way with an arrival time", () => {
+  const now = new Date("2026-11-27T14:15:00Z"); // 9:15 AM Eastern
+  it("adds the minutes to the clock in Eastern time", () => {
+    expect(arrivalClock(now, 30)).toBe("9:45 AM");
+    expect(arrivalClock(now, 60)).toBe("10:15 AM");
+  });
+  it("writes the text with the arrival time and the live link", () => {
+    const t = onMyWayEtaText({ name: "Pat Lee" }, 30, now, "https://x.com/booking/abc");
+    expect(t).toContain("about 30 minutes out, arriving around 9:45 AM");
+    expect(t).toContain("https://x.com/booking/abc");
+  });
+});

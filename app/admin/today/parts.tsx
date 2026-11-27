@@ -6,12 +6,14 @@ import { type DashRow, type money, type needsYou } from "@/lib/dashboard";
 import { formatMoney } from "@/lib/pricing";
 import { progress } from "@/lib/stage";
 import { stampTime } from "../actions";
-import OfflineStamp from "../OfflineStamp";
+import OfflineStamp, { type EtaText } from "../OfflineStamp";
+import { bookingUrl } from "@/lib/links";
+import { SITE_URL_FALLBACK } from "@/lib/notify";
 
 export type Job = AdminRow & DashRow & { en_route_at?: string | null; arrived_at: string | null; left_at: string | null };
 
-function Stamp({ id, which, done, label }: { id: string; which: "en_route_at" | "arrived_at" | "left_at"; done: boolean; label: string }) {
-  if (!done) return <OfflineStamp id={id} which={which} label={label} className="adm-btn wide primary" />;
+function Stamp({ id, which, done, label, etaText }: { id: string; which: "en_route_at" | "arrived_at" | "left_at"; done: boolean; label: string; etaText?: EtaText }) {
+  if (!done) return <OfflineStamp id={id} which={which} label={label} className="adm-btn wide primary" etaText={etaText} />;
   return (
     <form action={stampTime}>
       <input type="hidden" name="id" value={id} />
@@ -73,7 +75,7 @@ export function JobCard({ r, today, hero = false }: { r: Job; today: boolean; he
           ) : r.en_route_at ? (
             <Stamp id={r.id} which="arrived_at" done={false} label="Arrived" />
           ) : (
-            <Stamp id={r.id} which="en_route_at" done={false} label="On my way" />
+            <Stamp id={r.id} which="en_route_at" done={false} label="On my way" etaText={canText ? { phone: r.phone!, name: r.name, link: bookingUrl(r as { public_token?: string | null }, process.env.SITE_URL?.trim() || SITE_URL_FALLBACK) } : undefined} />
           )}
         </div>
       )}

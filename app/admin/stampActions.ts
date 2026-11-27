@@ -20,11 +20,11 @@ export async function syncStamp(input: { id: string; which: string; at: string }
     .update({ [which]: new Date(at).toISOString() })
     .eq("id", id)
     .is(which, null)
-    .select("name, email, source, public_token")
+    .select("name, email, source, public_token, phone, text_consent")
     .maybeSingle();
   if (error) return { ok: false };
   // "On my way" tells the client once, with their live link, the same as a normal tap.
-  if (updated && which === "en_route_at" && updated.source === "client" && updated.email) {
+  if (updated && which === "en_route_at" && updated.source === "client" && updated.email && !(updated.phone && updated.text_consent)) {
     await sendEmail({ to: updated.email, ...enRouteEmail(updated, (process.env.SITE_URL?.trim() || SITE_URL_FALLBACK)) }).catch(() => undefined);
   }
   return { ok: true }; // already stamped counts as done: there is nothing left to send

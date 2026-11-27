@@ -229,6 +229,11 @@ async function Booking({ params, searchParams }: Props) {
       )}
 
       <section className="bk-help">
+        <h2>Know someone who needs us?</h2>
+        <p>Save us in your phone, so we are one tap away when a friend or neighbor asks. <a href="/coastal-air-assessments.vcf" download>Save our contact</a>.</p>
+      </section>
+
+      <section className="bk-help">
         <h2>Another property?</h2>
         <p><Link href={`/request?again=${token}`}>Book again</Link>. We already have your details, so you only add the address.</p>
       </section>

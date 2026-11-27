@@ -264,8 +264,9 @@ export async function stampTime(form: FormData): Promise<void> {
   const { error } = await supabase.from("requests").update({ [which]: value }).eq("id", id);
   // "On my way": tell the client once, with their live link. No extra work for Cory.
   if (!error && value && which === "en_route_at" && !before?.en_route_at) {
-    const { data: row } = await supabase.from("requests").select("name, email, source, public_token").eq("id", id).single();
-    if (row && row.source === "client" && row.email) {
+    const { data: row } = await supabase.from("requests").select("name, email, source, public_token, phone, text_consent").eq("id", id).single();
+    // A client who takes texts gets the on-my-way text with the arrival time instead of an email.
+    if (row && row.source === "client" && row.email && !(row.phone && row.text_consent)) {
       await sendEmail({ to: row.email, ...enRouteEmail(row, siteUrl()) });
     }
   }
