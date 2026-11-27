@@ -2,7 +2,7 @@ import Link from "next/link";
 import { mapsLink, type AdminRow } from "@/lib/admin";
 import { formatTime, fullAddress, jobLabel } from "@/lib/labels";
 import { onMyWayText, runningLateText, smsLink } from "@/lib/confirm";
-import { type DashRow, type money, type needsYou } from "@/lib/dashboard";
+import { type DashRow, type money, type needsYou, type pipeline } from "@/lib/dashboard";
 import { formatMoney } from "@/lib/pricing";
 import { progress } from "@/lib/stage";
 import { stampTime } from "../actions";
@@ -90,12 +90,12 @@ export function JobCard({ r, today, hero = false }: { r: Job; today: boolean; he
   );
 }
 
-export function Tiles({ n }: { n: ReturnType<typeof needsYou> }) {
+export function Tiles({ n, refundCents = 0 }: { n: ReturnType<typeof needsYou>; refundCents?: number }) {
   const rows = [
     { n: n.approve, label: "New requests to approve", href: "/admin?tab=requests", tone: "dark" },
     { n: n.deposits, label: "Deposits waiting", href: "/admin?tab=requests", tone: "amber" },
     { n: n.toInvoice, label: "Final invoices to send", href: "/admin?tab=owed", tone: "teal" },
-    { n: n.refunds, label: "Refunds due", href: "/admin?tab=declined", tone: "amber" },
+    { n: n.refunds, label: refundCents > 0 ? `Refunds due, ${formatMoney(refundCents)} to send` : "Refunds due", href: "/admin?tab=declined", tone: "amber" },
     { n: n.emails, label: "Client emails that did not send", href: "/admin?tab=all", tone: "amber" },
   ].filter((t) => t.n > 0);
   if (rows.length === 0) return <p className="adm-ok">You&rsquo;re caught up. Nothing needs you.</p>;
@@ -162,6 +162,31 @@ export function Motion({ rows, today }: { rows: Job[]; today: string }) {
         ))}
       </div>
       {list.length > shown.length && <Link className="adm-link" href="/admin">See all {list.length}</Link>}
+    </section>
+  );
+}
+
+export function Pipeline({ p }: { p: ReturnType<typeof pipeline> }) {
+  const steps = [
+    { n: p.new, label: "New", href: "/admin?tab=requests" },
+    { n: p.waitingDeposit, label: "Waiting on deposit", href: "/admin?tab=requests" },
+    { n: p.booked, label: "Booked", href: "/admin?tab=booked" },
+    { n: p.toInvoice, label: "To invoice", href: "/admin?tab=owed" },
+    { n: p.awaitingPayment, label: "Awaiting payment", href: "/admin?tab=owed" },
+    { n: p.paid, label: "Paid", href: "/admin?tab=done" },
+  ];
+  return (
+    <section>
+      <h2 className="adm-sub">Pipeline</h2>
+      <div className="adm-needs">
+        {steps.map((s) => (
+          <Link key={s.label} href={s.href} className="adm-need">
+            <span className="n dark">{s.n}</span>
+            <span className="l">{s.label}</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+          </Link>
+        ))}
+      </div>
     </section>
   );
 }
