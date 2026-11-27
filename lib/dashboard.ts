@@ -24,6 +24,7 @@ export type DashRow = {
   cancel_refund: boolean | null;
   refunded_at: string | null;
   email_failed_at?: string | null;
+  cancel_refund_cents?: number | null;
 };
 
 const easternDay = (iso: string) => todayInNewYork(new Date(iso));
@@ -103,4 +104,24 @@ export function nextUp(rows: DashRow[], now: Date = new Date()): DashRow | null 
       .filter((r) => r.status === "confirmed" && r.confirmed_date === today && !r.left_at)
       .sort((a, b) => (a.confirmed_time ?? "").localeCompare(b.confirmed_time ?? ""))[0] ?? null
   );
+}
+
+// The money still to send back on cancelled bookings. A booking with no recorded amount counts its deposit.
+export function refundsDueCents(rows: DashRow[]): number {
+  return rows
+    .filter((r) => r.status === "cancelled" && r.cancel_refund && !r.refunded_at)
+    .reduce((sum, r) => sum + (r.cancel_refund_cents ?? r.deposit_cents ?? depositCents(r.issue)), 0);
+}
+
+// Where every job stands, in the order work moves. Each job falls in at most one step.
+export function pipeline(rows: DashRow[]) {
+  const live = rows.filter((r) => r.status !== "cancelled" && r.status !== "declined");
+  return {
+    new: live.filter((r) => r.status === "new").length,
+    waitingDeposit: live.filter((r) => r.status === "offered").length,
+    booked: live.filter((r) => r.status === "confirmed" && !r.left_at).length,
+    toInvoice: live.filter((r) => isOwed(r) && !r.final_invoice_no).length,
+    awaitingPayment: live.filter((r) => isOwed(r) && !!r.final_invoice_no).length,
+    paid: live.filter((r) => r.status === "confirmed" && !!r.final_paid_at).length,
+  };
 }
