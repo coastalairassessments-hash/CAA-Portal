@@ -4,12 +4,12 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { supabaseForUser } from "@/lib/supabase/server";
 import { todayInNewYork } from "@/lib/dates";
-import { homeDays } from "@/lib/home";
+import { homeDays, laterBookings } from "@/lib/home";
 import type { WeekRow } from "@/lib/week";
 import Schedule2 from "./Schedule";
 import { money, needsYou, nextUp, pipeline, refundsDueCents, referrersToThank } from "@/lib/dashboard";
 import { todayLabel } from "@/lib/admin";
-import { JobCard, MoneyCard, Motion, Pipeline, Tiles, type Job } from "./parts";
+import { JobCard, Later, MoneyCard, Motion, Pipeline, Tiles, type Job } from "./parts";
 
 export const metadata: Metadata = {
   title: "Home | Coastal Air Assessments",
@@ -51,6 +51,8 @@ async function Schedule({ searchParams }: Props) {
       {next && <JobCard r={next} today hero />}
 
       <Schedule2 days={days} today={today} initialDay={d} initialView={v} />
+
+      <Later rows={laterBookings(all, today) as Job[]} />
 
       <Tiles n={needsYou(all)} refundCents={refundsDueCents(all)} thanks={referrersToThank(all)} />
 
