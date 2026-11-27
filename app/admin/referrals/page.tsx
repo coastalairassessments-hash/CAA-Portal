@@ -6,7 +6,7 @@ import { supabaseForUser } from "@/lib/supabase/server";
 import { SITE_URL_FALLBACK } from "@/lib/notify";
 import { smsLink } from "@/lib/confirm";
 import { REFERRAL_KINDS, kindLabel, referralLink, tally } from "@/lib/referrals";
-import { addPartner, deletePartner } from "../referralActions";
+import { addPartner, deletePartner, setPartnerPhone } from "../referralActions";
 import CopyLink from "./CopyLink";
 
 export const metadata: Metadata = {
@@ -20,18 +20,20 @@ async function Referrals({ searchParams }: { searchParams: Promise<Record<string
   const site = process.env.SITE_URL?.trim() || SITE_URL_FALLBACK;
   const supabase = await supabaseForUser();
   const [p, j] = await Promise.all([
-    supabase.from("referral_partners").select("id, name, kind, code").order("created_at", { ascending: false }).limit(500),
+    supabase.from("referral_partners").select("id, name, kind, code, phone").order("created_at", { ascending: false }).limit(500),
     supabase.from("requests").select("referral_code, final_paid_at").not("referral_code", "is", null).limit(2000),
   ]);
   const partners = p.data ?? [];
   const stats = tally(partners, j.data ?? []);
   const idOf = new Map(partners.map((x) => [x.code, x.id]));
+  const phoneOf = new Map(partners.map((x) => [x.code, (x as { phone?: string | null }).phone ?? null]));
 
   return (
     <>
       {(p.error || j.error) && <p className="adm-err">Referrals are not set up yet. Run the 0021 SQL in Supabase.</p>}
       {q.error && <p className="adm-err">That did not save. Check the name and try again.</p>}
       {q.added && <p className="adm-ok">Added. Copy their link below.</p>}
+      {q.saved && <p className="adm-ok">Saved.</p>}
 
       <section className="adm-group">
         <h2>Add a partner</h2>
@@ -44,6 +46,8 @@ async function Referrals({ searchParams }: { searchParams: Promise<Record<string
               <option key={k.value} value={k.value}>{k.label}</option>
             ))}
           </select>
+          <label htmlFor="pphone">Phone (for thank-you texts, optional)</label>
+          <input id="pphone" name="phone" type="tel" inputMode="tel" placeholder="772 555 0100" />
           <button className="adm-btn primary wide" type="submit">Add and make a link</button>
         </form>
       </section>
@@ -59,6 +63,12 @@ async function Referrals({ searchParams }: { searchParams: Promise<Record<string
             </div>
             <p className="adm-line">{s.jobs} {s.jobs === 1 ? "job" : "jobs"} sent · {s.paid} paid</p>
             <p className="adm-muted" style={{ wordBreak: "break-all" }}>{link}</p>
+            <form action={setPartnerPhone} className="adm-field">
+              <input type="hidden" name="id" value={idOf.get(s.code) ?? ""} />
+              <label htmlFor={`ph-${s.code}`}>Phone</label>
+              <input id={`ph-${s.code}`} name="phone" type="tel" inputMode="tel" defaultValue={phoneOf.get(s.code) ?? ""} placeholder="For thank-you texts" />
+              <button className="adm-btn" type="submit">Save phone</button>
+            </form>
             <div className="adm-actions three">
               <CopyLink text={link} />
               <a className="adm-btn" href={smsLink("", `Here is my booking link for Coastal Air Assessments: ${link}`)}>Text it</a>

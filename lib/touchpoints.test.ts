@@ -72,3 +72,30 @@ describe("on my way with an arrival time", () => {
     expect(t).toContain("https://x.com/booking/abc");
   });
 });
+
+import { needsThanks, normalizePhone, thankReferrerText } from "./referrals";
+import { referrersToThank, type DashRow } from "./dashboard";
+describe("referral thank-you", () => {
+  it("cleans phone numbers to digits with the US code, and refuses junk", () => {
+    expect(normalizePhone("(772) 555-0100")).toBe("17725550100");
+    expect(normalizePhone("1 772 555 0100")).toBe("17725550100");
+    expect(normalizePhone("12345")).toBeNull();
+    expect(normalizePhone("")).toBeNull();
+  });
+  it("thanks the partner without naming the client", () => {
+    const t = thankReferrerText("Jane Smith, Coastal Realty");
+    expect(t).toContain("Hi Jane");
+    expect(t).toContain("Thank you for sending someone our way");
+  });
+  it("is owed only for a paid, referred job not yet thanked", () => {
+    const paid = "2026-11-20T00:00:00Z";
+    expect(needsThanks({ referral_code: "jane", final_paid_at: paid })).toBe(true);
+    expect(needsThanks({ referral_code: "jane", final_paid_at: paid, referral_thanked_at: paid })).toBe(false);
+    expect(needsThanks({ referral_code: "jane", final_paid_at: null })).toBe(false);
+    expect(needsThanks({ referral_code: null, final_paid_at: paid })).toBe(false);
+  });
+  it("counts them for the Home screen", () => {
+    const rows = [{ referral_code: "a", final_paid_at: "x" }, { referral_code: "b", final_paid_at: "x", referral_thanked_at: "y" }, { referral_code: null, final_paid_at: "x" }] as unknown as DashRow[];
+    expect(referrersToThank(rows)).toBe(1);
+  });
+});

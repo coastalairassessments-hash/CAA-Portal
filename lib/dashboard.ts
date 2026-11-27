@@ -1,6 +1,7 @@
 import { addDays, todayInNewYork } from "./dates";
 import { finalInvoice, minutesOnSite } from "./billing";
 import { depositCents } from "./pricing";
+import { needsThanks } from "./referrals";
 
 // Everything the Today dashboard needs, worked out from the jobs. Pure, so it is easy to test.
 export type DashRow = {
@@ -25,6 +26,8 @@ export type DashRow = {
   refunded_at: string | null;
   email_failed_at?: string | null;
   cancel_refund_cents?: number | null;
+  referral_code?: string | null;
+  referral_thanked_at?: string | null;
 };
 
 const easternDay = (iso: string) => todayInNewYork(new Date(iso));
@@ -125,3 +128,6 @@ export function pipeline(rows: DashRow[]) {
     paid: live.filter((r) => r.status === "confirmed" && !!r.final_paid_at).length,
   };
 }
+
+// Paid jobs that a partner sent and nobody has thanked yet.
+export const referrersToThank = (rows: DashRow[]): number => rows.filter(needsThanks).length;

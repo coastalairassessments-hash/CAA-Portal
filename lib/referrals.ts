@@ -60,3 +60,21 @@ export function tally(
   }
   return [...by.values()].sort((a, b) => b.jobs - a.jobs || a.name.localeCompare(b.name));
 }
+
+// Digits only, so it is safe in a text link. 10 digits get the US country code. Anything else is turned away.
+export function normalizePhone(v: unknown): string | null {
+  const d = String(v ?? "").replace(/\D/g, "");
+  if (d.length === 10) return `1${d}`;
+  if (d.length === 11 && d.startsWith("1")) return d;
+  return null;
+}
+
+// The thank-you for a partner whose referral turned into paid work. It names no client.
+export function thankReferrerText(partnerName: string): string {
+  const first = partnerName.trim().split(/\s+/)[0] || "there";
+  return `Hi ${first}, this is Cory with Coastal Air Assessments. Thank you for sending someone our way. We took good care of them, and I appreciate you.`;
+}
+
+// A referred job that is paid and not yet thanked.
+export const needsThanks = (j: { referral_code?: string | null; final_paid_at?: string | null; referral_thanked_at?: string | null }): boolean =>
+  !!j.referral_code && !!j.final_paid_at && !j.referral_thanked_at;

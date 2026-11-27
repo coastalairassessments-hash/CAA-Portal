@@ -90,12 +90,13 @@ export function JobCard({ r, today, hero = false }: { r: Job; today: boolean; he
   );
 }
 
-export function Tiles({ n, refundCents = 0 }: { n: ReturnType<typeof needsYou>; refundCents?: number }) {
+export function Tiles({ n, refundCents = 0, thanks = 0 }: { n: ReturnType<typeof needsYou>; refundCents?: number; thanks?: number }) {
   const rows = [
     { n: n.approve, label: "New requests to approve", href: "/admin?tab=requests", tone: "dark" },
     { n: n.deposits, label: "Deposits waiting", href: "/admin?tab=requests", tone: "amber" },
     { n: n.toInvoice, label: "Final invoices to send", href: "/admin?tab=owed", tone: "teal" },
     { n: n.refunds, label: refundCents > 0 ? `Refunds due, ${formatMoney(refundCents)} to send` : "Refunds due", href: "/admin?tab=declined", tone: "amber" },
+    { n: thanks, label: "Referrers to thank", href: "/admin/referrals", tone: "teal" },
     { n: n.emails, label: "Client emails that did not send", href: "/admin?tab=all", tone: "amber" },
   ].filter((t) => t.n > 0);
   if (rows.length === 0) return <p className="adm-ok">You&rsquo;re caught up. Nothing needs you.</p>;

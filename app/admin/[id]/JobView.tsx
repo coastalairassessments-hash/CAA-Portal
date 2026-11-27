@@ -322,7 +322,7 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
           </details>
         )}
         <Suspense fallback={null}>
-          <ReferralBox id={r.id} code={typeof r.referral_code === "string" ? r.referral_code : null} />
+          <ReferralBox id={r.id} code={typeof r.referral_code === "string" ? r.referral_code : null} paid={!!r.final_paid_at} thanked={!!r.referral_thanked_at} />
         </Suspense>
         {r.status === "confirmed" && (
           <Suspense fallback={null}>
