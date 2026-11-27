@@ -236,3 +236,61 @@ describe("alerts", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("a burst sent at the same moment", () => {
+  // Every request in a burst passes the count before any row is saved; keepWithinLimit settles it after.
+  function burstDeps() {
+    const rows: string[] = [];
+    let n = 0;
+    return {
+      rows,
+      deps: makeDeps({
+        insert: vi.fn<SubmitDeps["insert"]>(async () => {
+          const id = `row-${++n}`;
+          rows.push(id);
+          return { id };
+        }),
+      }) as MockDeps & { keepWithinLimit: SubmitDeps["keepWithinLimit"] },
+    };
+  }
+
+  it("keeps the first MAX_PER_HOUR rows, removes the rest, and alerts only for the kept", async () => {
+    const { rows, deps } = burstDeps();
+    deps.keepWithinLimit = vi.fn(async (_h, _s, id, limit) => {
+      const keep = rows.indexOf(id) < limit;
+      if (!keep) rows.splice(rows.indexOf(id), 1);
+      return keep;
+    });
+    const results = await Promise.all(Array.from({ length: 8 }, () => submitRequest(good, "203.0.113.9", deps)));
+    expect(results.filter((r) => r.ok)).toHaveLength(MAX_PER_HOUR);
+    expect(results.filter((r) => !r.ok && r.status === 429)).toHaveLength(8 - MAX_PER_HOUR);
+    expect(rows).toHaveLength(MAX_PER_HOUR);
+    expect(deps.notify).toHaveBeenCalledTimes(MAX_PER_HOUR);
+  });
+
+  it("asks about this device's own row, with this hour's window", async () => {
+    const { deps } = burstDeps();
+    deps.keepWithinLimit = vi.fn(async () => true);
+    await submitRequest(good, "203.0.113.9", deps);
+    const call = (deps.keepWithinLimit as unknown as Mock).mock.calls[0];
+    expect(call[2]).toBe("row-1");
+    expect(call[3]).toBe(MAX_PER_HOUR);
+    expect(call[1]).toBe(new Date(NOW.getTime() - 3_600_000).toISOString());
+  });
+
+  it("never blocks a real client when the settle check itself fails", async () => {
+    const { deps } = burstDeps();
+    deps.keepWithinLimit = vi.fn(async () => {
+      throw new Error("db down");
+    });
+    expect(await submitRequest(good, "203.0.113.9", deps)).toEqual({ ok: true });
+    expect(deps.notify).toHaveBeenCalledTimes(1);
+  });
+
+  it("is skipped when the connection has no address to count by", async () => {
+    const { deps } = burstDeps();
+    deps.keepWithinLimit = vi.fn(async () => false);
+    expect(await submitRequest(good, null, deps)).toEqual({ ok: true });
+    expect(deps.keepWithinLimit).not.toHaveBeenCalled();
+  });
+});

@@ -46,6 +46,10 @@ export type NewRequestRow = {
 
 export type SubmitDeps = {
   countRecentByIp: (ipHash: string, sinceIso: string) => Promise<number>;
+  // Run after the row is saved. Requests that arrive together all pass the count above before any
+  // is saved, so this settles it by arrival order: only the first `limit` rows from one device
+  // in the window are kept, and a row beyond that is removed. Returns whether this row stays.
+  keepWithinLimit?: (ipHash: string, sinceIso: string, id: string, limit: number) => Promise<boolean>;
   insert: (row: NewRequestRow) => Promise<{ id: string; public_token?: string | null }>;
   notify: (row: NewRequestRow & { id: string; public_token?: string | null }) => Promise<void>;
   // Tell Cory a client could not get a payment link, so he can fix QuickBooks.
@@ -121,8 +125,13 @@ export async function submitRequest(
   const data = parsed.data;
 
   const ipHash = ip ? hashIp(ip, deps.ipSalt) : null;
+  const since = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+  const tooMany = {
+    ok: false as const,
+    status: 429 as const,
+    error: "We've received several requests from this connection. Please try again later or give us a call.",
+  };
   if (ipHash) {
-    const since = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
     let recent = 0;
     try {
       recent = await deps.countRecentByIp(ipHash, since);
@@ -130,14 +139,7 @@ export async function submitRequest(
       // Spam protection must never block a real client. Log it and carry on.
       logFailure("spam-check", err);
     }
-    if (recent >= MAX_PER_HOUR) {
-      return {
-        ok: false,
-        status: 429,
-        error:
-          "We've received several requests from this connection. Please try again later or give us a call.",
-      };
-    }
+    if (recent >= MAX_PER_HOUR) return tooMany;
   }
 
   // Internal only. Never returned to the client.
@@ -212,6 +214,17 @@ export async function submitRequest(
       status: 500,
       error: `Something went wrong on our end. Please call us and we'll take it from here. (Ref: ${errorRef("insert", err)})`,
     };
+  }
+
+  // A burst sent at the same moment gets past the count above. Settle it now, before anyone is alerted or charged.
+  if (ipHash && deps.keepWithinLimit) {
+    let keep = true;
+    try {
+      keep = await deps.keepWithinLimit(ipHash, since, id, MAX_PER_HOUR);
+    } catch (err) {
+      logFailure("spam-settle", err); // never block a real client over the check itself
+    }
+    if (!keep) return tooMany;
   }
 
   // Booking and paying: the payment page takes over, and Cory hears when the deposit lands.

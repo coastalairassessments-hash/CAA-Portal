@@ -1,5 +1,6 @@
 // Called every hour by a Netlify scheduled function. Sends the morning (7 AM) and evening (7 PM) briefing.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { cronAuthorized } from "@/lib/http";
 import { NextResponse, connection } from "next/server";
 import { addDays, todayInNewYork, TIME_ZONE } from "@/lib/dates";
 import { buildBriefing, type BriefJob } from "@/lib/briefing";
@@ -91,7 +92,7 @@ async function nudgeDeposits(db: SupabaseClient, data: unknown[]) {
 export async function GET(req: Request) {
   await connection();
   const secret = clean(process.env.IP_HASH_SALT);
-  if (!secret || req.headers.get("x-cron-key") !== secret) {
+  if (!cronAuthorized(req, secret)) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
   const url = new URL(req.url);
