@@ -1,3 +1,4 @@
+import { CANCEL_RULE_SHORT } from "./policy";
 // Sent the moment a client submits a request, so they know it landed and what happens next.
 import { formatDateLabel } from "./dates";
 import { formatTime, issueLabel } from "./labels";
@@ -23,7 +24,7 @@ export function receivedEmail(
       "2. Your deposit (75% of the first hour) locks the time. If two people ask for the same time, the first deposit gets it.",
       "3. You pay the balance after the visit. Your written report follows within days.",
       "",
-      "Cancel more than 24 hours ahead and your deposit is refunded in full. Rescheduling is free.",
+      CANCEL_RULE_SHORT,
       "",
       ...bookingLine(r, siteUrl),
       `Questions? Reply to this email, or call or text ${PHONE}.`,

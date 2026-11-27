@@ -27,3 +27,33 @@ export function hoursUntil(date: string, time: string, now: Date = new Date()): 
 
 export const refundDue = (date: string, time: string, now: Date = new Date()): boolean =>
   hoursUntil(date, time, now) > REFUND_WINDOW_HOURS;
+
+// The late-cancel fee. Every deposit is larger than this, so a late cancel always leaves a refund.
+export const LATE_CANCEL_FEE_CENTS = 25000;
+
+// Which rule a booking is held to: the policy version its client accepted. Bookings accepted under v2
+// keep the v2 rule (inside 24 hours the whole deposit is kept, no late reschedule).
+export const policyAllowsLateOptions = (policyVersion: string | null | undefined): boolean =>
+  !!policyVersion && !policyVersion.startsWith("v2");
+
+export type CancelOutcome = {
+  window: "free" | "late";
+  hoursBefore: number;
+  feeCents: number;
+  refundCents: number;
+};
+
+// What cancelling now costs. More than 24 hours out: nothing. Inside 24 hours: the fee, and the rest comes back.
+// A booking under the old v2 policy keeps its whole deposit inside 24 hours.
+export function cancelOutcome(
+  date: string,
+  time: string,
+  depositCents: number,
+  policyVersion?: string | null,
+  now: Date = new Date(),
+): CancelOutcome {
+  const hoursBefore = hoursUntil(date, time, now);
+  if (hoursBefore > REFUND_WINDOW_HOURS) return { window: "free", hoursBefore, feeCents: 0, refundCents: depositCents };
+  const fee = policyAllowsLateOptions(policyVersion) ? Math.min(LATE_CANCEL_FEE_CENTS, depositCents) : depositCents;
+  return { window: "late", hoursBefore, feeCents: fee, refundCents: depositCents - fee };
+}

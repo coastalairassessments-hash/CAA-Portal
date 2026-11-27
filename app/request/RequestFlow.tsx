@@ -355,8 +355,8 @@ export default function RequestFlow({ dates, held, again, refCode }: { dates: st
               {issue === "post_remediation" && <p className="price-line"><strong>PRV results:</strong> {PRV_NOTICE}</p>}
               <p>
                 {instantFlow
-                  ? "You pay the deposit on the next screen, and your time is held while you do. Cancel more than 24 hours ahead for a full refund."
-                  : "Nothing to pay today. We confirm the price and send a secure link. Cancel more than 24 hours ahead for a full refund."}
+                  ? "You pay the deposit on the next screen, and your time is held while you do. Cancel more than 24 hours ahead for a full refund. Within 24 hours, reschedule once for free or cancel with a $250 fee."
+                  : "Nothing to pay today. We confirm the price and send a secure link. Cancel more than 24 hours ahead for a full refund. Within 24 hours, reschedule once for free or cancel with a $250 fee."}
               </p>
             </div>
           </div>

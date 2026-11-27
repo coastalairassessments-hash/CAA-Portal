@@ -15,7 +15,7 @@ import { googleCalendarLink } from "@/lib/calendar";
 import { cancelBooking, cancelJob, clearEmailFailed, declineRequest, deleteRequest, markDepositReceived, markRefunded, sendFinalInvoice } from "../actions";
 import { finalInvoice, minutesOnSite } from "@/lib/billing";
 import { isStripeId } from "@/lib/stripePay";
-import { hoursUntil, refundDue } from "@/lib/cancel";
+import { hoursUntil } from "@/lib/cancel";
 import { STAGES, stageDone } from "@/lib/stage";
 import { clientTypeLabel, intakeLines } from "@/lib/intake";
 import ConfirmForm from "./ConfirmForm";
@@ -208,8 +208,10 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
           <h2>{r.refunded_at ? "Deposit refunded" : "Refund due"}</h2>
           <p className="adm-line">
             {r.refunded_at
-              ? `Refunded ${formatStamp(r.refunded_at)}.`
-              : `Refund the ${formatMoney(deposit)} deposit in QuickBooks, then mark it refunded.`}
+              ? `Refunded ${typeof r.cancel_refund_cents === "number" ? formatMoney(r.cancel_refund_cents) : ""} ${formatStamp(r.refunded_at)}.`.replace("  "," ")
+              : typeof r.cancel_refund_cents === "number"
+                ? `Refund ${formatMoney(r.cancel_refund_cents)} of the ${formatMoney(deposit)} deposit${r.cancel_fee_cents ? `, and keep the ${formatMoney(r.cancel_fee_cents)} cancellation fee` : ""}. Then mark it refunded.`
+                : `Refund the ${formatMoney(deposit)} deposit in QuickBooks, then mark it refunded.`}
           </p>
           {!r.refunded_at && (
             <form action={markRefunded}>
@@ -310,9 +312,7 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
           <p className="adm-muted">
             {r.status === "offered"
               ? "No deposit received yet, so nothing to refund."
-              : refundDue(slot.date, slot.time)
-                ? `The visit is ${Math.round(hoursUntil(slot.date, slot.time))} hours away. The deposit is refunded in full.`
-                : "The visit is within 24 hours. The deposit is kept, as the policy says."}
+              : "When you cancel, the client gets a full refund of the deposit, whatever the time."}
           </p>
           <form action={cancelBooking}>
             <input type="hidden" name="id" value={r.id} />

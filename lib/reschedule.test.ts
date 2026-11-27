@@ -43,3 +43,28 @@ describe("movedEmail", () => {
     expect(m.attachments[0].filename).toBe("visit.ics");
   });
 });
+
+import { canLateMove } from "./reschedule";
+
+describe("one free late reschedule", () => {
+  const row = { status: "confirmed", source: "client", confirmed_date: "2026-10-27", confirmed_time: "10:00", policy_version: "v3-2026-11", late_reschedules: 0 };
+  const inside = new Date("2026-10-26T20:00:00Z"); // 18 hours before
+  it("is offered inside 24 hours", () => expect(canLateMove(row, inside)).toBe(true));
+  it("is not offered more than 24 hours out (the ordinary move applies)", () => {
+    expect(canLateMove(row, new Date("2026-10-25T12:00:00Z"))).toBe(false);
+  });
+  it("is spent after one use", () => expect(canLateMove({ ...row, late_reschedules: 1 }, inside)).toBe(false));
+  it("is not offered under the old v2 policy", () => expect(canLateMove({ ...row, policy_version: "v2-2026-11" }, inside)).toBe(false));
+  it("is not offered once the visit has started or passed", () => {
+    expect(canLateMove({ ...row, arrived_at: "2026-10-27T14:00:00Z" }, inside)).toBe(false);
+    expect(canLateMove(row, new Date("2026-10-27T15:00:00Z"))).toBe(false);
+  });
+  it("is not offered for an unpaid booking", () => expect(canLateMove({ ...row, status: "offered" }, inside)).toBe(false));
+});
+
+describe("late reschedule once we are on the way", () => {
+  it("is not offered", () => {
+    const r = { status: "confirmed", source: "client", confirmed_date: "2026-10-27", confirmed_time: "10:00", policy_version: "v3-2026-11", late_reschedules: 0, en_route_at: "2026-10-27T13:00:00Z" };
+    expect(canLateMove(r, new Date("2026-10-27T13:30:00Z"))).toBe(false);
+  });
+});

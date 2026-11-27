@@ -4,6 +4,7 @@ import { NextResponse, connection } from "next/server";
 import { serviceDb, validToken } from "@/lib/bookingServer";
 import { getCheckout, isStripeId } from "@/lib/stripePay";
 import { createDeposit } from "@/lib/depositPay";
+import { POLICY_VERSION } from "@/lib/policy";
 
 export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
   await connection();
@@ -18,6 +19,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     .eq("public_token", token)
     .maybeSingle();
   if (!r || r.status !== "offered" || !r.qb_deposit_invoice_id) return NextResponse.redirect(back, 303);
+
+  // The deposit screen showed the cancellation rule. Keep when, and which version, in case it is ever disputed.
+  await db.from("requests").update({ deposit_policy_seen_at: new Date().toISOString(), deposit_policy_version: POLICY_VERSION }).eq("id", r.id);
 
   // Not a Stripe payment (an older QuickBooks invoice): use its own link.
   if (!isStripeId(r.qb_deposit_invoice_id)) return NextResponse.redirect(r.pay_url || back, 303);

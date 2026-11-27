@@ -2,7 +2,7 @@
 import { formatDateLabel } from "./dates";
 import { formatTime } from "./labels";
 import { depositCents, formatMoney } from "./pricing";
-import { refundDue } from "./cancel";
+import { cancelOutcome, policyAllowsLateOptions } from "./cancel";
 import { REPLY_PROMISE } from "./business";
 import { holdActive, holdEndsAt } from "./instant";
 
@@ -18,6 +18,8 @@ export type BookingRow = {
   offered_at?: string | null;
   left_at: string | null;
   final_paid_at: string | null;
+  policy_version?: string | null;
+  late_reschedules?: number | null;
 };
 
 export const CLIENT_STEPS = ["Requested", "Time confirmed", "Deposit paid", "Visit done", "Paid"] as const;
@@ -72,9 +74,13 @@ export function bookingView(r: BookingRow, now: Date = new Date()) {
   let cancelNote = "";
   if (active) {
     if (r.status === "confirmed") {
-      cancelNote = refundDue(date, time, now)
-        ? "Cancel now and your deposit is refunded in full."
-        : "This is within 24 hours of the visit, so the deposit is not refunded.";
+      const o = cancelOutcome(date, time, r.deposit_cents ?? depositCents(r.issue), r.policy_version, now);
+      cancelNote =
+        o.window === "free"
+          ? "Cancel now and your deposit is refunded in full."
+          : policyAllowsLateOptions(r.policy_version)
+            ? `This is within 24 hours of the visit. You can reschedule once for free, or cancel with a ${formatMoney(o.feeCents)} cancellation fee and ${formatMoney(o.refundCents)} of your deposit refunded.`
+            : "This is within 24 hours of the visit, so the deposit is not refunded.";
     } else {
       cancelNote = "No deposit has been paid, so there is nothing to refund.";
     }

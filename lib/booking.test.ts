@@ -27,3 +27,17 @@ describe("bookingView", () => {
     expect(bookingView({ ...base, status: "confirmed", left_at: "x" }).canCancel).toBe(false);
   });
 });
+
+describe("cancel note under the late-cancel rule", () => {
+  const base = { status: "confirmed", issue: "mold", preferred_date: "2026-10-27", preferred_time: "10:00", confirmed_date: "2026-10-27", confirmed_time: "10:00", deposit_cents: 51375, left_at: null, final_paid_at: null };
+  const inside = new Date("2026-10-26T20:00:00Z");
+  it("names the fee and the refund for a current-policy booking", () => {
+    const n = bookingView({ ...base, policy_version: "v3-2026-11" } as never, inside).cancelNote;
+    expect(n).toContain("$250.00");
+    expect(n).toContain("$263.75");
+    expect(n).toContain("reschedule once");
+  });
+  it("keeps the old wording for a v2 booking", () => {
+    expect(bookingView({ ...base, policy_version: "v2-2026-11" } as never, inside).cancelNote).toContain("not refunded");
+  });
+});

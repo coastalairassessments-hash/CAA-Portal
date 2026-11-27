@@ -23,3 +23,34 @@ describe("cancellation window", () => {
     expect(refundDue("2026-10-27", "12:30", now)).toBe(true); // 26.5h
   });
 });
+
+import { LATE_CANCEL_FEE_CENTS, cancelOutcome, policyAllowsLateOptions } from "./cancel";
+
+describe("late-cancel fee", () => {
+  const early = new Date("2026-10-26T12:00:00Z"); // 50 hours before
+  const late = new Date("2026-10-26T20:00:00Z"); // 18 hours before
+  const v3 = "v3-2026-11";
+
+  it("is $250", () => expect(LATE_CANCEL_FEE_CENTS).toBe(25000));
+  it("refunds everything more than 24 hours out", () => {
+    expect(cancelOutcome("2026-10-28", "10:00", 51375, v3, early)).toMatchObject({ window: "free", feeCents: 0, refundCents: 51375 });
+  });
+  it("keeps $250 and refunds the rest inside 24 hours (service, PRV, consultation)", () => {
+    expect(cancelOutcome("2026-10-27", "10:00", 51375, v3, late)).toMatchObject({ window: "late", feeCents: 25000, refundCents: 26375 });
+    expect(cancelOutcome("2026-10-27", "10:00", 43125, v3, late)).toMatchObject({ feeCents: 25000, refundCents: 18125 });
+    expect(cancelOutcome("2026-10-27", "10:00", 28125, v3, late)).toMatchObject({ feeCents: 25000, refundCents: 3125 });
+  });
+  it("treats exactly 24 hours as inside the window", () => {
+    const now = new Date("2026-10-26T14:00:00Z");
+    expect(cancelOutcome("2026-10-27", "10:00", 51375, v3, now).window).toBe("late");
+  });
+  it("never charges more than the deposit", () => {
+    expect(cancelOutcome("2026-10-27", "10:00", 20000, v3, late)).toMatchObject({ feeCents: 20000, refundCents: 0 });
+  });
+  it("keeps a v2 booking on the v2 rule: whole deposit kept inside 24 hours", () => {
+    expect(policyAllowsLateOptions("v2-2026-11")).toBe(false);
+    expect(policyAllowsLateOptions(null)).toBe(false);
+    expect(cancelOutcome("2026-10-27", "10:00", 51375, "v2-2026-11", late)).toMatchObject({ feeCents: 51375, refundCents: 0 });
+    expect(cancelOutcome("2026-10-28", "10:00", 51375, "v2-2026-11", early).refundCents).toBe(51375);
+  });
+});

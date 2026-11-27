@@ -15,7 +15,9 @@ import { LIVE_STEPS, liveState } from "@/lib/live";
 import { todayInNewYork } from "@/lib/dates";
 import { reportState } from "@/lib/report";
 import { publicResources } from "@/lib/guides";
-import { canMove, moveOptions } from "@/lib/reschedule";
+import { canLateMove, canMove, moveOptions } from "@/lib/reschedule";
+import { cancelOutcome, policyAllowsLateOptions } from "@/lib/cancel";
+import { CANCEL_RULE_SHORT } from "@/lib/policy";
 import { heldSlots } from "@/lib/availabilityServer";
 import { nextBookableDates } from "@/lib/dates";
 import { TIMES } from "@/lib/request";
@@ -49,7 +51,8 @@ async function Booking({ params, searchParams }: Props) {
   }
   const base = bookingView(r as never);
   const live = liveState(r as never, todayInNewYork());
-  const v = live ? { ...base, headline: live.headline, detail: live.detail, canCancel: false } : base;
+  // On visit day the client can still cancel or reschedule until we are on the way.
+  const v = live ? { ...base, headline: live.headline, detail: live.detail, canCancel: base.canCancel && live.step === 1 } : base;
   // Paying now: a book-and-pay hold, or an offer Cory sent that has its deposit invoice ready.
   const showPay = v.paying || (r.status === "offered" && r.booking_mode !== "instant" && !!r.qb_deposit_invoice_id);
   const first = String(r.name).trim().split(/\s+/)[0];
@@ -59,7 +62,13 @@ async function Booking({ params, searchParams }: Props) {
     const { data: ph } = db2 ? await db2.from("job_photos").select("path").eq("request_id", r.id).limit(200) : { data: [] };
     sentPhotos = (ph ?? []).filter((p) => isClientPhoto(p.path)).length;
   }
-  const movable = canMove(r as never);
+  const lateMovable = canLateMove(r as never);
+  const movable = canMove(r as never) || lateMovable;
+  const outcome =
+    r.status === "confirmed" && r.confirmed_date && r.confirmed_time
+      ? cancelOutcome(r.confirmed_date as string, String(r.confirmed_time).slice(0, 5), r.deposit_cents ?? depositCents(r.issue), r.policy_version)
+      : null;
+  const showLate = !!q.late && v.canCancel && !!outcome && outcome.window === "late" && policyAllowsLateOptions(r.policy_version);
   const moveSlots = movable
     ? moveOptions(
         nextBookableDates(new Date(), 40, 1),
@@ -77,6 +86,42 @@ async function Booking({ params, searchParams }: Props) {
       {q.error && q.error !== "taken" && <p className="error">That did not go through. Please call or text us.</p>}
       {q.moved && <p className="bk-lead">Done. Your visit moved. We emailed you the new time.</p>}
 
+      {showLate && outcome && (
+        <section className="bk-cancel" id="late">
+          <h2>Your visit is within 24 hours</h2>
+          <p>Would you like to reschedule instead?</p>
+          {lateMovable && moveSlots.length > 0 ? (
+            <form action={rescheduleMyBooking} className="field">
+              <input type="hidden" name="token" value={token} />
+              <p>You can reschedule once, free. Your deposit carries over.</p>
+              <label htmlFor="late-slot">New time</label>
+              <select id="late-slot" name="slot" required defaultValue="">
+                <option value="" disabled>Choose a time</option>
+                {moveSlots.map((s) => (
+                  <option key={`${s.date}|${s.time}`} value={`${s.date}|${s.time}`}>{formatDateLabel(s.date)} at {formatTime(s.time)}</option>
+                ))}
+              </select>
+              <button type="submit" className="btn">Reschedule for free</button>
+            </form>
+          ) : (
+            <p>A free reschedule is not available for this booking. Call or text <a href="tel:+15614000929">561-400-0929</a> if you want to talk it through.</p>
+          )}
+          <h3>Or cancel</h3>
+          <p>
+            Cancelling now has a {formatMoney(outcome.feeCents)} cancellation fee. We keep {formatMoney(outcome.feeCents)} of your{" "}
+            {formatMoney(r.deposit_cents ?? depositCents(r.issue))} deposit and refund {formatMoney(outcome.refundCents)}.
+          </p>
+          <form action={cancelMyBooking}>
+            <input type="hidden" name="token" value={token} />
+            <label className="check">
+              <input type="checkbox" name="accept" required /> I understand: {formatMoney(outcome.feeCents)} is kept and {formatMoney(outcome.refundCents)} is refunded.
+            </label>
+            <button type="submit" className="btn btn-quiet">Cancel and pay the {formatMoney(outcome.feeCents)} fee</button>
+          </form>
+          <p><Link href={`/booking/${token}`}>Keep my booking</Link></p>
+        </section>
+      )}
+
       {(live || showPay) && <LiveRefresh every={live ? 30000 : 8000} />}
 
       {showPay && (
@@ -87,6 +132,7 @@ async function Booking({ params, searchParams }: Props) {
             <p>We emailed you a secure link to pay the deposit. Open it and your booking confirms automatically.</p>
           )}
           <p className="bk-pay-note">Secure card payment. This page updates by itself once you pay.</p>
+          <p className="bk-pay-note">{CANCEL_RULE_SHORT} <Link href="/policy">Full policy</Link>.</p>
         </section>
       )}
       {v.expired && (
@@ -190,7 +236,7 @@ async function Booking({ params, searchParams }: Props) {
       {movable && moveSlots.length > 0 && (
         <section className="bk-prep">
           <h2>Pick a different time</h2>
-          <p>Free, and your deposit carries over.</p>
+          <p>{lateMovable ? "One free reschedule inside 24 hours, and your deposit carries over." : "Free, and your deposit carries over."}</p>
           <form action={rescheduleMyBooking} className="field">
             <input type="hidden" name="token" value={token} />
             <label htmlFor="slot">New time</label>
@@ -207,7 +253,7 @@ async function Booking({ params, searchParams }: Props) {
 
       <section className="bk-help">
         <h2>Need a different time?</h2>
-        <p>Call or text <a href="tel:+15614000929">561-400-0929</a>. Moving a visit more than 24 hours ahead is free.</p>
+        <p>Call or text <a href="tel:+15614000929">561-400-0929</a>. Moving a visit more than 24 hours ahead is free, and you get one free reschedule inside 24 hours.</p>
       </section>
 
       <p className="bk-foot">
