@@ -18,7 +18,7 @@ export default function TabBar({ counts }: { counts: NavCounts }) {
   const onList = path === "/admin";
   if (/^\/admin\/[0-9a-f-]{36}$/i.test(path)) return null; // job screens have their own bottom bar
   const items = [
-    { key: "home", label: "Today", href: "/admin/today", count: counts.today, active: path === "/admin/today" },
+    { key: "home", label: "Home", href: "/admin/today", count: counts.today, active: path === "/admin/today" },
     { key: "week", label: "Week", href: "/admin/week", count: 0, active: path === "/admin/week" },
     { key: "add", label: "Add", href: "/admin/add", count: 0, active: path.startsWith("/admin/add") },
     { key: "clients", label: "Clients", href: "/admin", count: counts.requests, active: onList },

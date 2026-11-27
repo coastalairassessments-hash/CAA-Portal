@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { money, needsYou, nextUp, type DashRow } from "./dashboard";
+import { money, needsYou, nextUp, pipeline, refundsDueCents, type DashRow } from "./dashboard";
 
 const NOW = new Date("2026-10-26T17:00:00Z"); // Mon Oct 26, 1 PM Eastern
 const base: DashRow = {
@@ -70,5 +70,32 @@ describe("needsYou emails", () => {
   it("counts jobs with a client email that did not go out", () => {
     const row = { id: "x", status: "confirmed", source: "client", issue: "mold_inspection", name: "A", confirmed_date: null, confirmed_time: null, deposit_cents: null, deposit_paid_at: null, arrived_at: null, left_at: null, lab_samples: null, extras_cents: null, final_paid_at: null, final_invoice_no: null, cancel_refund: null, refunded_at: null };
     expect(needsYou([{ ...row, email_failed_at: "2026-11-01T00:00:00Z" }, row]).emails).toBe(1);
+  });
+});
+
+describe("refundsDueCents", () => {
+  it("adds the amounts still to send back, not the ones already sent", () => {
+    const rows = [
+      { ...base, id: "1", status: "cancelled", cancel_refund: true, cancel_refund_cents: 26375 },
+      { ...base, id: "2", status: "cancelled", cancel_refund: true, cancel_refund_cents: 51375, refunded_at: "2026-10-25T00:00:00Z" },
+      { ...base, id: "3", status: "cancelled", cancel_refund: true }, // older cancel, no amount: its deposit
+      { ...base, id: "4", status: "cancelled", cancel_refund: false },
+    ];
+    expect(refundsDueCents(rows)).toBe(26375 + 51375);
+  });
+});
+
+describe("pipeline", () => {
+  it("places each job in one step and leaves cancelled out", () => {
+    const rows = [
+      { ...base, id: "1", status: "new" },
+      { ...base, id: "2", status: "offered" },
+      { ...base, id: "3" },
+      done({ id: "4" }),
+      done({ id: "5", final_invoice_no: "1001" }),
+      done({ id: "6", final_invoice_no: "1002", final_paid_at: "2026-10-27T00:00:00Z" }),
+      { ...base, id: "7", status: "cancelled" },
+    ];
+    expect(pipeline(rows)).toEqual({ new: 1, waitingDeposit: 1, booked: 1, toInvoice: 1, awaitingPayment: 1, paid: 1 });
   });
 });
