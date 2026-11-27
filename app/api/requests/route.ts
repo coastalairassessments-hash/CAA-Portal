@@ -1,5 +1,6 @@
 import { errorRef, submitRequest } from "@/lib/submit";
 import { productionDeps } from "@/lib/server-deps";
+import { BodyTooLargeError, readLimitedText } from "@/lib/http";
 
 const MAX_BODY_BYTES = 20_000;
 
@@ -12,15 +13,12 @@ function clientIp(request: Request): string | null {
 }
 
 export async function POST(request: Request) {
-  const length = Number(request.headers.get("content-length") ?? 0);
-  if (length > MAX_BODY_BYTES) {
-    return Response.json({ ok: false, error: "Request too large" }, { status: 413 });
-  }
-
+  // The size is counted as the bytes arrive: a chunked upload has no Content-Length to trust.
   let body: unknown;
   try {
-    body = await request.json();
-  } catch {
+    body = JSON.parse(await readLimitedText(request, MAX_BODY_BYTES));
+  } catch (err) {
+    if (err instanceof BodyTooLargeError) return Response.json({ ok: false, error: "Request too large" }, { status: 413 });
     return Response.json({ ok: false, error: "Invalid request" }, { status: 400 });
   }
 

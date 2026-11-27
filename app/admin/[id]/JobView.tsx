@@ -10,9 +10,12 @@ import { formatDateLabel } from "@/lib/dates";
 import { mapsLink } from "@/lib/admin";
 import { confirmText, offerText, smsLink } from "@/lib/confirm";
 import { GOOGLE_REVIEW_URL, depositReminderText, reviewText } from "@/lib/quicktexts";
+import { feedbackUrl, RATING_LABELS } from "@/lib/feedback";
+import { SITE_URL_FALLBACK } from "@/lib/notify";
+import { MAX_SUMMARY } from "@/lib/visitSummary";
 import { depositCents, firstHourCents, formatMoney } from "@/lib/pricing";
 import { googleCalendarLink } from "@/lib/calendar";
-import { cancelBooking, cancelJob, clearEmailFailed, declineRequest, deleteRequest, markDepositReceived, markRefunded, sendFinalInvoice } from "../actions";
+import { cancelBooking, cancelJob, clearEmailFailed, declineRequest, deleteRequest, markDepositReceived, markRefunded, sendFinalInvoice, sendVisitSummary } from "../actions";
 import { finalInvoice, minutesOnSite } from "@/lib/billing";
 import { isStripeId } from "@/lib/stripePay";
 import { hoursUntil } from "@/lib/cancel";
@@ -222,8 +225,32 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
         </section>
       )}
 
+      {!contractor && r.source === "client" && r.left_at && r.status === "confirmed" && (
+        <section className="adm-panel line" id="summary">
+          <h2>{r.visit_summary_sent_at ? "What we found: sent" : "Tell the client what we found"}</h2>
+          <p className="adm-muted">
+            {r.visit_summary_sent_at
+              ? `Emailed ${formatStamp(r.visit_summary_sent_at)}. You can send an update.`
+              : "A few plain sentences, sent the same day. Anxious clients call less when they hear from you first."}
+          </p>
+          <form action={sendVisitSummary}>
+            <input type="hidden" name="id" value={r.id} />
+            <textarea name="note" rows={5} maxLength={MAX_SUMMARY} required defaultValue={r.visit_summary ?? ""} className="adm-input" style={{ width: "100%" }} />
+            <button className="adm-btn primary wide" type="submit">{r.visit_summary_sent_at ? "Send update" : "Email the client"}</button>
+          </form>
+        </section>
+      )}
+
+      {typeof r.feedback_rating === "number" && (
+        <section className="adm-panel line">
+          <h2>Client feedback: {r.feedback_rating} of 5, {RATING_LABELS[r.feedback_rating]}</h2>
+          {r.feedback_note && <p className="adm-line">{r.feedback_note}</p>}
+          {r.feedback_rating <= 3 && <p className="adm-muted">Kept private. Worth a call to make it right.</p>}
+        </section>
+      )}
+
       {!contractor && r.final_paid_at && r.text_consent && GOOGLE_REVIEW_URL && (
-        <a className="adm-btn wide" href={smsLink(cr.phone, reviewText(cr, GOOGLE_REVIEW_URL))}>Text a review request</a>
+        <a className="adm-btn wide" href={smsLink(cr.phone, reviewText(cr, GOOGLE_REVIEW_URL, feedbackUrl({ public_token: r.public_token as string | null }, process.env.SITE_URL?.trim() || SITE_URL_FALLBACK)))}>Text a review request</a>
       )}
 
       <h2 className="adm-sub">Details</h2>
@@ -295,7 +322,7 @@ export default function JobView({ r, query, booked = [] }: { r: Job; query: Quer
           </details>
         )}
         <Suspense fallback={null}>
-          <ReferralBox id={r.id} code={typeof r.referral_code === "string" ? r.referral_code : null} />
+          <ReferralBox id={r.id} code={typeof r.referral_code === "string" ? r.referral_code : null} paid={!!r.final_paid_at} thanked={!!r.referral_thanked_at} />
         </Suspense>
         {r.status === "confirmed" && (
           <Suspense fallback={null}>

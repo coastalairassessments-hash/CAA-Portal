@@ -49,6 +49,21 @@ export function productionDeps(
       if (error) throw error;
       return count ?? 0;
     },
+    async keepWithinLimit(ipHash, sinceIso, id, limit) {
+      const { data, error } = await db
+        .from("requests")
+        .select("id")
+        .eq("ip_hash", ipHash)
+        .gte("created_at", sinceIso)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .limit(limit);
+      if (error) throw error;
+      if ((data ?? []).some((r) => r.id === id)) return true;
+      const { error: delError } = await db.from("requests").delete().eq("id", id);
+      if (delError) throw delError;
+      return false;
+    },
     async insert(row) {
       const { data, error } = await db
         .from("requests")

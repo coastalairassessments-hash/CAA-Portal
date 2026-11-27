@@ -1,14 +1,22 @@
 import { NextResponse, connection } from "next/server";
 import { parseComponents, parseSuggestions } from "@/lib/address";
+import { makeThrottle } from "@/lib/http";
 
 // Address help for the request form. Without a key it quietly returns nothing and the form works as plain typing.
 const KEY = () => process.env.GOOGLE_PLACES_KEY?.trim().replace(/^["']+|["']+$/g, "");
+// Each keystroke pause is one paid Google call, and this route is open to anyone. This slows a script
+// that hammers it; the key itself should also be limited to the Places API with a daily cap in Google Cloud.
+const throttle = makeThrottle(40, 60_000);
+function callerKey(req: Request) {
+  return (req.headers.get("x-nf-client-connection-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown").trim();
+}
 const none = () => NextResponse.json({ suggestions: [] }, { headers: { "Cache-Control": "no-store" } });
 
 export async function GET(req: Request) {
   await connection();
   const key = KEY();
   if (!key) return none();
+  if (!throttle.take(callerKey(req))) return NextResponse.json({ suggestions: [], place: null }, { status: 429, headers: { "Cache-Control": "no-store", "Retry-After": "60" } });
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
   const q = (url.searchParams.get("q") ?? "").trim();

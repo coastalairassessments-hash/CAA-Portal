@@ -6,12 +6,14 @@ import { type DashRow, type money, type needsYou, type pipeline } from "@/lib/da
 import { formatMoney } from "@/lib/pricing";
 import { progress } from "@/lib/stage";
 import { stampTime } from "../actions";
-import OfflineStamp from "../OfflineStamp";
+import OfflineStamp, { type EtaText } from "../OfflineStamp";
+import { bookingUrl } from "@/lib/links";
+import { SITE_URL_FALLBACK } from "@/lib/notify";
 
 export type Job = AdminRow & DashRow & { en_route_at?: string | null; arrived_at: string | null; left_at: string | null };
 
-function Stamp({ id, which, done, label }: { id: string; which: "en_route_at" | "arrived_at" | "left_at"; done: boolean; label: string }) {
-  if (!done) return <OfflineStamp id={id} which={which} label={label} className="adm-btn wide primary" />;
+function Stamp({ id, which, done, label, etaText }: { id: string; which: "en_route_at" | "arrived_at" | "left_at"; done: boolean; label: string; etaText?: EtaText }) {
+  if (!done) return <OfflineStamp id={id} which={which} label={label} className="adm-btn wide primary" etaText={etaText} />;
   return (
     <form action={stampTime}>
       <input type="hidden" name="id" value={id} />
@@ -73,7 +75,7 @@ export function JobCard({ r, today, hero = false }: { r: Job; today: boolean; he
           ) : r.en_route_at ? (
             <Stamp id={r.id} which="arrived_at" done={false} label="Arrived" />
           ) : (
-            <Stamp id={r.id} which="en_route_at" done={false} label="On my way" />
+            <Stamp id={r.id} which="en_route_at" done={false} label="On my way" etaText={canText ? { phone: r.phone!, name: r.name, link: bookingUrl(r as { public_token?: string | null }, process.env.SITE_URL?.trim() || SITE_URL_FALLBACK) } : undefined} />
           )}
         </div>
       )}
@@ -88,12 +90,13 @@ export function JobCard({ r, today, hero = false }: { r: Job; today: boolean; he
   );
 }
 
-export function Tiles({ n, refundCents = 0 }: { n: ReturnType<typeof needsYou>; refundCents?: number }) {
+export function Tiles({ n, refundCents = 0, thanks = 0 }: { n: ReturnType<typeof needsYou>; refundCents?: number; thanks?: number }) {
   const rows = [
     { n: n.approve, label: "New requests to approve", href: "/admin?tab=requests", tone: "dark" },
     { n: n.deposits, label: "Deposits waiting", href: "/admin?tab=requests", tone: "amber" },
     { n: n.toInvoice, label: "Final invoices to send", href: "/admin?tab=owed", tone: "teal" },
     { n: n.refunds, label: refundCents > 0 ? `Refunds due, ${formatMoney(refundCents)} to send` : "Refunds due", href: "/admin?tab=declined", tone: "amber" },
+    { n: thanks, label: "Referrers to thank", href: "/admin/referrals", tone: "teal" },
     { n: n.emails, label: "Client emails that did not send", href: "/admin?tab=all", tone: "amber" },
   ].filter((t) => t.n > 0);
   if (rows.length === 0) return <p className="adm-ok">You&rsquo;re caught up. Nothing needs you.</p>;

@@ -1,6 +1,7 @@
 // Called twice a day by a Netlify scheduled function. Tests the whole booking path and tells Cory's
 // phone only when something is wrong.
 import { NextResponse, connection } from "next/server";
+import { cronAuthorized } from "@/lib/http";
 import { heldSlots } from "@/lib/availabilityServer";
 import { testDepositInvoice } from "@/lib/depositTest";
 import { todayInNewYork } from "@/lib/dates";
@@ -13,7 +14,7 @@ const clean = (v?: string) => v?.trim().replace(/^["']+|["']+$/g, "").trim();
 export async function GET(req: Request) {
   await connection();
   const secret = clean(process.env.IP_HASH_SALT);
-  if (!secret || req.headers.get("x-cron-key") !== secret) return NextResponse.json({ ok: false }, { status: 401 });
+  if (!cronAuthorized(req, secret)) return NextResponse.json({ ok: false }, { status: 401 });
   const origin = new URL(req.url).origin;
 
   const checks = await runSelfCheck({
